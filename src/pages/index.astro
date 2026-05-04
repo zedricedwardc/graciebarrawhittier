@@ -9,7 +9,7 @@ import { homepageFaqs } from '../content/faqs';
 import { reviews } from '../content/reviews';
 import { nap } from '../content/nap';
 
-import homepageHero from '../assets/images/home/homepage-hero.png';
+import homepageHero from '../assets/images/home/homepage-hero-girl.jpg';
 import programCardKids from '../assets/images/home/program-card-kids.png';
 import programCardAdults from '../assets/images/home/program-card-adults.png';
 
@@ -62,64 +62,79 @@ const benefits = [
   canonical="https://gbwhittier.com/"
 >
   {/* ============================================================
-     SECTION 2 — HERO
+     SECTION 2 — HERO (full-bleed background image)
      ============================================================ */}
-  <section class="relative bg-gb-white pt-8 md:pt-12 pb-12 md:pb-20 px-4 md:px-6 overflow-hidden">
-    <div class="max-w-7xl mx-auto grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-      <div class="lg:col-span-7">
-        <p class="text-xs md:text-sm font-bold tracking-widest uppercase text-gb-red mb-4">
+  <section class="relative isolate overflow-hidden bg-gb-navy">
+    {/* Full-bleed background image */}
+    <Image
+      src={homepageHero}
+      alt="Young student smiling in a blue Gracie Barra gi at Gracie Barra Whittier, Whittier, CA"
+      widths={[768, 1280, 1920, 2400]}
+      sizes="100vw"
+      format="webp"
+      quality={82}
+      loading="eager"
+      class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
+    />
+
+    {/* Readability overlay — heavier on the left where the text sits */}
+    <div class="absolute inset-0 -z-10 bg-gradient-to-r from-gb-navy/90 via-gb-navy/60 to-gb-navy/10"></div>
+    <div class="absolute inset-0 -z-10 bg-gradient-to-t from-gb-navy/80 via-transparent to-transparent md:hidden"></div>
+
+    <div class="max-w-7xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-16 md:pb-24 lg:pb-32 lg:min-h-[640px] grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+      <div class="lg:col-span-7 text-gb-white">
+        <div class="flex items-center gap-3 mb-7 md:mb-10">
+          <img
+            src="/logo/gb-whittier-logo.webp"
+            alt=""
+            aria-hidden="true"
+            class="w-12 h-12 md:w-14 md:h-14 shrink-0"
+            width="56"
+            height="56"
+          />
+          <span class="text-xs md:text-sm font-bold tracking-wide uppercase text-gb-white/90">
+            #1 In Jiu-Jitsu Worldwide
+          </span>
+        </div>
+
+        <p class="text-xs md:text-sm font-bold tracking-widest uppercase text-gb-gold mb-4">
           Brazilian Jiu-Jitsu Classes in Whittier, CA for Kids and Adults
         </p>
 
-        <h1 class="text-2xl md:text-3xl font-semibold text-gb-navy mb-3">
-          Brazilian Jiu-Jitsu Classes in Whittier, CA
-        </h1>
+        <h1 class="sr-only">Brazilian Jiu-Jitsu Classes in Whittier, CA</h1>
 
-        <h2 class="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight text-gb-text leading-tight mb-5">
+        <p aria-hidden="true" class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-gb-white leading-[1.05] mb-5 drop-shadow-lg">
           Build Confidence.<br />Learn Real Self-Defense.
-        </h2>
+        </p>
 
-        <p class="text-base md:text-lg text-gb-text-muted leading-relaxed mb-7 max-w-xl">
+        <p class="text-base md:text-lg text-gb-white/90 leading-relaxed mb-7 max-w-xl">
           Structured Brazilian Jiu-Jitsu for kids, teens, and adults. Develop discipline, focus, and strength — on and off the mat.
         </p>
 
-        <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div class="flex flex-col sm:flex-row gap-4 sm:items-center">
           <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" />
-          <a href="tel:+15626401400" class="text-sm font-semibold text-gb-navy hover:text-gb-red transition-colors text-center sm:text-left">
-            Or call (562) 640-1400
+          <a href={`tel:${nap.phoneTel}`} class="text-sm font-semibold text-gb-white hover:text-gb-gold transition-colors text-center sm:text-left">
+            Or call {nap.phone}
           </a>
         </div>
       </div>
 
       <div class="lg:col-span-5">
-        <div class="relative">
-          <Image
-            src={homepageHero}
-            alt="Brazilian Jiu-Jitsu class at Gracie Barra Whittier in Whittier, CA"
-            widths={[480, 768, 1024]}
-            sizes="(min-width: 1024px) 480px, 100vw"
-            format="webp"
-            quality={80}
-            loading="eager"
-            class="w-full h-auto rounded-2xl shadow-xl"
-          />
+        <div class="bg-gb-white rounded-2xl shadow-2xl p-5 md:p-6 lg:max-w-sm lg:ml-auto border border-gb-bg-light">
+          <p class="text-xs uppercase tracking-widest text-gb-text-muted">Try Our Academy In</p>
+          <p class="text-xl font-bold text-gb-navy mt-1">{nap.addressLocality}, {nap.addressRegion}</p>
+          <p class="text-sm text-gb-text-muted mt-1 leading-snug">{nap.address}</p>
+          <a href={`tel:${nap.phoneTel}`} class="mt-1 inline-block text-sm font-semibold text-gb-navy hover:text-gb-red">
+            {nap.phone}
+          </a>
 
-          <div class="mt-6 lg:absolute lg:bottom-[-2rem] lg:right-[-1rem] lg:mt-0 lg:max-w-sm bg-gb-white rounded-2xl shadow-2xl p-5 md:p-6 border border-gb-bg-light">
-            <p class="text-xs uppercase tracking-widest text-gb-text-muted">Try Our Academy In</p>
-            <p class="text-xl font-bold text-gb-navy mt-1">{nap.addressLocality}, {nap.addressRegion}</p>
-            <p class="text-sm text-gb-text-muted mt-1 leading-snug">{nap.address}</p>
-            <a href={`tel:${nap.phoneTel}`} class="mt-1 inline-block text-sm font-semibold text-gb-navy hover:text-gb-red">
-              {nap.phone}
-            </a>
-
-            <div class="mt-4 pt-4 border-t border-gb-bg-light">
-              <span class="inline-block bg-gb-gold text-gb-navy text-xs font-bold tracking-wider px-3 py-1 rounded-full">
-                FREE 3-CLASS PASS
-              </span>
-              <p class="mt-2 text-sm text-gb-text">Free uniform rental included</p>
-              <div class="mt-3">
-                <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" fullWidth={true} />
-              </div>
+          <div class="mt-4 pt-4 border-t border-gb-bg-light">
+            <span class="inline-block bg-gb-gold text-gb-navy text-xs font-bold tracking-wider px-3 py-1 rounded-full">
+              FREE 3-CLASS PASS
+            </span>
+            <p class="mt-2 text-sm text-gb-text">Free uniform rental included</p>
+            <div class="mt-3">
+              <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" fullWidth={true} />
             </div>
           </div>
         </div>

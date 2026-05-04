@@ -4,11 +4,13 @@
  * Sections: minimal hero, reviews widget mount point, featured review quotes,
  * conversion CTA section. Per build brief Part 3 — Reviews.
  */
+import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
 import TrustStrip from '../components/cta/TrustStrip.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import { reviews } from '../content/reviews';
+import reviewsHero from '../assets/images/reviews/reviews-hero.jpg';
 
 const breadcrumbItems = [
   { name: 'Home', url: 'https://gbwhittier.com/' },
@@ -32,17 +34,32 @@ function initials(name: string): string {
 >
   <SchemaBreadcrumb items={breadcrumbItems} />
 
-  <!-- Section 1 — Hero (minimal, light bg) -->
-  <section class="bg-gb-bg-light py-12 md:py-20 px-4 md:px-6">
-    <div class="max-w-3xl mx-auto text-center">
-      <h1 class="text-3xl md:text-5xl font-bold text-gb-navy">
+  <!-- Section 1 — Hero (full-bleed background image) -->
+  <section class="relative isolate overflow-hidden bg-gb-navy text-gb-white">
+    <Image
+      src={reviewsHero}
+      alt="Gracie Barra Whittier students and instructors team photo"
+      widths={[768, 1280, 1920, 2400]}
+      sizes="100vw"
+      format="webp"
+      quality={82}
+      loading="eager"
+      class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
+    />
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-gb-navy/80 via-gb-navy/70 to-gb-navy/60"></div>
+
+    <div class="max-w-3xl mx-auto text-center px-4 md:px-6 py-16 md:py-24 lg:py-32">
+      <p class="text-xs md:text-sm font-bold tracking-widest uppercase text-gb-gold">
+        Real Reviews. Real Families.
+      </p>
+      <h1 class="mt-3 text-3xl md:text-5xl font-extrabold drop-shadow-lg">
         What Students Say About Gracie Barra Whittier
       </h1>
-      <p class="mt-4 text-lg text-gb-text-muted">
+      <p class="mt-4 text-lg text-gb-white/90">
         Real reviews from real families in Whittier, La Habra, La Mirada, and Pico Rivera.
       </p>
       <div class="mt-8 flex justify-center">
-        <CTAButton variant="secondary" label="Start My Free Trial" href="/#trial" />
+        <CTAButton variant="primary" label="Start My Free Trial" href="/#trial" />
       </div>
     </div>
   </section>

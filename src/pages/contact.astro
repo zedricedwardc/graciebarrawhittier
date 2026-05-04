@@ -5,11 +5,13 @@
  * Google Maps embed, service-area paragraph, and final CTA strip.
  * Per build brief Part 3 — Contact Us.
  */
+import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import SchemaLocalBusiness from '../components/seo/SchemaLocalBusiness.astro';
 import { nap } from '../content/nap';
+import contactHero from '../assets/images/contact/contact-hero.jpg';
 
 const breadcrumbItems = [
   { name: 'Home', url: 'https://gbwhittier.com/' },
@@ -67,19 +69,37 @@ const mapsEmbedSrc = `https://www.google.com/maps?q=${mapsQuery}&output=embed`;
   <SchemaBreadcrumb items={breadcrumbItems} />
   <SchemaLocalBusiness />
 
-  <!-- Section 1 — Contact info block (NAP in plain HTML) -->
+  <!-- Section 1 — Hero (full-bleed background image) -->
+  <section class="relative isolate overflow-hidden bg-gb-navy text-gb-white">
+    <Image
+      src={contactHero}
+      alt="Adult Brazilian Jiu-Jitsu class at Gracie Barra Whittier, CA"
+      widths={[768, 1280, 1920, 2400]}
+      sizes="100vw"
+      format="webp"
+      quality={82}
+      loading="eager"
+      class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
+    />
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-gb-navy/85 via-gb-navy/70 to-gb-navy/60"></div>
+
+    <div class="max-w-5xl mx-auto text-center px-4 md:px-6 py-16 md:py-24 lg:py-32">
+      <p class="text-xs md:text-sm font-bold tracking-widest uppercase text-gb-gold">
+        Visit · Call · Email
+      </p>
+      <h1 class="mt-3 text-3xl md:text-5xl font-extrabold drop-shadow-lg">
+        Contact Gracie Barra Whittier
+      </h1>
+      <p class="mt-4 text-lg text-gb-white/90 max-w-2xl mx-auto">
+        We&rsquo;re here to answer your questions about Brazilian Jiu-Jitsu classes for kids and adults.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 2 — Contact info block (NAP in plain HTML) -->
   <section class="py-12 md:py-20 px-4 md:px-6">
     <div class="max-w-5xl mx-auto">
-      <header class="text-center">
-        <h1 class="text-3xl md:text-5xl font-bold text-gb-navy">
-          Contact Gracie Barra Whittier
-        </h1>
-        <p class="mt-4 text-lg text-gb-text-muted">
-          We&rsquo;re here to answer your questions about Brazilian Jiu-Jitsu classes for kids and adults.
-        </p>
-      </header>
-
-      <div class="mt-10 grid gap-8 md:grid-cols-2">
+      <div class="grid gap-8 md:grid-cols-2">
         <div class="bg-gb-bg-light rounded-2xl p-6 md:p-8">
           <h2 class="text-xl md:text-2xl font-bold text-gb-navy">Visit, Call, or Email</h2>
           <address class="mt-4 not-italic text-gb-text leading-relaxed">
