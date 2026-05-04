@@ -74,14 +74,15 @@ const benefits = [
       format="webp"
       quality={82}
       loading="eager"
-      class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
+      class="absolute inset-0 -z-10 w-full h-full object-cover object-[center_30%]"
     />
 
-    {/* Readability overlay — heavier on the left where the text sits */}
-    <div class="absolute inset-0 -z-10 bg-gradient-to-r from-gb-navy/90 via-gb-navy/60 to-gb-navy/10"></div>
+    {/* Readability overlay — dark on left (text), lighter middle (subject visible),
+        dark again on right (card sits on solid area instead of over the subject). */}
+    <div class="absolute inset-0 -z-10 bg-gradient-to-r from-gb-navy/90 via-gb-navy/35 to-gb-navy/85"></div>
     <div class="absolute inset-0 -z-10 bg-gradient-to-t from-gb-navy/80 via-transparent to-transparent md:hidden"></div>
 
-    <div class="max-w-7xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-16 md:pb-24 lg:pb-32 lg:min-h-[640px] grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+    <div class="max-w-7xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-16 md:pb-24 lg:pb-28 lg:min-h-[560px] grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
       <div class="lg:col-span-7 text-gb-white">
         <div class="flex items-center gap-3 mb-7 md:mb-10">
           <img
