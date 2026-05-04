@@ -1,0 +1,58 @@
+---
+/**
+ * FunnelLayout — minimal layout for /kickstart and /congrats.
+ * NO nav, NO footer, NO AI chat, NO sticky CTA.
+ * Always noindex,nofollow.
+ */
+import '../styles/globals.css';
+
+export interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const fullTitle = title.includes('Gracie Barra')
+  ? title
+  : `${title} | Gracie Barra Whittier`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" type="image/webp" href="/logo/favicon.webp" />
+    <link rel="apple-touch-icon" href="/logo/favicon.webp" />
+    <meta name="generator" content={Astro.generator} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    />
+
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL('/logo/gb-whittier-logo.webp', Astro.site).href} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body class="min-h-screen flex flex-col bg-gb-white text-gb-text">
+    <header class="bg-gb-navy text-gb-white py-3 px-4 text-center text-sm">
+      <p>
+        <span class="font-semibold">Gracie Barra Whittier</span> &nbsp;&middot;&nbsp;
+        No risk &middot; No contracts &middot; Free uniform rental
+      </p>
+    </header>
+
+    <main id="main" class="flex-1">
+      <slot />
+    </main>
+  </body>
+</html>

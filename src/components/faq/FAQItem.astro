@@ -1,0 +1,38 @@
+---
+/**
+ * FAQItem — single accordion row using native <details>/<summary> for zero-JS A11y.
+ */
+export interface Props {
+  question: string;
+  answer: string;
+  open?: boolean;
+}
+
+const { question, answer, open = false } = Astro.props;
+---
+
+<details
+  class="group border-b border-gb-bg-light py-4"
+  open={open}
+>
+  <summary
+    class="flex items-center justify-between cursor-pointer list-none text-base md:text-lg font-semibold text-gb-text focus:outline-none focus-visible:ring-2 focus-visible:ring-gb-navy focus-visible:rounded"
+  >
+    <span>{question}</span>
+    <svg
+      class="w-5 h-5 ml-4 text-gb-navy shrink-0 transition-transform group-open:rotate-180"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fill-rule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 011.08 1.04l-4.25 4.4a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+        clip-rule="evenodd"
+      />
+    </svg>
+  </summary>
+  <div class="mt-3 text-sm md:text-base text-gb-text-muted leading-relaxed">
+    {answer}
+  </div>
+</details>

@@ -1,0 +1,39 @@
+---
+/**
+ * GTM — Google Tag Manager head + body snippets.
+ * Reads container ID from PUBLIC_GTM_ID; renders nothing if not set.
+ *
+ * Usage: place <GTM /> inside <head> for the head snippet, and
+ *        <GTM body /> immediately after <body> for the noscript iframe.
+ */
+export interface Props {
+  body?: boolean;
+}
+
+const { body = false } = Astro.props;
+const gtmId = import.meta.env.PUBLIC_GTM_ID as string | undefined;
+---
+
+{
+  gtmId && !body && (
+    <script
+      is:inline
+      define:vars={{ gtmId }}
+      set:html={`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`}
+    />
+  )
+}
+
+{
+  gtmId && body && (
+    <noscript>
+      <iframe
+        src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+        height="0"
+        width="0"
+        style="display:none;visibility:hidden"
+        title="GTM"
+      />
+    </noscript>
+  )
+}

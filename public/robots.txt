@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /kickstart
+Disallow: /congrats
+Sitemap: https://gbwhittier.com/sitemap-index.xml

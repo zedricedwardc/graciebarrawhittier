@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(git fetch *)",
+      "Bash(mkdir -p ~/.ssh)",
+      "Bash(ssh-keyscan -t rsa,ecdsa,ed25519 github.com)",
+      "Bash(git remote *)",
+      "Bash(git config *)",
+      "Bash(npm --version)",
+      "Bash(mkdir -p \"C:/Users/herna/Downloads/Graciebarra whittier website/_scaffold\")",
+      "Bash(npm create *)",
+      "Bash(shopt -s dotglob)",
+      "Bash(mv * ..)",
+      "Read(//c/Users/herna/Downloads/**)",
+      "Bash(rmdir _scaffold)",
+      "Bash(npm run *)",
+      "Bash(npx astro *)",
+      "Bash(grep -rn \"Get My Free Class\\\\|^Submit$\\\\|Click Here\\\\|Get Started$\" src/)",
+      "Bash(echo \"---exit: $?---\")",
+      "Bash(echo \"PID:$!\")",
+      "Bash(curl -sf -o /dev/null -w \"%{http_code}\" http://localhost:4321/)",
+      "Bash(curl -sf -o /dev/null -w \"HTTP_CODE:%{http_code}\\\\n\" http://localhost:4321/)",
+      "Bash(curl -s http://localhost:4321/)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(curl -s http://localhost:4321/kids-martial-arts/ -o /tmp/kids.html)",
+      "Bash(curl -s http://localhost:4321/adults-jiu-jitsu/ -o /tmp/adults.html)",
+      "Read(//tmp/**)",
+      "Bash(pkill -f \"astro dev\")",
+      "Bash(grep -oE 'Get Started[^<\"]{0,15}' /tmp/kids.html)",
+      "Bash(grep -oE 'Get Started[^<\"]{0,15}' /tmp/adults.html)",
+      "Bash(grep -o \"Part 4: SEO.\\\\{0,8000\\\\}\" \"C:/Users/herna/Downloads/Graciebarra whittier website/docs/_internal/brief-extract.txt\")",
+      "PowerShell($text = Get-Content -Raw \"C:\\\\Users\\\\herna\\\\Downloads\\\\Graciebarra whittier website\\\\docs\\\\_internal\\\\brief-extract.txt\"; $idx = $text.IndexOf\\(\"Part 4: SEO\"\\); $text.Substring\\($idx, [Math]::Min\\(8000, $text.Length - $idx\\)\\))",
+      "Bash(node audit-tmp.mjs)",
+      "Bash(cat)",
+      "Bash(node congrats-desc.mjs)",
+      "Bash(node -e ' *)"
+    ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
+  }
+}

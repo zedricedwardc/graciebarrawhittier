@@ -1,0 +1,55 @@
+---
+/**
+ * SchemaLocalBusiness — JSON-LD LocalBusiness for Gracie Barra Whittier.
+ * Pulls NAP from src/content/nap.ts so address/phone are never duplicated.
+ */
+import { nap } from '../../content/nap';
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'MartialArtsSchool',
+  name: nap.name,
+  url: 'https://gbwhittier.com',
+  telephone: nap.phone,
+  email: nap.email,
+  priceRange: nap.priceRange,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: nap.streetAddress,
+    addressLocality: nap.addressLocality,
+    addressRegion: nap.addressRegion,
+    postalCode: nap.postalCode,
+    addressCountry: nap.addressCountry,
+  },
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: nap.geo.latitude,
+    longitude: nap.geo.longitude,
+  },
+  // Placeholder hours — Wave 1: confirm with studio per build brief Open Items.
+  openingHoursSpecification: [
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      opens: '09:00',
+      closes: '21:00',
+    },
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: 'Saturday',
+      opens: '09:00',
+      closes: '13:00',
+    },
+  ],
+  areaServed: nap.serviceAreas.map((city) => ({
+    '@type': 'City',
+    name: city,
+  })),
+};
+---
+
+<script
+  is:inline
+  type="application/ld+json"
+  set:html={JSON.stringify(schema)}
+/>

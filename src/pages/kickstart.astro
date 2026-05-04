@@ -1,0 +1,328 @@
+---
+/**
+ * /kickstart — post opt-in booking page.
+ * FunnelLayout: NO nav, NO footer, NO AI chat, NO sticky CTA.
+ * The calendar IS the action on this page.
+ *
+ * Reached after homepage opt-in submit. Optional `?name=Jane` query param
+ * is read client-side to personalize the H1.
+ */
+import FunnelLayout from '../layouts/FunnelLayout.astro';
+import TrustStrip from '../components/cta/TrustStrip.astro';
+
+// 5 GHL calendar IDs (from brief Part 5, GHL Integration Notes)
+const calendars = [
+  {
+    key: 'tiny',
+    program: 'Tiny Champions',
+    ageRange: 'Ages 3–4',
+    id: '92KP3e1i9f1m28FjjqQH',
+  },
+  {
+    key: 'lc1',
+    program: 'Little Champions 1',
+    ageRange: 'Ages 5–6',
+    id: 'H8wlC2iJPBWZaa5we8sv',
+  },
+  {
+    key: 'lc2',
+    program: 'Little Champions 2',
+    ageRange: 'Ages 7–9',
+    id: '3FVkHm5u7ntLbQlp39D4',
+  },
+  {
+    key: 'juniors',
+    program: 'Juniors Jiu-Jitsu',
+    ageRange: 'Ages 10–15',
+    id: 'iIdRSCgmkmSRoiERNjRw',
+  },
+  {
+    key: 'adults',
+    program: 'Adults Brazilian Jiu-Jitsu',
+    ageRange: 'Ages 16+',
+    id: 'SOFcOBaw1OysvzMsfuxa',
+  },
+];
+---
+
+<FunnelLayout
+  title="You're In! Your Free 3-Class Pass Is Reserved"
+  description="Your free 3-class pass at Gracie Barra Whittier is reserved. Book your first class below."
+>
+  <!-- Section 1: Confirmation header -->
+  <section class="max-w-3xl mx-auto px-4 md:px-6 pt-10 md:pt-16 pb-6 text-center">
+    <p class="text-gb-text-muted uppercase tracking-widest text-xs md:text-sm font-semibold mb-3">
+      Free 3-Class Pass &middot; Reserved
+    </p>
+    <h1
+      id="kickstart-headline"
+      class="text-3xl md:text-5xl font-extrabold text-gb-navy leading-tight"
+    >
+      You're In! Your Free 3-Class Pass Is Reserved.
+    </h1>
+    <p class="mt-5 text-base md:text-lg text-gb-text-muted max-w-2xl mx-auto">
+      One last step &mdash; book your first class below. Choose the program that
+      matches your (or your child's) age and pick a time that works for you.
+    </p>
+  </section>
+
+  <!-- Section 2: Age routing guide -->
+  <section class="max-w-3xl mx-auto px-4 md:px-6 pb-8">
+    <div class="bg-gb-bg-light rounded-2xl p-6 md:p-8">
+      <h2 class="text-xl md:text-2xl font-bold text-gb-navy mb-3">
+        Not sure which program to choose?
+      </h2>
+      <p class="text-gb-text-muted mb-4">
+        Here's a quick guide to match each student to the right program:
+      </p>
+      <ul class="space-y-2 text-gb-text">
+        <li class="flex items-baseline gap-3">
+          <span class="font-semibold text-gb-navy whitespace-nowrap">Ages 3–4:</span>
+          <span>Tiny Champions</span>
+        </li>
+        <li class="flex items-baseline gap-3">
+          <span class="font-semibold text-gb-navy whitespace-nowrap">Ages 5–6:</span>
+          <span>Little Champions 1</span>
+        </li>
+        <li class="flex items-baseline gap-3">
+          <span class="font-semibold text-gb-navy whitespace-nowrap">Ages 7–9:</span>
+          <span>Little Champions 2</span>
+        </li>
+        <li class="flex items-baseline gap-3">
+          <span class="font-semibold text-gb-navy whitespace-nowrap">Ages 10–15:</span>
+          <span>Juniors Jiu-Jitsu</span>
+        </li>
+        <li class="flex items-baseline gap-3">
+          <span class="font-semibold text-gb-navy whitespace-nowrap">Ages 16+:</span>
+          <span>Adults Brazilian Jiu-Jitsu</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Section 3: Survey-driven calendar selector -->
+  <section class="max-w-3xl mx-auto px-4 md:px-6 pb-10">
+    <h2 class="text-2xl md:text-3xl font-bold text-gb-navy mb-2 text-center">
+      Pick Your First Class
+    </h2>
+    <p class="text-center text-gb-text-muted mb-6">
+      Answer two quick questions and we'll show you the right calendar.
+    </p>
+
+    <form id="kickstart-survey" class="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm" novalidate>
+      <!-- Q1: Who are you booking for? -->
+      <fieldset class="mb-6">
+        <legend class="text-lg font-semibold text-gb-navy mb-3">
+          1. Who are you booking for?
+        </legend>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="cursor-pointer">
+            <input type="radio" name="bookingFor" value="self" class="peer sr-only" />
+            <span
+              class="flex items-center justify-center min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy peer-checked:bg-gb-navy peer-checked:text-white peer-checked:border-gb-navy peer-focus-visible:ring-2 peer-focus-visible:ring-gb-navy peer-focus-visible:ring-offset-2"
+            >
+              Myself
+            </span>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="bookingFor" value="other" class="peer sr-only" />
+            <span
+              class="flex items-center justify-center min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy peer-checked:bg-gb-navy peer-checked:text-white peer-checked:border-gb-navy peer-focus-visible:ring-2 peer-focus-visible:ring-gb-navy peer-focus-visible:ring-offset-2"
+            >
+              Someone else (e.g. my child)
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- Q2: Age (only when "other") -->
+      <fieldset id="age-question" class="mb-2 hidden">
+        <legend class="text-lg font-semibold text-gb-navy mb-3">
+          2. How old is the student?
+        </legend>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <button type="button" data-age-range="tiny" class="age-btn min-h-[56px] px-2 rounded-full border-2 border-gray-300 font-semibold text-sm transition-colors hover:border-gb-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-gb-navy focus-visible:ring-offset-2">
+            3–4
+          </button>
+          <button type="button" data-age-range="lc1" class="age-btn min-h-[56px] px-2 rounded-full border-2 border-gray-300 font-semibold text-sm transition-colors hover:border-gb-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-gb-navy focus-visible:ring-offset-2">
+            5–6
+          </button>
+          <button type="button" data-age-range="lc2" class="age-btn min-h-[56px] px-2 rounded-full border-2 border-gray-300 font-semibold text-sm transition-colors hover:border-gb-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-gb-navy focus-visible:ring-offset-2">
+            7–9
+          </button>
+          <button type="button" data-age-range="juniors" class="age-btn min-h-[56px] px-2 rounded-full border-2 border-gray-300 font-semibold text-sm transition-colors hover:border-gb-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-gb-navy focus-visible:ring-offset-2">
+            10–15
+          </button>
+          <button type="button" data-age-range="adults" class="age-btn min-h-[56px] px-2 rounded-full border-2 border-gray-300 font-semibold text-sm transition-colors hover:border-gb-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-gb-navy focus-visible:ring-offset-2">
+            16+
+          </button>
+        </div>
+      </fieldset>
+    </form>
+  </section>
+
+  <!-- Calendar embeds — exactly one shown at a time via JS -->
+  <section class="max-w-4xl mx-auto px-4 md:px-6 pb-12">
+    <div id="calendar-placeholder" class="text-center py-10 text-gb-text-muted">
+      <p>Choose an option above to see available class times.</p>
+    </div>
+
+    {
+      calendars.map((cal) => (
+        <div
+          id={`calendar-${cal.key}`}
+          class="calendar-embed hidden"
+          data-calendar-id={cal.id}
+        >
+          <div class="mb-4">
+            <p class="text-gb-text-muted uppercase tracking-widest text-xs font-semibold">
+              {cal.ageRange}
+            </p>
+            <h3 class="text-2xl font-bold text-gb-navy">{cal.program}</h3>
+          </div>
+          <div class="rounded-2xl overflow-hidden border border-gray-200 bg-white">
+            <iframe
+              src={`https://api.leadconnectorhq.com/widget/booking/${cal.id}`}
+              loading="lazy"
+              title={`Book your ${cal.program} class at Gracie Barra Whittier`}
+              style="width: 100%; min-height: 720px; border: 0;"
+            />
+          </div>
+        </div>
+      ))
+    }
+  </section>
+
+  <!-- Section 4: What happens next -->
+  <section class="bg-gb-bg-light py-12 md:py-16">
+    <div class="max-w-4xl mx-auto px-4 md:px-6">
+      <h2 class="text-2xl md:text-3xl font-bold text-gb-navy text-center mb-8">
+        What Happens Next
+      </h2>
+      <ol class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <li class="bg-white rounded-2xl p-6 text-center">
+          <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-gb-red text-white font-bold text-lg flex items-center justify-center">
+            1
+          </div>
+          <h3 class="font-semibold text-gb-navy mb-2">Book your first class</h3>
+          <p class="text-gb-text-muted text-sm">
+            Use the calendar above to pick a time that works for you.
+          </p>
+        </li>
+        <li class="bg-white rounded-2xl p-6 text-center">
+          <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-gb-red text-white font-bold text-lg flex items-center justify-center">
+            2
+          </div>
+          <h3 class="font-semibold text-gb-navy mb-2">Show up</h3>
+          <p class="text-gb-text-muted text-sm">
+            Wear comfortable workout clothes &mdash; we provide the uniform.
+          </p>
+        </li>
+        <li class="bg-white rounded-2xl p-6 text-center">
+          <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-gb-red text-white font-bold text-lg flex items-center justify-center">
+            3
+          </div>
+          <h3 class="font-semibold text-gb-navy mb-2">Meet with Alex</h3>
+          <p class="text-gb-text-muted text-sm">
+            After class, talk with our Program Director about next steps. No
+            pressure, no commitment.
+          </p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Section 5: Trust strip -->
+  <section class="py-8 md:py-10 px-4">
+    <TrustStrip
+      items={[
+        'Free uniform rental included',
+        'No contracts',
+        'No pressure',
+        'World-class Gracie Barra curriculum',
+      ]}
+    />
+  </section>
+
+  <script is:inline>
+  (function () {
+    // 1. Personalize H1 with ?name= query param (vanilla, client-side)
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var raw = params.get('name');
+      if (raw) {
+        var first = raw.trim().split(/\s+/)[0];
+        // Strip everything except letters, hyphen, apostrophe — defensive.
+        first = first.replace(/[^A-Za-z\-']/g, '');
+        if (first) {
+          var pretty = first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+          var h1 = document.getElementById('kickstart-headline');
+          if (h1) {
+            h1.textContent =
+              "You're In, " + pretty + "! Your Free 3-Class Pass Is Reserved.";
+          }
+        }
+      }
+    } catch (_) {
+      // leave default H1
+    }
+
+    // 2. Survey UI: toggle calendar visibility based on answers
+    var ageQuestion = document.getElementById('age-question');
+    var placeholder = document.getElementById('calendar-placeholder');
+    var calendarEls = document.querySelectorAll('.calendar-embed');
+    var bookingRadios = document.querySelectorAll('input[name="bookingFor"]');
+    var ageButtons = document.querySelectorAll('.age-btn');
+
+    function showCalendar(key) {
+      if (placeholder) placeholder.classList.add('hidden');
+      calendarEls.forEach(function (el) {
+        if (el.id === 'calendar-' + key) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    function clearCalendar() {
+      if (placeholder) placeholder.classList.remove('hidden');
+      calendarEls.forEach(function (el) {
+        el.classList.add('hidden');
+      });
+    }
+
+    function clearAgeSelection() {
+      ageButtons.forEach(function (b) {
+        b.classList.remove('bg-gb-navy', 'text-white', 'border-gb-navy');
+        b.setAttribute('aria-pressed', 'false');
+      });
+    }
+
+    bookingRadios.forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        if (radio.value === 'self') {
+          if (ageQuestion) ageQuestion.classList.add('hidden');
+          clearAgeSelection();
+          showCalendar('adults');
+        } else {
+          if (ageQuestion) ageQuestion.classList.remove('hidden');
+          clearAgeSelection();
+          clearCalendar();
+        }
+      });
+    });
+
+    ageButtons.forEach(function (btn) {
+      btn.setAttribute('aria-pressed', 'false');
+      btn.addEventListener('click', function () {
+        clearAgeSelection();
+        btn.classList.add('bg-gb-navy', 'text-white', 'border-gb-navy');
+        btn.setAttribute('aria-pressed', 'true');
+        var key = btn.getAttribute('data-age-range');
+        if (key) showCalendar(key);
+      });
+    });
+  })();
+  </script>
+</FunnelLayout>

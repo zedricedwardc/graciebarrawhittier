@@ -1,0 +1,173 @@
+---
+/**
+ * OptInForm — 3-field opt-in form (Name, Email, Phone).
+ * - Posts to PUBLIC_GHL_WEBHOOK_URL or falls back to /api/leads-stub.
+ * - On success: redirects to /kickstart?name=<encoded>.
+ * - Mobile-friendly inputmode + autocomplete on every field.
+ *
+ * Banner copy above the form is configurable via props but defaults to brief Section copy.
+ * Wave 1 will swap SMS-consent placeholder text with the brief's exact disclaimer.
+ */
+import CTAButton from '../cta/CTAButton.astro';
+
+export interface Props {
+  id?: string;
+  header?: string;
+  subheader?: string;
+  description?: string;
+  offerLabel?: string;
+  riskLine?: string;
+}
+
+const {
+  id = 'trial',
+  header = 'UNLOCK YOUR FREE 3-CLASS PASS',
+  subheader = '+ VIEW OUR FULL CLASS SCHEDULE INSTANTLY',
+  description = 'Enter your info below to claim your Free 3-Class Pass and access our full class schedule.',
+  offerLabel = 'FREE 3-CLASS PASS',
+  riskLine = 'No Risk. No Pressure. Free Uniform Rental Included.',
+} = Astro.props;
+---
+
+<section
+  id={id}
+  class="bg-gb-bg-light py-12 md:py-16 px-4 md:px-6 scroll-mt-24"
+  aria-labelledby={`${id}-heading`}
+>
+  <div class="max-w-xl mx-auto bg-gb-white rounded-2xl shadow-lg p-6 md:p-10">
+    <div class="text-center mb-6">
+      <span class="inline-block bg-gb-gold text-gb-navy text-xs font-bold tracking-wider px-3 py-1 rounded-full">
+        {offerLabel}
+      </span>
+      <h2
+        id={`${id}-heading`}
+        class="mt-3 text-2xl md:text-3xl font-bold text-gb-navy"
+      >
+        {header}
+      </h2>
+      <p class="mt-2 text-xs font-bold tracking-widest uppercase text-gb-gold">
+        {subheader}
+      </p>
+      <p class="mt-2 text-sm text-gb-text-muted">{description}</p>
+      <p class="mt-2 text-sm text-gb-text-muted">{riskLine}</p>
+    </div>
+
+    <form
+      data-optin-form
+      class="space-y-4"
+      novalidate
+    >
+      <div>
+        <label for={`${id}-name`} class="block text-sm font-medium text-gb-text mb-1">
+          Full Name
+        </label>
+        <input
+          id={`${id}-name`}
+          name="name"
+          type="text"
+          inputmode="text"
+          autocomplete="name"
+          required
+          class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+          placeholder="Jane Doe"
+        />
+      </div>
+
+      <div>
+        <label for={`${id}-email`} class="block text-sm font-medium text-gb-text mb-1">
+          Email
+        </label>
+        <input
+          id={`${id}-email`}
+          name="email"
+          type="email"
+          inputmode="email"
+          autocomplete="email"
+          required
+          class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+          placeholder="jane@example.com"
+        />
+      </div>
+
+      <div>
+        <label for={`${id}-phone`} class="block text-sm font-medium text-gb-text mb-1">
+          Phone
+        </label>
+        <input
+          id={`${id}-phone`}
+          name="phone"
+          type="tel"
+          inputmode="tel"
+          autocomplete="tel-national"
+          required
+          class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+          placeholder="(555) 123-4567"
+        />
+      </div>
+
+      <CTAButton
+        variant="formSubmit"
+        type="submit"
+        label="Claim My Free 3-Class Pass"
+        fullWidth={true}
+      />
+
+      <p class="text-xs text-gb-text-muted text-center">
+        Takes 30 seconds &bull; No payment required &bull; No contracts
+      </p>
+
+      <p
+        data-optin-error
+        class="hidden text-sm text-gb-red text-center"
+        role="alert"
+      >
+        Something went wrong submitting your info. Please try again or call us.
+      </p>
+
+      <p class="text-[11px] leading-relaxed text-gb-text-muted">
+        {/* Wave 1: replace with verbatim SMS-consent disclaimer from build brief Part 4. */}
+        By submitting this form, you agree to receive SMS and email messages from
+        Gracie Barra Whittier related to your free trial. Message and data rates
+        may apply. Reply STOP to unsubscribe.
+      </p>
+    </form>
+  </div>
+</section>
+
+<script>
+  const forms = document.querySelectorAll<HTMLFormElement>('[data-optin-form]');
+  forms.forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = form.querySelector<HTMLElement>('[data-optin-error]');
+      errorEl?.classList.add('hidden');
+
+      const data = new FormData(form);
+      const name = String(data.get('name') ?? '').trim();
+      const email = String(data.get('email') ?? '').trim();
+      const phone = String(data.get('phone') ?? '').trim();
+
+      if (!name || !email || !phone) {
+        errorEl?.classList.remove('hidden');
+        return;
+      }
+
+      const webhookEnv = (import.meta as ImportMeta).env?.PUBLIC_GHL_WEBHOOK_URL as
+        | string
+        | undefined;
+      const target = webhookEnv && webhookEnv.length > 0 ? webhookEnv : '/api/leads-stub';
+
+      try {
+        const res = await fetch(target, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, phone, source: window.location.pathname }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        window.location.href = `/kickstart?name=${encodeURIComponent(name)}`;
+      } catch {
+        errorEl?.classList.remove('hidden');
+      }
+    });
+  });
+</script>

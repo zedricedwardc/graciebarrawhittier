@@ -1,0 +1,200 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { nap } from '../content/nap.ts';
+
+const lastUpdated = 'May 5, 2026';
+const canonical = 'https://gbwhittier.com/privacy/';
+---
+
+<BaseLayout
+  title="Privacy Policy | Gracie Barra Whittier"
+  description="How Gracie Barra Whittier collects, uses, and protects personal information from website visitors and trial students in Whittier, CA."
+  canonical={canonical}
+  hideStickyCTA={true}
+>
+  <article class="max-w-3xl mx-auto px-6 py-16 font-[Inter,system-ui,sans-serif]">
+    <h1 class="text-3xl md:text-5xl font-bold text-gb-navy">Privacy Policy</h1>
+    <p class="mt-3 text-sm text-gb-text-muted">Last updated: {lastUpdated}</p>
+
+    <div class="mt-10 space-y-10 text-gb-text leading-relaxed">
+      <section>
+        <p>
+          {nap.name} ("we", "us", "our") respects your privacy. This policy
+          explains what information we collect, how we use it, and the choices
+          you have. It applies to our website and to people who sign up for our
+          programs.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          1. Information We Collect
+        </h2>
+        <ul class="mt-4 space-y-2 list-disc pl-6">
+          <li>
+            <strong>Contact information you give us</strong> through forms on
+            this site &mdash; your name, email address, and phone number.
+          </li>
+          <li>
+            <strong>Communications</strong> &mdash; messages you send through
+            our forms and conversations with our AI chat assistant, which is
+            powered by GoHighLevel.
+          </li>
+          <li>
+            <strong>Analytics data</strong> &mdash; standard web traffic
+            information such as page views, clicks, device type, and approximate
+            location, collected through Google Analytics 4.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          2. How We Use It
+        </h2>
+        <ul class="mt-4 space-y-2 list-disc pl-6">
+          <li>To respond to your questions and confirm your free trial.</li>
+          <li>To schedule and remind you about your classes.</li>
+          <li>
+            To send occasional marketing emails about programs, events, and
+            offers. You can unsubscribe at any time using the link in any
+            email.
+          </li>
+          <li>
+            To improve the website and understand how visitors use it.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          3. Third-Party Services
+        </h2>
+        <p class="mt-3">
+          We use a small set of trusted services to run this site and contact
+          you. Each has its own privacy policy.
+        </p>
+        <ul class="mt-4 space-y-2 list-disc pl-6">
+          <li>
+            <strong>GoHighLevel</strong> &mdash; powers our contact forms, CRM,
+            scheduling, AI chat, and email/SMS messaging.
+          </li>
+          <li>
+            <strong>Google Analytics</strong> &mdash; helps us measure traffic
+            and improve the site.
+          </li>
+          <li>
+            <strong>Google Maps</strong> &mdash; displays our studio location.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          4. SMS Consent
+        </h2>
+        <p class="mt-3">
+          If you opt in via our forms, you may receive text messages from us
+          about your trial, scheduling, and class reminders. Message and data
+          rates may apply. You can reply <strong>STOP</strong> at any time to
+          opt out, or <strong>HELP</strong> for help. Opting out of SMS does not
+          remove you from email or in-person communication.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          5. California Privacy Rights (CCPA)
+        </h2>
+        <p class="mt-3">
+          California residents have the following rights regarding their
+          personal information:
+        </p>
+        <ul class="mt-4 space-y-2 list-disc pl-6">
+          <li>
+            <strong>Right to know</strong> what personal information we have
+            collected about you.
+          </li>
+          <li>
+            <strong>Right to delete</strong> personal information we hold about
+            you, subject to limited exceptions.
+          </li>
+          <li>
+            <strong>Right to opt out of "sale"</strong> of your personal
+            information. We do not sell your personal information.
+          </li>
+        </ul>
+        <p class="mt-3">
+          To exercise any of these rights, email us at
+          <a
+            href={`mailto:${nap.email}`}
+            class="text-gb-red hover:underline"
+          >
+            {nap.email}
+          </a>
+          and we will respond within the timeframe required by law.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          6. Cookies
+        </h2>
+        <p class="mt-3">
+          This site uses a small number of cookies, mostly for Google Analytics
+          and basic site functionality. You can disable cookies in your browser
+          settings at any time. Disabling cookies may affect some site features
+          but will not block the rest of the site.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          7. Data Retention
+        </h2>
+        <p class="mt-3">
+          We keep contact and trial information for as long as you are an
+          active student or prospective student, plus a reasonable period for
+          legal, accounting, and follow-up purposes. You can ask us to delete
+          your information at any time using the email above.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          8. Children's Privacy
+        </h2>
+        <p class="mt-3">
+          We offer programs for kids ages 3 and up. For students under 13, a
+          parent or legal guardian provides their child's information on the
+          child's behalf when signing up. We do not knowingly collect personal
+          information directly from children under 13 through this website. If
+          you believe a child has submitted information without a parent's
+          consent, please contact us and we will remove it.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          9. Contact
+        </h2>
+        <p class="mt-3">
+          Questions about this Privacy Policy or your information? Reach out:
+        </p>
+        <address class="mt-3 not-italic">
+          <div>{nap.name}</div>
+          <div>{nap.address}</div>
+          <div>
+            Email:
+            <a
+              href={`mailto:${nap.email}`}
+              class="text-gb-red hover:underline"
+            >
+              {nap.email}
+            </a>
+          </div>
+        </address>
+      </section>
+    </div>
+  </article>
+</BaseLayout>

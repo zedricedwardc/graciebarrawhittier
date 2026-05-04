@@ -1,0 +1,32 @@
+---
+/**
+ * SchemaBreadcrumb — JSON-LD BreadcrumbList from items[] prop.
+ */
+export interface BreadcrumbItem {
+  name: string;
+  url: string;
+}
+
+export interface Props {
+  items: BreadcrumbItem[];
+}
+
+const { items } = Astro.props;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: items.map((item, idx) => ({
+    '@type': 'ListItem',
+    position: idx + 1,
+    name: item.name,
+    item: item.url,
+  })),
+};
+---
+
+<script
+  is:inline
+  type="application/ld+json"
+  set:html={JSON.stringify(schema)}
+/>

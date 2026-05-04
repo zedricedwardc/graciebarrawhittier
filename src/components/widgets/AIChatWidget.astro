@@ -1,0 +1,20 @@
+---
+/**
+ * AIChatWidget — placeholder for the GHL Conversations widget.
+ * Loads only when PUBLIC_GHL_CHAT_KEY is set; otherwise renders nothing.
+ * Wave 2/3 will replace this stub with the real GHL embed once the key is provisioned.
+ */
+const chatKey = import.meta.env.PUBLIC_GHL_CHAT_KEY as string | undefined;
+---
+
+{
+  chatKey && (
+    <div
+      data-gb-chat-widget
+      data-chat-key={chatKey}
+      aria-hidden="true"
+    >
+      {/* GHL Conversations widget loads here when PUBLIC_GHL_CHAT_KEY is set */}
+    </div>
+  )
+}

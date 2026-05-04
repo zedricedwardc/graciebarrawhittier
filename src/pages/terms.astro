@@ -1,0 +1,143 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { nap } from '../content/nap.ts';
+
+const lastUpdated = 'May 5, 2026';
+const canonical = 'https://gbwhittier.com/terms/';
+---
+
+<BaseLayout
+  title="Terms and Conditions | Gracie Barra Whittier"
+  description="Terms and conditions for use of the Gracie Barra Whittier website, free trial offer, and Brazilian Jiu-Jitsu programs in Whittier, CA."
+  canonical={canonical}
+  hideStickyCTA={true}
+>
+  <article class="max-w-3xl mx-auto px-6 py-16 font-[Inter,system-ui,sans-serif]">
+    <h1 class="text-3xl md:text-5xl font-bold text-gb-navy">
+      Terms and Conditions
+    </h1>
+    <p class="mt-3 text-sm text-gb-text-muted">Last updated: {lastUpdated}</p>
+
+    <div class="mt-10 space-y-10 text-gb-text leading-relaxed">
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          1. Acceptance of Terms
+        </h2>
+        <p class="mt-3">
+          Welcome to {nap.name}. By visiting this website, signing up for our
+          free trial, or attending classes at our studio, you agree to these
+          Terms and Conditions. If you do not agree, please do not use the site
+          or our services.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          2. Use License
+        </h2>
+        <p class="mt-3">
+          The text, photos, logos, and graphics on this site are owned by
+          {nap.name} or used with permission. You may view and share pages for
+          personal, non-commercial purposes. You may not copy, republish, or
+          modify our content for commercial use without written permission.
+          The Gracie Barra name and logo are trademarks of Gracie Barra and used
+          under license.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          3. Free Trial Offer Terms
+        </h2>
+        <p class="mt-3">
+          Our Free 3-Class Pass is designed to let new students experience our
+          programs with no risk and no pressure. The following terms apply:
+        </p>
+        <ul class="mt-4 space-y-2 list-disc pl-6">
+          <li>
+            <strong>New students only.</strong> The Free 3-Class Pass is valid
+            for first-time students only. Limit one pass per household.
+          </li>
+          <li>
+            <strong>30-day window.</strong> Trial classes must be claimed and
+            attended within 30 days of opting in. Unused classes after that
+            window expire.
+          </li>
+          <li>
+            <strong>Free uniform rental.</strong> A clean uniform is provided
+            for use during the trial period only. The uniform is not for
+            purchase or retention and must be returned at the end of the trial.
+          </li>
+          <li>
+            <strong>No contracts, no obligation.</strong> There is no purchase
+            requirement during the trial. You decide whether to continue after
+            your three classes.
+          </li>
+          <li>
+            <strong>Studio discretion.</strong> {nap.name} reserves the right to
+            refuse service or cancel a trial at its sole discretion, including
+            for safety or conduct reasons.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          4. Health and Safety Disclaimer
+        </h2>
+        <p class="mt-3">
+          Brazilian Jiu-Jitsu and martial arts training involve physical
+          activity, contact, and inherent risk of injury. By participating,
+          you acknowledge these risks. We strongly recommend you consult a
+          physician before starting any new physical activity, especially if
+          you have an existing medical condition. Always train within your
+          ability and follow instructor guidance.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          5. Limitation of Liability
+        </h2>
+        <p class="mt-3">
+          To the fullest extent permitted by law, {nap.name} and its instructors,
+          owners, and staff are not liable for any indirect, incidental, or
+          consequential damages arising out of your use of this website or
+          participation in our programs. Our website is provided "as is"
+          without warranties of any kind.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          6. Governing Law
+        </h2>
+        <p class="mt-3">
+          These Terms are governed by the laws of the State of California,
+          without regard to conflict-of-law principles. Any dispute will be
+          handled in the courts located in Los Angeles County, California.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl md:text-2xl font-semibold text-gb-navy">
+          7. Contact
+        </h2>
+        <p class="mt-3">Questions about these Terms? Reach out to us:</p>
+        <address class="mt-3 not-italic">
+          <div>{nap.name}</div>
+          <div>{nap.address}</div>
+          <div>
+            Email:
+            <a
+              href={`mailto:${nap.email}`}
+              class="text-gb-red hover:underline"
+            >
+              {nap.email}
+            </a>
+          </div>
+        </address>
+      </section>
+    </div>
+  </article>
+</BaseLayout>

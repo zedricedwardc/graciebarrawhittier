@@ -1,0 +1,84 @@
+---
+/**
+ * CTAButton — the ONLY way to render a styled CTA on this site.
+ *
+ * Variants:
+ *   primary    : red bg, white text
+ *   secondary  : navy bg, white text
+ *   program    : outline navy
+ *   formSubmit : red bg, white text, full-width default
+ *   nav        : red bg, white text, 48px height
+ *
+ * Sizing: 48px desktop / 56px mobile (nav: 48px). Pill (rounded-full). 28px x-padding.
+ *
+ * Banned labels are documented in the build plan; never use them as button text.
+ */
+export type CTAVariant = 'primary' | 'secondary' | 'program' | 'formSubmit' | 'nav';
+
+export interface Props {
+  variant: CTAVariant;
+  label: string;
+  href?: string;
+  type?: 'button' | 'submit' | 'reset';
+  fullWidth?: boolean;
+  ariaLabel?: string;
+  id?: string;
+  class?: string;
+}
+
+const {
+  variant,
+  label,
+  href,
+  type = 'button',
+  fullWidth,
+  ariaLabel,
+  id,
+  class: extraClass = '',
+} = Astro.props;
+
+const isSubmit = variant === 'formSubmit';
+const isNav = variant === 'nav';
+
+const baseClasses =
+  'inline-flex items-center justify-center rounded-full font-semibold tracking-wide ' +
+  'transition-colors duration-200 focus:outline-none focus-visible:ring-2 ' +
+  'focus-visible:ring-offset-2 select-none whitespace-nowrap px-7';
+
+const sizeClasses = isNav ? 'h-12 text-sm' : 'h-14 md:h-12 text-base';
+
+const variantMap = {
+  primary:
+    'bg-gb-red text-gb-white hover:bg-gb-red-dark active:bg-gb-red-dark focus-visible:ring-gb-red',
+  secondary:
+    'bg-gb-navy text-gb-white hover:bg-gb-navy-dark active:bg-gb-navy-dark focus-visible:ring-gb-navy',
+  program:
+    'bg-transparent text-gb-navy border-2 border-gb-navy hover:bg-gb-navy hover:text-gb-white focus-visible:ring-gb-navy',
+  formSubmit:
+    'bg-gb-red text-gb-white hover:bg-gb-red-dark active:bg-gb-red-dark focus-visible:ring-gb-red',
+  nav: 'bg-gb-red text-gb-white hover:bg-gb-red-dark active:bg-gb-red-dark focus-visible:ring-gb-red',
+};
+
+const widthClass = fullWidth || (isSubmit && fullWidth !== false) ? 'w-full' : '';
+
+const classes = [baseClasses, sizeClasses, variantMap[variant], widthClass, extraClass]
+  .filter(Boolean)
+  .join(' ');
+---
+
+{
+  href ? (
+    <a href={href} class={classes} aria-label={ariaLabel ?? label} id={id}>
+      {label}
+    </a>
+  ) : (
+    <button
+      type={type}
+      class={classes}
+      aria-label={ariaLabel ?? label}
+      id={id}
+    >
+      {label}
+    </button>
+  )
+}

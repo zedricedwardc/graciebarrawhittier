@@ -1,0 +1,27 @@
+---
+/**
+ * FAQ — accordion list + injects FAQPage JSON-LD schema based on items prop.
+ */
+import FAQItem from './FAQItem.astro';
+import SchemaFAQ from '../seo/SchemaFAQ.astro';
+import type { FAQItemData } from '../../content/faqs';
+
+export interface Props {
+  items: FAQItemData[];
+  heading?: string;
+  emitSchema?: boolean;
+}
+
+const { items, heading = 'Frequently Asked Questions', emitSchema = true } =
+  Astro.props;
+---
+
+<section class="max-w-3xl mx-auto px-4 md:px-6 py-12 md:py-16" aria-labelledby="faq-heading">
+  <h2 id="faq-heading" class="text-2xl md:text-3xl font-bold text-gb-navy text-center mb-8">
+    {heading}
+  </h2>
+  <div>
+    {items.map((item) => <FAQItem question={item.question} answer={item.answer} />)}
+  </div>
+  {emitSchema && <SchemaFAQ items={items} />}
+</section>

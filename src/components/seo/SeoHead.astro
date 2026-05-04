@@ -1,0 +1,44 @@
+---
+/**
+ * SeoHead — meta tags, canonical, OpenGraph, Twitter Card.
+ * Title format: `${pageTitle} | Gracie Barra Whittier`
+ */
+export interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  ogImage?: string;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  canonical,
+  ogImage = '/logo/gb-whittier-logo.webp',
+  noindex = false,
+} = Astro.props;
+
+const fullTitle = title.includes('Gracie Barra')
+  ? title
+  : `${title} | Gracie Barra Whittier`;
+
+const pageUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).href;
+---
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={pageUrl} />
+{noindex && <meta name="robots" content="noindex,nofollow" />}
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={pageUrl} />
+<meta property="og:image" content={new URL(ogImage, Astro.site).href} />
+<meta property="og:site_name" content="Gracie Barra Whittier" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={new URL(ogImage, Astro.site).href} />

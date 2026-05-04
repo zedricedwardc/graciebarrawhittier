@@ -1,0 +1,19 @@
+---
+/**
+ * StickyMobileCTA — fixed bottom bar visible <md (mobile only).
+ * Always: full-width primary "Claim My Free 3-Class Pass" linking to /#trial.
+ */
+import CTAButton from './CTAButton.astro';
+---
+
+<div
+  class="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-gb-white/95 backdrop-blur shadow-[0_-2px_12px_rgba(0,0,0,0.08)] border-t border-gb-bg-light px-4 py-3"
+  data-sticky-mobile-cta
+>
+  <CTAButton
+    variant="primary"
+    label="Claim My Free 3-Class Pass"
+    href="/#trial"
+    fullWidth={true}
+  />
+</div>

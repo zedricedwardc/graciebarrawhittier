@@ -1,0 +1,28 @@
+/* Gracie Barra Whittier — Brand Tokens
+ * Single source of truth for color, type, and button sizing.
+ * Do not introduce off-palette hex values elsewhere.
+ */
+
+:root {
+  /* Colors */
+  --gb-red: #cc2200;        /* primary CTA */
+  --gb-red-dark: #a31a00;   /* hover */
+  --gb-navy: #1b2a5e;       /* secondary, dark sections, footer */
+  --gb-navy-dark: #131f47;  /* deeper navy */
+  --gb-gold: #ef9f27;       /* accent, offer callouts only */
+  --gb-bg-light: #f4f4f4;   /* light section bg */
+  --gb-bg-dark: #1b2a5e;    /* dark section bg (= navy) */
+  --gb-white: #ffffff;
+  --gb-text: #0f1419;
+  --gb-text-muted: #5c6470;
+
+  /* Type */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Buttons (research-tightened tap targets) */
+  --btn-h-desktop: 48px;
+  --btn-h-mobile: 56px;
+  --btn-h-nav: 48px;
+  --btn-radius: 9999px;
+  --btn-padding-x: 28px;
+}

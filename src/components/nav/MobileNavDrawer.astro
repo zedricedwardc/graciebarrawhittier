@@ -1,0 +1,116 @@
+---
+/**
+ * MobileNavDrawer — hamburger button + slide-in drawer for <md viewports.
+ * Drawer contains the same nav links, with a full-width red CTA at bottom.
+ * Pure HTML/CSS via the [hidden] checkbox-pattern + a small inline script for ESC + click-outside.
+ */
+import CTAButton from '../cta/CTAButton.astro';
+
+const links = [
+  { label: 'Home', href: '/' },
+  { label: 'Kids Martial Arts', href: '/kids-martial-arts' },
+  { label: 'Adults Jiu-Jitsu', href: '/adults-jiu-jitsu' },
+  { label: 'Reviews', href: '/reviews' },
+  { label: 'Contact Us', href: '/contact' },
+];
+---
+
+<button
+  type="button"
+  data-mobile-nav-toggle
+  aria-label="Open navigation menu"
+  aria-controls="mobile-nav-drawer"
+  aria-expanded="false"
+  class="inline-flex items-center justify-center w-12 h-12 rounded-md text-gb-navy hover:bg-gb-bg-light"
+>
+  <svg
+    class="w-6 h-6"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+  </svg>
+</button>
+
+<dialog
+  id="mobile-nav-drawer"
+  data-mobile-nav-drawer
+  class="m-0 p-0 w-screen h-[100dvh] max-w-none max-h-none bg-transparent backdrop:bg-gb-navy/80 backdrop:backdrop-blur-sm"
+  aria-label="Mobile navigation"
+>
+  <aside class="absolute inset-y-0 right-0 w-[85%] max-w-sm bg-gb-white shadow-xl flex flex-col">
+    <div class="flex items-center justify-between px-4 h-16 border-b border-gb-bg-light">
+      <span class="font-semibold text-gb-navy">Menu</span>
+      <button
+        type="button"
+        data-mobile-nav-close
+        aria-label="Close navigation menu"
+        class="inline-flex items-center justify-center w-12 h-12 rounded-md text-gb-navy hover:bg-gb-bg-light"
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <ul class="flex-1 overflow-y-auto px-4 py-6 space-y-2">
+      {
+        links.map((l) => (
+          <li>
+            <a
+              href={l.href}
+              class="block px-3 py-3 rounded-md text-gb-text hover:bg-gb-bg-light hover:text-gb-red active:bg-gb-bg-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gb-navy transition-colors text-base"
+            >
+              {l.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="p-4 border-t border-gb-bg-light">
+      <CTAButton
+        variant="primary"
+        label="Get Started Free"
+        href="/#trial"
+        fullWidth={true}
+      />
+    </div>
+  </aside>
+</dialog>
+
+<script>
+  const toggle = document.querySelector<HTMLButtonElement>('[data-mobile-nav-toggle]');
+  const drawer = document.querySelector<HTMLDialogElement>('[data-mobile-nav-drawer]');
+  const closeBtn = document.querySelector<HTMLButtonElement>('[data-mobile-nav-close]');
+
+  function open() {
+    if (!drawer || !toggle) return;
+    drawer.showModal();
+    toggle.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('mobile-nav-open');
+  }
+  function close() {
+    if (!drawer || !toggle) return;
+    drawer.close();
+    toggle.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('mobile-nav-open');
+  }
+
+  toggle?.addEventListener('click', open);
+  closeBtn?.addEventListener('click', close);
+  drawer?.addEventListener('click', (e) => {
+    // Close when clicking the backdrop (dialog itself) but not the panel
+    if (e.target === drawer) close();
+  });
+  drawer?.addEventListener('close', () => {
+    toggle?.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('mobile-nav-open');
+  });
+</script>

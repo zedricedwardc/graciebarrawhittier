@@ -1,0 +1,356 @@
+---
+/**
+ * /kids-martial-arts — audience: parents of children ages 3–15.
+ * Copy verbatim from build brief Part 3 Kids section.
+ */
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CTAButton from '../components/cta/CTAButton.astro';
+import OptInForm from '../components/form/OptInForm.astro';
+import FAQ from '../components/faq/FAQ.astro';
+import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
+import { kidsFaqs } from '../content/kids-faqs';
+import kidsHero from '../assets/images/kids/kids-hero.jpg';
+
+const programs = [
+  {
+    name: 'Tiny Champions',
+    ages: 'Ages 3–4',
+    blurb:
+      'Movement, coordination, listening skills, following instructions. A fun and safe introduction to the mat.',
+    image: '/images/kids/kids-tiny-champions.jpg',
+    alt: 'Tiny Champions Brazilian Jiu-Jitsu class for ages 3 to 4 at Gracie Barra Whittier',
+  },
+  {
+    name: 'Little Champions 1',
+    ages: 'Ages 5–6',
+    blurb:
+      'Core BJJ fundamentals, respect, discipline, confidence. A structured curriculum in a team environment built for kindergarten-age kids.',
+    image: '/images/kids/kids-little-champions-1.jpg',
+    alt: 'Little Champions 1 Brazilian Jiu-Jitsu class for ages 5 to 6 at Gracie Barra Whittier',
+  },
+  {
+    name: 'Little Champions 2',
+    ages: 'Ages 7–9',
+    blurb:
+      'Continued fundamentals, real BJJ technique, and team building. Kids start to internalize discipline and confidence as part of who they are.',
+    image: '/images/kids/kids-little-champions-2.jpg',
+    alt: 'Little Champions 2 Brazilian Jiu-Jitsu class for ages 7 to 9 at Gracie Barra Whittier',
+  },
+  {
+    name: 'Juniors Jiu-Jitsu',
+    ages: 'Ages 10–15',
+    blurb:
+      'Technique-focused training. Real BJJ skills, competition preparation if desired, and leadership development on and off the mat.',
+    image: '/images/kids/kids-juniors.jpg',
+    alt: 'Juniors Brazilian Jiu-Jitsu class for ages 10 to 15 at Gracie Barra Whittier',
+  },
+];
+
+const parentQuotes = [
+  {
+    quote: "My son's teachers started noticing how much more focused he is in class.",
+    benefit: 'Focus and school performance',
+  },
+  {
+    quote: 'She walks into every room now like she belongs there.',
+    benefit: 'Confidence',
+  },
+  {
+    quote: 'I feel safe knowing he can protect himself.',
+    benefit: 'Self-defense and safety',
+  },
+];
+
+const firstClassSteps = [
+  {
+    title: 'Arrive 10 minutes early',
+    detail:
+      'Get checked in, get on the mat, and meet a few familiar faces before class starts.',
+  },
+  {
+    title: 'Meet the instructor',
+    detail:
+      "Your child is introduced to the coach so they have a friendly face to learn from on day one.",
+  },
+  {
+    title: 'Warm up with the group',
+    detail:
+      'Group warm-ups build community and get every kid moving before techniques begin.',
+  },
+  {
+    title: 'Learn their first technique',
+    detail:
+      'A simple, age-appropriate move every kid can do — a quick win that builds confidence.',
+  },
+  {
+    title: 'End-of-class reflection',
+    detail:
+      'Coaches close every class with a short lesson on focus, respect, or effort.',
+  },
+  {
+    title: 'Meet with Alex about the trial',
+    detail:
+      'Our Program Director Alex talks with you about how the class went and what comes next. No pressure — your child sets the pace.',
+  },
+];
+
+const breadcrumb = [
+  { name: 'Home', url: 'https://gbwhittier.com/' },
+  { name: 'Kids Martial Arts', url: 'https://gbwhittier.com/kids-martial-arts/' },
+];
+---
+
+<BaseLayout
+  title="Kids Martial Arts in Whittier, CA"
+  description="Age-specific Brazilian Jiu-Jitsu for kids 3–15 at Gracie Barra Whittier, CA. Build confidence and self-defense. Claim your free 3-class pass."
+  canonical="https://gbwhittier.com/kids-martial-arts/"
+>
+  <!-- Section 1: Hero -->
+  <section class="relative bg-gb-navy text-gb-white overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-20 grid md:grid-cols-2 gap-10 items-center">
+      <div>
+        <p class="text-gb-white/80 text-xs md:text-sm font-bold tracking-widest uppercase">
+          Brazilian Jiu-Jitsu for Kids in Whittier, CA
+        </p>
+        <h1 class="mt-3 text-3xl md:text-4xl font-extrabold leading-tight">
+          Kids Martial Arts Classes in Whittier, CA — Ages 3 to 15
+        </h1>
+        <p class="mt-4 text-2xl md:text-4xl font-extrabold leading-tight text-gb-white">
+          Where Kids Build Confidence, Discipline, and Strength
+        </p>
+        <p class="mt-5 text-base md:text-lg text-gb-white/85 max-w-xl">
+          Age-specific Brazilian Jiu-Jitsu programs designed for every stage of childhood — from
+          Tiny Champions (ages 3-4) through Juniors (ages 10-15). Safe, structured, and genuinely
+          fun.
+        </p>
+        <div class="mt-7">
+          <CTAButton
+            variant="primary"
+            label="Claim My Child's Free 3-Class Pass"
+            href="#trial-form"
+          />
+        </div>
+      </div>
+      <div class="relative">
+        <Image
+          src={kidsHero}
+          alt="Kids Brazilian Jiu-Jitsu class group at Gracie Barra Whittier, CA"
+          widths={[480, 720, 1080]}
+          sizes="(min-width: 768px) 50vw, 100vw"
+          format="webp"
+          class="rounded-2xl shadow-2xl w-full h-auto object-cover"
+          loading="eager"
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2: Programs Breakdown -->
+  <section class="bg-gb-white py-14 md:py-20" aria-labelledby="kids-programs-heading">
+    <div class="max-w-7xl mx-auto px-4 md:px-6">
+      <h2
+        id="kids-programs-heading"
+        class="text-2xl md:text-4xl font-extrabold text-gb-navy text-center max-w-3xl mx-auto"
+      >
+        Age-Specific Programs Built for Your Child
+      </h2>
+      <div class="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {
+          programs.map((p) => (
+            <article class="flex flex-col bg-gb-bg-light rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <img
+                src={p.image}
+                alt={p.alt}
+                loading="lazy"
+                width="600"
+                height="450"
+                class="w-full h-48 object-cover"
+              />
+              <div class="p-5 flex flex-col flex-1">
+                <p class="text-xs font-bold tracking-widest text-gb-red uppercase">
+                  {p.ages}
+                </p>
+                <h3 class="mt-2 text-lg font-extrabold text-gb-navy">{p.name}</h3>
+                <p class="mt-2 text-sm text-gb-text-muted leading-relaxed flex-1">
+                  {p.blurb}
+                </p>
+                <div class="mt-5">
+                  <CTAButton
+                    variant="program"
+                    label="Claim Free 3-Class Pass"
+                    href="#trial-form"
+                    fullWidth
+                  />
+                </div>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Benefits for Parents -->
+  <section class="bg-gb-bg-light py-14 md:py-20" aria-labelledby="kids-parents-heading">
+    <div class="max-w-6xl mx-auto px-4 md:px-6">
+      <h2
+        id="kids-parents-heading"
+        class="text-2xl md:text-4xl font-extrabold text-gb-navy text-center max-w-3xl mx-auto"
+      >
+        What Parents Tell Us After Their Child Starts Training
+      </h2>
+      <div class="mt-10 grid md:grid-cols-3 gap-6">
+        {
+          parentQuotes.map((q) => (
+            <figure class="bg-gb-white rounded-2xl shadow-sm p-6 flex flex-col">
+              <svg
+                class="w-8 h-8 text-gb-red mb-3"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M9 7H6a3 3 0 00-3 3v7h7v-7H7c0-1.1.9-2 2-2V7zm9 0h-3a3 3 0 00-3 3v7h7v-7h-3c0-1.1.9-2 2-2V7z" />
+              </svg>
+              <blockquote class="text-base md:text-lg text-gb-text font-medium leading-relaxed">
+                &ldquo;{q.quote}&rdquo;
+              </blockquote>
+              <figcaption class="mt-4 text-sm font-semibold text-gb-navy">
+                {q.benefit}
+              </figcaption>
+            </figure>
+          ))
+        }
+      </div>
+      <p class="mt-8 text-xs text-gb-text-muted text-center">
+        Placeholder quotes pending publication of real parent reviews.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 4: What to Expect -->
+  <section class="bg-gb-white py-14 md:py-20" aria-labelledby="kids-firstclass-heading">
+    <div class="max-w-5xl mx-auto px-4 md:px-6">
+      <h2
+        id="kids-firstclass-heading"
+        class="text-2xl md:text-4xl font-extrabold text-gb-navy text-center max-w-3xl mx-auto"
+      >
+        What Happens at Your Child's First Class
+      </h2>
+      <ol class="mt-10 grid md:grid-cols-2 gap-5">
+        {
+          firstClassSteps.map((step, idx) => (
+            <li class="flex gap-4 bg-gb-bg-light rounded-xl p-5">
+              <span
+                class="shrink-0 w-9 h-9 rounded-full bg-gb-red text-gb-white font-bold inline-flex items-center justify-center"
+                aria-hidden="true"
+              >
+                {idx + 1}
+              </span>
+              <div>
+                <h3 class="text-base md:text-lg font-bold text-gb-navy">{step.title}</h3>
+                <p class="mt-1 text-sm md:text-base text-gb-text-muted leading-relaxed">
+                  {step.detail}
+                </p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+      <p class="mt-8 text-center text-sm md:text-base text-gb-text font-medium">
+        Bring comfortable workout clothes. We provide the uniform for your trial classes.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 5: Certified Instructors -->
+  <section class="bg-gb-bg-light py-14 md:py-20" aria-labelledby="kids-instructors-heading">
+    <div class="max-w-6xl mx-auto px-4 md:px-6 grid md:grid-cols-2 gap-10 items-center">
+      <div>
+        <h2
+          id="kids-instructors-heading"
+          class="text-2xl md:text-4xl font-extrabold text-gb-navy"
+        >
+          Certified Gracie Barra Instructors — Not Just Athletes, But Teachers
+        </h2>
+        <p class="mt-5 text-base md:text-lg text-gb-text-muted leading-relaxed">
+          Every instructor at Gracie Barra Whittier completes the official Gracie Barra
+          certification curriculum — the same standardized teaching program used at every
+          GB academy worldwide. That means your child learns from a coach trained in how
+          to teach kids, not just in how to do jiu-jitsu.
+        </p>
+        <p class="mt-4 text-base md:text-lg text-gb-text-muted leading-relaxed">
+          Our kids program is led by <strong class="text-gb-navy">Professor Phil</strong>
+          and <strong class="text-gb-navy">Professor Eric</strong>, both certified Gracie
+          Barra instructors with years of experience working with children and families
+          in Whittier.
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <figure class="text-center">
+          <img
+            src="/images/instructors/professor-phil.jpg"
+            alt="Professor Phil — certified Gracie Barra instructor at Gracie Barra Whittier"
+            loading="lazy"
+            width="400"
+            height="500"
+            class="w-full aspect-[4/5] object-cover rounded-2xl shadow-md"
+          />
+          <figcaption class="mt-3 text-sm font-bold text-gb-navy">
+            Professor Phil
+          </figcaption>
+        </figure>
+        <figure class="text-center">
+          <img
+            src="/images/instructors/professor-eric.jpg"
+            alt="Professor Eric — certified Gracie Barra instructor at Gracie Barra Whittier"
+            loading="lazy"
+            width="400"
+            height="500"
+            class="w-full aspect-[4/5] object-cover rounded-2xl shadow-md"
+          />
+          <figcaption class="mt-3 text-sm font-bold text-gb-navy">
+            Professor Eric
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 6: Opt-in Form -->
+  <OptInForm
+    id="trial-form"
+    header="UNLOCK YOUR CHILD'S FREE 3-CLASS PASS"
+  />
+
+  <!-- Section 7: Conversion CTA -->
+  <section class="bg-gb-navy text-gb-white py-14 md:py-20" aria-labelledby="kids-cta-heading">
+    <div class="max-w-3xl mx-auto px-4 md:px-6 text-center">
+      <h2
+        id="kids-cta-heading"
+        class="text-2xl md:text-4xl font-extrabold"
+      >
+        Ready to Get Your Child Started?
+      </h2>
+      <p class="mt-5 text-base md:text-lg text-gb-white/85 leading-relaxed">
+        Try any of our kids programs free for 3 classes — no commitment, no contracts, free
+        uniform rental included. Just bring your child and let us take it from there.
+      </p>
+      <div class="mt-8 flex justify-center">
+        <CTAButton
+          variant="primary"
+          label="Claim My Child's Free 3-Class Pass"
+          href="#trial-form"
+        />
+      </div>
+      <p class="mt-5 text-sm text-gb-white/75">
+        3 free classes &bull; Free uniform rental &bull; No contracts &bull; No pressure
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 8: FAQ -->
+  <FAQ items={kidsFaqs} heading="Questions About Kids Jiu-Jitsu" />
+
+  <SchemaBreadcrumb items={breadcrumb} />
+</BaseLayout>

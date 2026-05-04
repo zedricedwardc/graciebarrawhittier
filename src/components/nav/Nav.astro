@@ -1,0 +1,57 @@
+---
+/**
+ * Nav — desktop horizontal nav + slot for mobile drawer trigger.
+ * Logo + nav links + a single red "Get Started Free" CTA → #trial.
+ */
+import CTAButton from '../cta/CTAButton.astro';
+import MobileNavDrawer from './MobileNavDrawer.astro';
+
+const links = [
+  { label: 'Home', href: '/' },
+  { label: 'Kids Martial Arts', href: '/kids-martial-arts' },
+  { label: 'Adults Jiu-Jitsu', href: '/adults-jiu-jitsu' },
+  { label: 'Reviews', href: '/reviews' },
+  { label: 'Contact Us', href: '/contact' },
+];
+---
+
+<header class="sticky top-0 z-30 bg-gb-white/95 backdrop-blur border-b border-gb-bg-light">
+  <nav
+    class="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between"
+    aria-label="Primary"
+  >
+    <a href="/" class="flex items-center gap-3 shrink-0" aria-label="Gracie Barra Whittier home">
+      <img
+        src="/logo/gb-whittier-logo.webp"
+        alt="Gracie Barra Whittier — Brazilian Jiu-Jitsu"
+        class="h-12 md:h-14 w-auto"
+        width="56"
+        height="56"
+      />
+      <span class="sr-only">Gracie Barra Whittier</span>
+    </a>
+
+    <ul class="hidden md:flex items-center gap-7 text-sm font-medium text-gb-text">
+      {
+        links.map((l) => (
+          <li>
+            <a
+              href={l.href}
+              class="hover:text-gb-red transition-colors"
+            >
+              {l.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="hidden md:block">
+      <CTAButton variant="nav" label="Get Started Free" href="/#trial" />
+    </div>
+
+    <div class="md:hidden">
+      <MobileNavDrawer />
+    </div>
+  </nav>
+</header>

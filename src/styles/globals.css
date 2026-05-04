@@ -1,0 +1,115 @@
+/* Tailwind v4 single-file import + brand tokens */
+@import 'tailwindcss';
+@import './tokens.css';
+
+/* Map brand tokens into Tailwind v4 theme so utilities like `bg-gb-red`,
+ * `text-gb-navy`, `bg-gb-bg-light`, `font-sans` etc. work out of the box.
+ */
+@theme {
+  --color-gb-red: #cc2200;
+  --color-gb-red-dark: #a31a00;
+  --color-gb-navy: #1b2a5e;
+  --color-gb-navy-dark: #131f47;
+  --color-gb-gold: #ef9f27;
+  --color-gb-bg-light: #f4f4f4;
+  --color-gb-bg-dark: #1b2a5e;
+  --color-gb-white: #ffffff;
+  --color-gb-text: #0f1419;
+  --color-gb-text-muted: #5c6470;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
+  color: var(--gb-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--gb-white);
+}
+
+/* Visually-hidden but accessible (used by skip-links etc.) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Hide the sticky mobile CTA when the mobile nav drawer is open */
+body.mobile-nav-open [data-sticky-mobile-cta] {
+  display: none;
+}
+
+/* Native <dialog> reset — kill default UA padding/border/margin so
+ * Tailwind layout wins cleanly. Lock body scroll on modal. */
+dialog {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  max-width: none;
+  max-height: none;
+  background: transparent;
+}
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
+/* Mobile nav drawer — backdrop fade + panel slide.
+ * Single 300ms duration with a gentle ease so the two animations land together.
+ * `allow-discrete` on display+overlay lets the close animation play. */
+dialog[data-mobile-nav-drawer] {
+  transition:
+    overlay 300ms ease-out allow-discrete,
+    display 300ms ease-out allow-discrete;
+}
+
+dialog[data-mobile-nav-drawer]::backdrop {
+  background-color: rgb(27 42 94 / 0);
+  backdrop-filter: blur(4px);
+  transition:
+    background-color 300ms ease-out,
+    overlay 300ms ease-out allow-discrete,
+    display 300ms ease-out allow-discrete;
+}
+
+dialog[data-mobile-nav-drawer][open]::backdrop {
+  background-color: rgb(27 42 94 / 0.8);
+}
+
+@starting-style {
+  dialog[data-mobile-nav-drawer][open]::backdrop {
+    background-color: rgb(27 42 94 / 0);
+  }
+}
+
+dialog[data-mobile-nav-drawer] aside {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+
+dialog[data-mobile-nav-drawer][open] aside {
+  opacity: 1;
+}
+
+@starting-style {
+  dialog[data-mobile-nav-drawer][open] aside {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog[data-mobile-nav-drawer],
+  dialog[data-mobile-nav-drawer]::backdrop,
+  dialog[data-mobile-nav-drawer] aside {
+    transition: none;
+  }
+}
