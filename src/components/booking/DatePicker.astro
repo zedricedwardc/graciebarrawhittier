@@ -23,7 +23,7 @@ import { TZ } from '../../data/schedule';
   <div data-date-loading class="text-center text-gb-text-muted py-6">
     Loading available dates&hellip;
   </div>
-  <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 hidden" data-date-row>
+  <div class="grid grid-cols-4 sm:grid-cols-7 gap-2 hidden" data-date-row>
     {/* chips populated client-side from state.slotsByDate */}
   </div>
   <p data-date-empty class="hidden text-center text-gb-text-muted py-4">
@@ -92,7 +92,7 @@ import { TZ } from '../../data/schedule';
         btn.dataset.date = iso;
         btn.disabled = !hasSlots;
         btn.className =
-          'shrink-0 min-w-[72px] py-2 px-3 rounded-xl border-2 text-center transition-colors ' +
+          'py-2 px-2 rounded-xl border-2 text-center transition-colors ' +
           (hasSlots
             ? 'border-gray-300 hover:border-gb-navy text-gb-text bg-white'
             : 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed');
