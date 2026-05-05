@@ -1,0 +1,69 @@
+import type { APIRoute } from 'astro';
+import { AvailabilityRequest, type AvailabilitySlot } from '../../lib/booking-types';
+import { generateSlots } from '../../lib/slot-resolver';
+import { getProgram } from '../../data/programs';
+import { blackouts } from '../../data/blackouts';
+import { getFreeSlots, GhlError } from '../../lib/ghl';
+
+export const prerender = false;
+
+const MAX_RANGE_DAYS = 21;
+const MIN_LEAD_MINUTES = 60;
+
+export const GET: APIRoute = async ({ url }) => {
+  const parsed = AvailabilityRequest.safeParse({
+    program: url.searchParams.get('program'),
+    from:    url.searchParams.get('from'),
+    to:      url.searchParams.get('to'),
+  });
+  if (!parsed.success) return json({ ok: false, code: 'INVALID_RANGE' });
+
+  const { program, from, to } = parsed.data;
+  const fromMs = Date.parse(`${from}T00:00:00Z`);
+  const toMs   = Date.parse(`${to}T23:59:59Z`);
+  if (Number.isNaN(fromMs) || Number.isNaN(toMs) || toMs <= fromMs ||
+      (toMs - fromMs) / 86_400_000 > MAX_RANGE_DAYS) {
+    return json({ ok: false, code: 'INVALID_RANGE' });
+  }
+
+  const calendarId = process.env[getProgram(program).calendarIdEnvVar];
+  if (!calendarId) {
+    console.error('[availability] missing calendar env var', getProgram(program).calendarIdEnvVar);
+    return json({ ok: false, code: 'GHL_UNAVAILABLE' });
+  }
+
+  let freeFromGhl: Set<string>;
+  try {
+    freeFromGhl = await getFreeSlots({ calendarId, startDate: fromMs, endDate: toMs });
+  } catch (err) {
+    console.error('[availability] GHL free-slots failed',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
+    return json({ ok: false, code: 'GHL_UNAVAILABLE' });
+  }
+
+  // Build the template slots (no booked subtraction yet), then keep only those
+  // that GHL also reports as free. This combines our schedule.ts source of truth
+  // with GHL's actual capacity & manual bookings.
+  const templateSlots: AvailabilitySlot[] = generateSlots({
+    programKey: program,
+    fromISODate: from,
+    toISODate: to,
+    bookedStartISOs: new Set(),
+    blackoutDates: new Set(blackouts),
+    now: new Date(),
+    minLeadMinutes: MIN_LEAD_MINUTES,
+  });
+  const slots = templateSlots.filter((s) => freeFromGhl.has(s.startISO));
+
+  return json(
+    { ok: true, slots },
+    { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
+  );
+};
+
+function json(body: unknown, extraHeaders: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+  });
+}
