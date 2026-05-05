@@ -1,4 +1,76 @@
 ---
-// Stub — implemented in Task 5.6.
+/**
+ * BookingSuccess — STATE 6a.
+ * Confirms the just-booked appointment, lists prior bookings (if any),
+ * and offers "book another child" or "I'm all set" → /congrats.
+ *
+ * Emits booking:book-another or booking:done.
+ */
 ---
-<div data-component="booking-success">BOOKING SUCCESS (stub)</div>
+
+<div class="bg-white border border-green-200 rounded-2xl p-6 md:p-8 shadow-sm text-center">
+  <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-green-600 text-white flex items-center justify-center" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+  </div>
+  <h3 class="text-2xl font-extrabold text-gb-navy">Booked!</h3>
+  <p class="mt-2 text-gb-text" data-success-summary></p>
+
+  <div data-bookings-block class="mt-6 hidden text-left">
+    <h4 class="text-sm font-semibold text-gb-navy uppercase tracking-wider mb-2">Your bookings so far</h4>
+    <ul class="space-y-1 text-sm" data-bookings-list></ul>
+  </div>
+
+  <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+    <button type="button" data-book-another
+      class="min-h-[56px] px-6 rounded-full border-2 border-gb-navy text-gb-navy font-semibold hover:bg-gb-navy hover:text-white transition-colors">
+      Book another child
+    </button>
+    <button type="button" data-done
+      class="min-h-[56px] px-6 rounded-full bg-gb-red text-white font-semibold hover:bg-red-700 transition-colors">
+      I'm all set
+    </button>
+  </div>
+</div>
+
+<script>
+  const root = document.getElementById('booking-flow');
+  if (root) {
+    const node = root.querySelector('[data-step="success"]') as HTMLElement | null;
+    const summary = node?.querySelector<HTMLElement>('[data-success-summary]');
+    const list = node?.querySelector<HTMLElement>('[data-bookings-list]');
+    const block = node?.querySelector<HTMLElement>('[data-bookings-block]');
+    const btnAnother = node?.querySelector<HTMLButtonElement>('[data-book-another]');
+    const btnDone = node?.querySelector<HTMLButtonElement>('[data-done]');
+
+    btnAnother?.addEventListener('click', () => {
+      root.dispatchEvent(new CustomEvent('booking:book-another'));
+    });
+    btnDone?.addEventListener('click', () => {
+      root.dispatchEvent(new CustomEvent('booking:done'));
+    });
+
+    root.addEventListener('booking:render', (e) => {
+      const s = (e as CustomEvent).detail;
+      if (s.step !== 'success') return;
+      const last = s.bookings[s.bookings.length - 1];
+      if (summary && last) {
+        summary.textContent = `${last.traineeName} is confirmed for ${last.programName} · ${last.label}`;
+      }
+      if (list && block) {
+        list.innerHTML = '';
+        if (s.bookings.length > 1) {
+          for (const b of s.bookings) {
+            const li = document.createElement('li');
+            li.textContent = `• ${b.traineeName} — ${b.programName} — ${b.label}`;
+            list.appendChild(li);
+          }
+          block.classList.remove('hidden');
+        } else {
+          block.classList.add('hidden');
+        }
+      }
+    });
+  }
+</script>
