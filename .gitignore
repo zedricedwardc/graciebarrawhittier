@@ -26,3 +26,5 @@ pnpm-debug.log*
 
 # scaffold artifacts
 _scaffold/
+
+.vercel
