@@ -1,4 +1,149 @@
 ---
-// Stub — implemented in Task 5.5.
+/**
+ * TraineeForm — STATE 5.
+ * Captures parent + trainee details. Pre-fills parent fields from URL params
+ * and from prior bookings in the loop. Hides student fields when the parent
+ * is booking themselves (Adults · isSelf=true).
+ *
+ * Emits booking:form-submit with { parent, trainee, marketingConsent }.
+ */
 ---
-<div data-component="trainee-form">TRAINEE FORM (stub)</div>
+
+<div class="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+  <p class="text-gb-text-muted text-sm mb-1" data-form-context></p>
+  <h3 class="text-xl md:text-2xl font-bold text-gb-navy mb-6" data-form-headline>Your Info</h3>
+
+  <form data-trainee-form class="space-y-4" novalidate>
+    <!-- Honeypot -->
+    <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+      style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0" />
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <label class="block">
+        <span class="text-sm font-medium text-gb-text">Parent first name *</span>
+        <input name="parentFirst" required minlength="1" maxlength="50"
+          class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-gb-text">Parent last name *</span>
+        <input name="parentLast" required minlength="1" maxlength="50"
+          class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-gb-text">Email *</span>
+        <input name="email" type="email" required autocomplete="email"
+          class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-gb-text">Phone *</span>
+        <input name="phone" type="tel" required autocomplete="tel-national"
+          class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
+      </label>
+    </div>
+
+    <fieldset data-student-block>
+      <legend class="text-sm font-semibold text-gb-navy mt-2">Student info</legend>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+        <label class="block">
+          <span class="text-sm font-medium text-gb-text">Student first name *</span>
+          <input name="studentFirst" minlength="1" maxlength="50"
+            class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gb-text">Student age *</span>
+          <input name="studentAge" type="number" min="3" max="99"
+            class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
+        </label>
+      </div>
+    </fieldset>
+
+    <label class="flex items-start gap-2 text-sm text-gb-text">
+      <input type="checkbox" name="consent" class="mt-1 h-4 w-4" />
+      <span>OK to text me class reminders.</span>
+    </label>
+
+    <p data-form-error class="hidden text-sm text-gb-red"></p>
+
+    <button type="submit" data-submit
+      class="w-full h-14 rounded-full bg-gb-red text-white font-bold text-lg hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+      Confirm Booking
+    </button>
+  </form>
+</div>
+
+<script>
+  const root = document.getElementById('booking-flow');
+  if (root) {
+    const node = root.querySelector('[data-step="form"]') as HTMLElement | null;
+    const form = node?.querySelector<HTMLFormElement>('[data-trainee-form]');
+    const ctx = node?.querySelector<HTMLElement>('[data-form-context]');
+    const studentBlock = node?.querySelector<HTMLElement>('[data-student-block]');
+    const submitBtn = node?.querySelector<HTMLButtonElement>('[data-submit]');
+    const errorEl = node?.querySelector<HTMLElement>('[data-form-error]');
+
+    let isSelf = false;
+
+    root.addEventListener('booking:render', (e) => {
+      const s = (e as CustomEvent).detail;
+      if (s.step !== 'form') return;
+      if (ctx && s.selectedSlot) {
+        ctx.textContent = `Booking ${s.programName} · ${s.selectedSlot.label}`;
+      }
+      isSelf = !!s.trainee?.isSelf;
+      if (studentBlock) {
+        if (isSelf) {
+          studentBlock.style.display = 'none';
+          studentBlock.querySelectorAll('input').forEach((i) => i.removeAttribute('required'));
+        } else {
+          studentBlock.style.display = '';
+          studentBlock.querySelectorAll('input').forEach((i) => i.setAttribute('required', ''));
+        }
+      }
+
+      // Pre-fill parent fields from state.
+      if (form && s.parent) {
+        (form.elements.namedItem('parentFirst') as HTMLInputElement).value = s.parent.firstName ?? '';
+        (form.elements.namedItem('parentLast')  as HTMLInputElement).value = s.parent.lastName ?? '';
+        (form.elements.namedItem('email')       as HTMLInputElement).value = s.parent.email ?? '';
+        (form.elements.namedItem('phone')       as HTMLInputElement).value = s.parent.phone ?? '';
+      }
+
+      // Reset submit button state.
+      if (submitBtn) {
+        submitBtn.disabled = !!s.submitting;
+        submitBtn.textContent = s.submitting ? 'Booking…' : 'Confirm Booking';
+      }
+      errorEl?.classList.add('hidden');
+    });
+
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (submitBtn?.disabled) return;
+      const fd = new FormData(form);
+      const parentFirst = String(fd.get('parentFirst') ?? '').trim();
+      const parentLast  = String(fd.get('parentLast') ?? '').trim();
+      const email       = String(fd.get('email') ?? '').trim();
+      const phone       = String(fd.get('phone') ?? '').trim();
+      const studentFirst = String(fd.get('studentFirst') ?? '').trim();
+      const studentAgeStr = String(fd.get('studentAge') ?? '').trim();
+      const consent = fd.get('consent') === 'on';
+
+      if (!parentFirst || !parentLast || !email || !phone) return showErr('Please fill in all required fields.');
+      if (!isSelf && (!studentFirst || !studentAgeStr)) return showErr("Please add the student's name and age.");
+
+      const trainee = isSelf
+        ? { firstName: parentFirst, age: 30, isSelf: true }
+        : { firstName: studentFirst, age: Number(studentAgeStr), isSelf: false };
+
+      root.dispatchEvent(new CustomEvent('booking:form-submit', {
+        detail: { parent: { firstName: parentFirst, lastName: parentLast, email, phone }, trainee, marketingConsent: consent },
+      }));
+    });
+
+    function showErr(msg: string) {
+      if (!errorEl) return;
+      errorEl.textContent = msg;
+      errorEl.classList.remove('hidden');
+    }
+  }
+</script>
