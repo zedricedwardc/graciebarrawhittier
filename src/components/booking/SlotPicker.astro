@@ -43,13 +43,18 @@
       }
       if (!list || !empty) return;
       list.innerHTML = '';
-      if (!s.slots || s.slots.length === 0) {
-        // Either still loading (slots = []) or genuinely empty after fetch.
+
+      const loaded = s.slotsLoadedFor === s.selectedDate;
+      if (!loaded) {
         const skel = document.createElement('div');
         skel.className = 'col-span-full text-center text-gb-text-muted py-8';
         skel.textContent = 'Loading available times…';
         list.appendChild(skel);
         empty.classList.add('hidden');
+        return;
+      }
+      if (!s.slots || s.slots.length === 0) {
+        empty.classList.remove('hidden');
         return;
       }
       empty.classList.add('hidden');

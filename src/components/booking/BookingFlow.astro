@@ -57,6 +57,7 @@ const renderTs = Date.now();
       selectedDate: null as string | null,
       selectedSlot: null as Slot | null,
       slots: [] as Slot[],
+      slotsLoadedFor: null as string | null,
       parent: { firstName: '', lastName: '', email: '', phone: '' } as Parent,
       trainee: { firstName: '', age: 0, isSelf: false } as Trainee,
       marketingConsent: false,
@@ -117,6 +118,8 @@ const renderTs = Date.now();
       const date = (e as CustomEvent).detail as string;
       state.selectedDate = date;
       state.selectedSlot = null;
+      state.slots = [];
+      state.slotsLoadedFor = null;
       state.step = 'slot';
       render();
       await loadSlotsForDate(date);
@@ -176,6 +179,7 @@ const renderTs = Date.now();
         const data = await r.json();
         if (!data.ok) throw new Error(data.code ?? 'unknown');
         state.slots = data.slots as Slot[];
+        state.slotsLoadedFor = date;
         render();
       } catch {
         state.lastError = 'We can\'t load class times right now.';
