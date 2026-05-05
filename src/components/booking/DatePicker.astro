@@ -1,4 +1,97 @@
 ---
-// Stub — implemented in Task 5.3.
+/**
+ * DatePicker — STATE 3.
+ * Horizontal-scroll chips for the next 14 days.
+ * Disables days that have no class for the chosen program (computed from schedule.ts).
+ *
+ * Emits booking:date-selected with the YYYY-MM-DD string.
+ */
+import { schedule, TZ } from '../../data/schedule';
 ---
-<div data-component="date-picker">DATE PICKER (stub)</div>
+
+<div>
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <p class="text-gb-text-muted uppercase tracking-widest text-xs font-semibold" data-program-age></p>
+      <h3 class="text-2xl font-bold text-gb-navy" data-program-name></h3>
+    </div>
+    <button type="button" data-change-program class="text-sm text-gb-text-muted hover:text-gb-navy underline">← Change program</button>
+  </div>
+
+  <p class="text-gb-text mb-3 font-semibold">Pick a date</p>
+  <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" data-date-row>
+    {/* chips populated client-side from schedule */}
+  </div>
+</div>
+
+<script define:vars={{ schedule, TZ }}>
+  const root = document.getElementById('booking-flow');
+  if (root) {
+    const node = root.querySelector('[data-step="date"]');
+    const ageEl = node?.querySelector('[data-program-age]');
+    const nameEl = node?.querySelector('[data-program-name]');
+    const row = node?.querySelector('[data-date-row]');
+    const back = node?.querySelector('[data-change-program]');
+
+    const PROGRAM_AGE = {
+      tiny: 'Ages 3–4', lc1: 'Ages 5–6', lc2: 'Ages 7–9', juniors: 'Ages 10–15', adults: 'Ages 16+',
+    };
+
+    back?.addEventListener('click', () => {
+      root.dispatchEvent(new CustomEvent('booking:book-another'));
+    });
+
+    root.addEventListener('booking:render', (e) => {
+      const s = e.detail;
+      if (s.step !== 'date' || !s.program) return;
+      ageEl.textContent = PROGRAM_AGE[s.program];
+      nameEl.textContent = s.programName;
+      row.innerHTML = '';
+
+      const programWeekdays = new Set(schedule[s.program].map((c) => c.weekday));
+      const today = new Date();
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        const wd = weekdayInTZ(d, TZ);
+        const iso = isoDate(d, TZ);
+        const hasClass = programWeekdays.has(wd);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.date = iso;
+        btn.disabled = !hasClass;
+        btn.className =
+          'shrink-0 min-w-[64px] py-2 px-3 rounded-xl border-2 text-center transition-colors ' +
+          (hasClass
+            ? 'border-gray-300 hover:border-gb-navy text-gb-text bg-white'
+            : 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed');
+        btn.innerHTML =
+          '<div class="text-[10px] uppercase tracking-wider">' + WEEKDAY_SHORT[wd] + '</div>' +
+          '<div class="text-lg font-bold">' + d.getDate() + '</div>' +
+          '<div class="text-[10px] text-gb-text-muted">' + MONTH_SHORT[d.getMonth()] + '</div>';
+        if (hasClass) {
+          btn.addEventListener('click', () => {
+            row.querySelectorAll('button').forEach((b) => b.classList.remove('bg-gb-navy','text-white','border-gb-navy'));
+            btn.classList.add('bg-gb-navy','text-white','border-gb-navy');
+            root.dispatchEvent(new CustomEvent('booking:date-selected', { detail: iso }));
+          });
+        }
+        row.appendChild(btn);
+      }
+    });
+
+    const WEEKDAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    function weekdayInTZ(d, tz) {
+      const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' });
+      const wd = fmt.format(d);
+      return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(wd);
+    }
+    function isoDate(d, tz) {
+      const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+      return fmt.format(d); // en-CA gives YYYY-MM-DD
+    }
+  }
+</script>
