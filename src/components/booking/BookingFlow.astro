@@ -58,9 +58,14 @@ const renderTs = Date.now();
       selectedSlot: null as Slot | null,
       slots: [] as Slot[],
       slotsLoadedFor: null as string | null,
-      // Pre-loaded slots for the next 14 days, grouped by YYYY-MM-DD.
+      // Slots from GHL grouped by YYYY-MM-DD. Accumulates as the user navigates months.
       slotsByDate: {} as Record<string, Slot[]>,
-      availabilityLoadedFor: null as ProgramKey | null,
+      // Months we've already fetched for the current program (e.g. "2026-05").
+      loadedMonths: new Set<string>() as Set<string>,
+      // Calendar view state — which month the date picker is currently showing.
+      viewYear: 0,
+      viewMonth: 0, // 1-12
+      monthLoading: false,
       parent: { firstName: '', lastName: '', email: '', phone: '' } as Parent,
       trainee: { firstName: '', age: 0, isSelf: false } as Trainee,
       marketingConsent: false,
@@ -114,10 +119,29 @@ const renderTs = Date.now();
       state.selectedSlot = null;
       state.slots = [];
       state.slotsByDate = {};
-      state.availabilityLoadedFor = null;
+      state.loadedMonths = new Set<string>();
+      const today = todayInTZ();
+      state.viewYear = today.year;
+      state.viewMonth = today.month;
       state.step = 'date';
       render();
-      await loadAvailabilityForProgram(detail.key);
+      await loadMonth(detail.key, state.viewYear, state.viewMonth);
+    });
+
+    root.addEventListener('booking:change-month', async (e: Event) => {
+      if (!state.program) return;
+      const { delta } = (e as CustomEvent).detail as { delta: 1 | -1 };
+      const next = addMonths(state.viewYear, state.viewMonth, delta);
+      // Cap navigation: today's month .. today + 3 months.
+      const today = todayInTZ();
+      const maxAhead = addMonths(today.year, today.month, 3);
+      const beforeToday = (next.year < today.year) || (next.year === today.year && next.month < today.month);
+      const afterMax = (next.year > maxAhead.year) || (next.year === maxAhead.year && next.month > maxAhead.month);
+      if (beforeToday || afterMax) return;
+      state.viewYear = next.year;
+      state.viewMonth = next.month;
+      render();
+      await loadMonth(state.program, next.year, next.month);
     });
 
     root.addEventListener('booking:date-selected', (e: Event) => {
@@ -159,7 +183,7 @@ const renderTs = Date.now();
       state.selectedSlot = null;
       state.slots = [];
       state.slotsByDate = {};
-      state.availabilityLoadedFor = null;
+      state.loadedMonths = new Set<string>();
       state.trainee = { firstName: '', age: 0, isSelf: false };
       state.lastError = '';
       state.lastAlternates = [];
@@ -179,43 +203,59 @@ const renderTs = Date.now();
     });
 
     // ─── Network ─────────────────────────────────────────────────────────
-    async function loadAvailabilityForProgram(program: ProgramKey) {
-      const today = isoDateToday();
-      const end = isoDatePlus(today, 13); // inclusive 14-day window
+    async function loadMonth(program: ProgramKey, year: number, month: number) {
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      if (state.loadedMonths.has(monthKey)) return;
+
+      // For the current month, start from today (no point asking GHL for past dates).
+      const today = todayInTZ();
+      const isCurrentMonth = year === today.year && month === today.month;
+      const fromDay = isCurrentMonth ? today.day : 1;
+      const lastDay = lastDayOfMonth(year, month);
+      const from = `${monthKey}-${String(fromDay).padStart(2, '0')}`;
+      const to = `${monthKey}-${String(lastDay).padStart(2, '0')}`;
+
+      state.monthLoading = true;
+      render();
       try {
-        const r = await fetch(`/api/availability?program=${program}&from=${today}&to=${end}&t=${Date.now()}`);
+        const r = await fetch(`/api/availability?program=${program}&from=${from}&to=${to}&t=${Date.now()}`);
         const data = await r.json();
         if (!data.ok) throw new Error(data.code ?? 'unknown');
-        const byDate: Record<string, Slot[]> = {};
+        // Bail if the user has navigated away from this program.
+        if (state.program !== program) return;
         for (const slot of data.slots as Slot[]) {
           const day = slot.startISO.slice(0, 10);
-          (byDate[day] ??= []).push(slot);
+          (state.slotsByDate[day] ??= []).push(slot);
         }
-        // Drop in only if the user hasn't moved on to a different program.
-        if (state.program !== program) return;
-        state.slotsByDate = byDate;
-        state.availabilityLoadedFor = program;
-        render();
+        state.loadedMonths.add(monthKey);
       } catch {
         if (state.program !== program) return;
-        state.lastError = 'We can\'t load class times right now.';
+        state.lastError = "We can't load class times right now.";
         state.step = 'error';
+      } finally {
+        state.monthLoading = false;
         render();
       }
     }
 
-    function isoDateToday(): string {
+    function todayInTZ(): { year: number; month: number; day: number } {
       const fmt = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'America/Los_Angeles',
         year: 'numeric', month: '2-digit', day: '2-digit',
       });
-      return fmt.format(new Date());
+      const iso = fmt.format(new Date()); // YYYY-MM-DD
+      const parts = iso.split('-').map(Number);
+      return { year: parts[0]!, month: parts[1]!, day: parts[2]! };
     }
 
-    function isoDatePlus(isoDate: string, days: number): string {
-      const d = new Date(`${isoDate}T12:00:00Z`);
-      d.setUTCDate(d.getUTCDate() + days);
-      return d.toISOString().slice(0, 10);
+    function addMonths(year: number, month: number, delta: number): { year: number; month: number } {
+      const total = (year * 12 + (month - 1)) + delta;
+      return { year: Math.floor(total / 12), month: (total % 12) + 1 };
+    }
+
+    function lastDayOfMonth(year: number, month: number): number {
+      // Day 0 of next month = last day of current month.
+      return new Date(Date.UTC(year, month, 0)).getUTCDate();
     }
 
     async function submitBooking() {

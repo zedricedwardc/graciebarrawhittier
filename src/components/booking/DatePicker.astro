@@ -1,13 +1,12 @@
 ---
 /**
  * DatePicker — STATE 3.
- * Horizontal-scroll chips for the next 14 days.
+ * Calendar grid view, navigable up to 3 months ahead.
  * A date is enabled only when GHL reports ≥1 free slot for that day.
- * Each enabled chip shows the count of available times beneath the date.
+ * Each enabled cell shows the count of available times.
  *
- * Emits booking:date-selected with the YYYY-MM-DD string.
+ * Emits: booking:date-selected (YYYY-MM-DD), booking:change-month ({delta: -1|1}).
  */
-import { TZ } from '../../data/schedule';
 ---
 
 <div>
@@ -19,113 +18,187 @@ import { TZ } from '../../data/schedule';
     <button type="button" data-change-program class="text-sm text-gb-text-muted hover:text-gb-navy underline">← Change program</button>
   </div>
 
-  <p class="text-gb-text mb-3 font-semibold">Pick a date</p>
-  <div data-date-loading class="text-center text-gb-text-muted py-6">
-    Loading available dates&hellip;
+  <div class="flex items-center justify-between mb-3">
+    <button
+      type="button"
+      data-prev-month
+      class="w-10 h-10 rounded-full border-2 border-gray-300 hover:border-gb-navy text-gb-navy font-bold text-lg disabled:border-gray-200 disabled:text-gray-300 disabled:cursor-not-allowed"
+      aria-label="Previous month"
+    >‹</button>
+    <p class="text-lg font-bold text-gb-navy" data-month-label>&nbsp;</p>
+    <button
+      type="button"
+      data-next-month
+      class="w-10 h-10 rounded-full border-2 border-gray-300 hover:border-gb-navy text-gb-navy font-bold text-lg disabled:border-gray-200 disabled:text-gray-300 disabled:cursor-not-allowed"
+      aria-label="Next month"
+    >›</button>
   </div>
-  <div class="grid grid-cols-4 sm:grid-cols-7 gap-2 hidden" data-date-row>
-    {/* chips populated client-side from state.slotsByDate */}
+
+  <div class="grid grid-cols-7 gap-1 mb-1 text-center text-[10px] uppercase tracking-wider text-gb-text-muted font-semibold">
+    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
   </div>
-  <p data-date-empty class="hidden text-center text-gb-text-muted py-4">
-    No available class times in the next 14 days. Please call (562) 640-1400.
+
+  <div class="relative">
+    <div class="grid grid-cols-7 gap-1" data-date-grid>
+      {/* cells populated client-side */}
+    </div>
+    <div data-month-loading class="hidden absolute inset-0 flex items-center justify-center bg-white/70 text-gb-text-muted text-sm">
+      Loading available dates&hellip;
+    </div>
+  </div>
+
+  <p data-month-empty class="hidden text-center text-gb-text-muted py-4 mt-2">
+    No available class times this month. Try the next month.
   </p>
 </div>
 
-<script define:vars={{ TZ }}>
+<script>
+  type ProgramKey = 'tiny'|'lc1'|'lc2'|'juniors'|'adults';
+
+  const PROGRAM_AGE: Record<ProgramKey, string> = {
+    tiny: 'Ages 3–4', lc1: 'Ages 5–6', lc2: 'Ages 7–9', juniors: 'Ages 10–15', adults: 'Ages 16+',
+  };
+
+  const MONTH_LONG = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
   const root = document.getElementById('booking-flow');
   if (root) {
     const node = root.querySelector('[data-step="date"]');
-    const ageEl = node?.querySelector('[data-program-age]');
-    const nameEl = node?.querySelector('[data-program-name]');
-    const row = node?.querySelector('[data-date-row]');
-    const loading = node?.querySelector('[data-date-loading]');
-    const empty = node?.querySelector('[data-date-empty]');
-    const back = node?.querySelector('[data-change-program]');
-
-    const PROGRAM_AGE = {
-      tiny: 'Ages 3–4', lc1: 'Ages 5–6', lc2: 'Ages 7–9', juniors: 'Ages 10–15', adults: 'Ages 16+',
-    };
+    const ageEl = node?.querySelector<HTMLElement>('[data-program-age]');
+    const nameEl = node?.querySelector<HTMLElement>('[data-program-name]');
+    const monthLabel = node?.querySelector<HTMLElement>('[data-month-label]');
+    const grid = node?.querySelector<HTMLElement>('[data-date-grid]');
+    const loading = node?.querySelector<HTMLElement>('[data-month-loading]');
+    const empty = node?.querySelector<HTMLElement>('[data-month-empty]');
+    const back = node?.querySelector<HTMLButtonElement>('[data-change-program]');
+    const prevBtn = node?.querySelector<HTMLButtonElement>('[data-prev-month]');
+    const nextBtn = node?.querySelector<HTMLButtonElement>('[data-next-month]');
 
     back?.addEventListener('click', () => {
       root.dispatchEvent(new CustomEvent('booking:book-another'));
     });
+    prevBtn?.addEventListener('click', () => {
+      root.dispatchEvent(new CustomEvent('booking:change-month', { detail: { delta: -1 } }));
+    });
+    nextBtn?.addEventListener('click', () => {
+      root.dispatchEvent(new CustomEvent('booking:change-month', { detail: { delta: 1 } }));
+    });
 
     root.addEventListener('booking:render', (e) => {
-      const s = e.detail;
+      const s = (e as CustomEvent).detail;
       if (s.step !== 'date' || !s.program) return;
-      ageEl.textContent = PROGRAM_AGE[s.program];
-      nameEl.textContent = s.programName;
 
-      const loaded = s.availabilityLoadedFor === s.program;
-      if (!loaded) {
-        loading.classList.remove('hidden');
-        row.classList.add('hidden');
-        empty.classList.add('hidden');
-        return;
-      }
+      if (ageEl) ageEl.textContent = PROGRAM_AGE[s.program as ProgramKey];
+      if (nameEl) nameEl.textContent = s.programName;
+      if (monthLabel) monthLabel.textContent = `${MONTH_LONG[s.viewMonth - 1]} ${s.viewYear}`;
 
+      // Cap nav: today's month .. today + 3 months.
+      const today = todayInTZ();
+      const beforeToday =
+        (s.viewYear < today.year) ||
+        (s.viewYear === today.year && s.viewMonth <= today.month);
+      const maxAhead = addMonths(today.year, today.month, 3);
+      const atMax =
+        (s.viewYear > maxAhead.year) ||
+        (s.viewYear === maxAhead.year && s.viewMonth >= maxAhead.month);
+      if (prevBtn) prevBtn.disabled = beforeToday;
+      if (nextBtn) nextBtn.disabled = atMax;
+
+      if (loading) loading.classList.toggle('hidden', !s.monthLoading);
+
+      const monthKey = `${s.viewYear}-${String(s.viewMonth).padStart(2, '0')}`;
+      const monthLoaded = (s.loadedMonths instanceof Set) ? s.loadedMonths.has(monthKey) : false;
       const slotsByDate = s.slotsByDate || {};
-      const dateKeys = Object.keys(slotsByDate).filter((k) => (slotsByDate[k] || []).length > 0);
-      if (dateKeys.length === 0) {
-        loading.classList.add('hidden');
-        row.classList.add('hidden');
-        empty.classList.remove('hidden');
-        return;
+
+      // Count slots in this month.
+      let monthSlotCount = 0;
+      const lastDay = lastDayOfMonth(s.viewYear, s.viewMonth);
+      for (let d = 1; d <= lastDay; d++) {
+        const iso = `${monthKey}-${String(d).padStart(2, '0')}`;
+        if ((slotsByDate[iso] || []).length > 0) monthSlotCount++;
       }
 
-      loading.classList.add('hidden');
-      empty.classList.add('hidden');
-      row.classList.remove('hidden');
-      row.innerHTML = '';
+      if (empty) {
+        empty.classList.toggle('hidden', !(monthLoaded && !s.monthLoading && monthSlotCount === 0));
+      }
 
-      const today = new Date();
-      for (let i = 0; i < 14; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        const wd = weekdayInTZ(d, TZ);
-        const iso = isoDate(d, TZ);
+      renderGrid(grid, s, today);
+    });
+
+    function renderGrid(grid: HTMLElement | null | undefined, s: any, today: { year: number; month: number; day: number }) {
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      const { viewYear, viewMonth, slotsByDate } = s;
+      const firstWeekday = new Date(Date.UTC(viewYear, viewMonth - 1, 1)).getUTCDay(); // 0 = Sun
+      const lastDay = lastDayOfMonth(viewYear, viewMonth);
+
+      // Leading blanks (prev-month padding cells, just placeholders).
+      for (let i = 0; i < firstWeekday; i++) {
+        const blank = document.createElement('div');
+        blank.className = 'aspect-square';
+        grid.appendChild(blank);
+      }
+
+      for (let day = 1; day <= lastDay; day++) {
+        const iso = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dailySlots = slotsByDate[iso] || [];
         const hasSlots = dailySlots.length > 0;
+        const isPast =
+          viewYear < today.year ||
+          (viewYear === today.year && viewMonth < today.month) ||
+          (viewYear === today.year && viewMonth === today.month && day < today.day);
+        const isToday =
+          viewYear === today.year && viewMonth === today.month && day === today.day;
 
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.dataset.date = iso;
-        btn.disabled = !hasSlots;
-        btn.className =
-          'py-2 px-2 rounded-xl border-2 text-center transition-colors ' +
-          (hasSlots
-            ? 'border-gray-300 hover:border-gb-navy text-gb-text bg-white'
-            : 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed');
-        const countLine = hasSlots
-          ? '<div class="text-[10px] font-semibold text-gb-red mt-0.5">' + dailySlots.length + ' time' + (dailySlots.length === 1 ? '' : 's') + '</div>'
-          : '<div class="text-[10px] text-gray-300 mt-0.5">—</div>';
-        btn.innerHTML =
-          '<div class="text-[10px] uppercase tracking-wider">' + WEEKDAY_SHORT[wd] + '</div>' +
-          '<div class="text-lg font-bold">' + d.getDate() + '</div>' +
-          '<div class="text-[10px] text-gb-text-muted">' + MONTH_SHORT[d.getMonth()] + '</div>' +
-          countLine;
-        if (hasSlots) {
+        btn.disabled = isPast || !hasSlots;
+
+        const base = 'aspect-square w-full rounded-lg border-2 text-center transition-colors flex flex-col items-center justify-center';
+        let variant = 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed';
+        if (!isPast && hasSlots) {
+          variant = 'border-gray-300 hover:border-gb-navy text-gb-text bg-white';
+        }
+        if (isToday) variant += ' ring-2 ring-gb-navy ring-offset-1';
+        btn.className = `${base} ${variant}`;
+
+        const dayLine = `<div class="text-base font-bold leading-none">${day}</div>`;
+        const countLine = hasSlots && !isPast
+          ? `<div class="text-[9px] font-semibold text-gb-red mt-0.5 leading-none">${dailySlots.length}&nbsp;${dailySlots.length === 1 ? 'time' : 'times'}</div>`
+          : `<div class="text-[9px] text-gray-300 mt-0.5 leading-none">&mdash;</div>`;
+        btn.innerHTML = dayLine + countLine;
+
+        if (!isPast && hasSlots) {
           btn.addEventListener('click', () => {
-            row.querySelectorAll('button').forEach((b) => b.classList.remove('bg-gb-navy','text-white','border-gb-navy'));
-            btn.classList.add('bg-gb-navy','text-white','border-gb-navy');
-            root.dispatchEvent(new CustomEvent('booking:date-selected', { detail: iso }));
+            grid.querySelectorAll('button').forEach((b) =>
+              b.classList.remove('bg-gb-navy', 'text-white', 'border-gb-navy'));
+            btn.classList.add('bg-gb-navy', 'text-white', 'border-gb-navy');
+            root!.dispatchEvent(new CustomEvent('booking:date-selected', { detail: iso }));
           });
         }
-        row.appendChild(btn);
+        grid.appendChild(btn);
       }
-    });
-
-    const WEEKDAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-    function weekdayInTZ(d, tz) {
-      const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' });
-      const wd = fmt.format(d);
-      return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(wd);
     }
-    function isoDate(d, tz) {
-      const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
-      return fmt.format(d);
+
+    function todayInTZ(): { year: number; month: number; day: number } {
+      const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+      });
+      const iso = fmt.format(new Date());
+      const parts = iso.split('-').map(Number);
+      return { year: parts[0]!, month: parts[1]!, day: parts[2]! };
+    }
+
+    function addMonths(year: number, month: number, delta: number): { year: number; month: number } {
+      const total = (year * 12 + (month - 1)) + delta;
+      return { year: Math.floor(total / 12), month: (total % 12) + 1 };
+    }
+
+    function lastDayOfMonth(year: number, month: number): number {
+      return new Date(Date.UTC(year, month, 0)).getUTCDate();
     }
   }
 </script>

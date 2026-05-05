@@ -7,7 +7,7 @@ import { getFreeSlots, GhlError, readEnv } from '../../lib/ghl';
 
 export const prerender = false;
 
-const MAX_RANGE_DAYS = 21;
+const MAX_RANGE_DAYS = 35;
 const MIN_LEAD_MINUTES = 60;
 
 export const GET: APIRoute = async ({ url }) => {
