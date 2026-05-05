@@ -1,4 +1,97 @@
 ---
-// Stub — implemented in Task 5.2.
+/**
+ * ProgramSurvey — STATE 2.
+ * Two-question survey resolving to a ProgramKey.
+ * Q1: "Booking for self / someone else"
+ * Q2 (only if "someone else"): age tier
+ *
+ * Emits booking:program-selected with { key, name, isSelf } on resolution.
+ */
+import { programs } from '../../data/programs';
 ---
-<div data-component="program-survey">PROGRAM SURVEY (stub)</div>
+
+<div class="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+  <h2 class="text-2xl md:text-3xl font-bold text-gb-navy mb-2 text-center">Pick Your First Class</h2>
+  <p class="text-center text-gb-text-muted mb-6">Answer two quick questions and we'll show you the right calendar.</p>
+
+  <fieldset class="mb-6">
+    <legend class="text-lg font-semibold text-gb-navy mb-3">1. Who are you booking for?</legend>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" data-survey-q1>
+      <button type="button" data-booking-for="self" class="survey-btn min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy">Myself</button>
+      <button type="button" data-booking-for="other" class="survey-btn min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy">Someone else (e.g. my child)</button>
+    </div>
+  </fieldset>
+
+  <fieldset class="mb-2 hidden" data-survey-q2>
+    <legend class="text-lg font-semibold text-gb-navy mb-3">2. How old is the student?</legend>
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      {programs.map((p) => (
+        <button type="button" data-program-key={p.key} class="age-btn min-h-[56px] px-2 rounded-full border-2 border-gray-300 font-semibold text-sm transition-colors hover:border-gb-navy">
+          {p.ageRange.replace('Ages ', '')}
+        </button>
+      ))}
+    </div>
+  </fieldset>
+</div>
+
+<script>
+  type ProgramKey = 'tiny'|'lc1'|'lc2'|'juniors'|'adults';
+  const PROGRAM_NAMES: Record<ProgramKey, string> = {
+    tiny: 'Tiny Champions',
+    lc1: 'Little Champions 1',
+    lc2: 'Little Champions 2',
+    juniors: 'Juniors Jiu-Jitsu',
+    adults: 'Adults Brazilian Jiu-Jitsu',
+  };
+
+  const root = document.getElementById('booking-flow');
+  if (root) {
+    const survey = root.querySelector<HTMLElement>('[data-step="survey"]');
+    const q1 = survey?.querySelector<HTMLElement>('[data-survey-q1]');
+    const q2 = survey?.querySelector<HTMLElement>('[data-survey-q2]');
+
+    q1?.querySelectorAll<HTMLButtonElement>('[data-booking-for]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        clearActive(q1);
+        btn.classList.add('bg-gb-navy', 'text-white', 'border-gb-navy');
+        const v = btn.getAttribute('data-booking-for');
+        if (v === 'self') {
+          q2?.classList.add('hidden');
+          emit('adults', true);
+        } else {
+          q2?.classList.remove('hidden');
+        }
+      });
+    });
+
+    q2?.querySelectorAll<HTMLButtonElement>('[data-program-key]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        clearActive(q2);
+        btn.classList.add('bg-gb-navy', 'text-white', 'border-gb-navy');
+        emit(btn.getAttribute('data-program-key') as ProgramKey, false);
+      });
+    });
+
+    function clearActive(scope: HTMLElement | null | undefined) {
+      scope?.querySelectorAll<HTMLButtonElement>('button').forEach((b) =>
+        b.classList.remove('bg-gb-navy', 'text-white', 'border-gb-navy'),
+      );
+    }
+
+    function emit(key: ProgramKey, isSelf: boolean) {
+      root!.dispatchEvent(new CustomEvent('booking:program-selected', {
+        detail: { key, name: PROGRAM_NAMES[key], isSelf },
+      }));
+    }
+
+    // Reset visible state when the survey re-enters via "book another."
+    root.addEventListener('booking:render', (e) => {
+      const s = (e as CustomEvent).detail;
+      if (s.step === 'survey') {
+        clearActive(q1);
+        clearActive(q2);
+        q2?.classList.add('hidden');
+      }
+    });
+  }
+</script>

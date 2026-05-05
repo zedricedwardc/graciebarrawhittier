@@ -100,9 +100,12 @@ const renderTs = Date.now();
 
     // ─── Transitions ─────────────────────────────────────────────────────
     root.addEventListener('booking:program-selected', (e: Event) => {
-      const detail = (e as CustomEvent).detail as { key: ProgramKey; name: string };
+      const detail = (e as CustomEvent).detail as { key: ProgramKey; name: string; isSelf?: boolean };
       state.program = detail.key;
       state.programName = detail.name;
+      state.trainee.isSelf = !!detail.isSelf;
+      state.trainee.firstName = '';
+      state.trainee.age = 0;
       state.selectedDate = null;
       state.selectedSlot = null;
       state.slots = [];
@@ -132,6 +135,12 @@ const renderTs = Date.now();
       state.trainee = detail.trainee;
       state.marketingConsent = detail.marketingConsent;
       await submitBooking();
+    });
+
+    root.addEventListener('booking:back-to-date', () => {
+      state.selectedSlot = null;
+      state.step = 'date';
+      render();
     });
 
     root.addEventListener('booking:book-another', () => {
