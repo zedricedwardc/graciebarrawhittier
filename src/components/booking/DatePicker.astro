@@ -2,11 +2,12 @@
 /**
  * DatePicker — STATE 3.
  * Horizontal-scroll chips for the next 14 days.
- * Disables days that have no class for the chosen program (computed from schedule.ts).
+ * A date is enabled only when GHL reports ≥1 free slot for that day.
+ * Each enabled chip shows the count of available times beneath the date.
  *
  * Emits booking:date-selected with the YYYY-MM-DD string.
  */
-import { schedule, TZ } from '../../data/schedule';
+import { TZ } from '../../data/schedule';
 ---
 
 <div>
@@ -19,18 +20,26 @@ import { schedule, TZ } from '../../data/schedule';
   </div>
 
   <p class="text-gb-text mb-3 font-semibold">Pick a date</p>
-  <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" data-date-row>
-    {/* chips populated client-side from schedule */}
+  <div data-date-loading class="text-center text-gb-text-muted py-6">
+    Loading available dates&hellip;
   </div>
+  <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 hidden" data-date-row>
+    {/* chips populated client-side from state.slotsByDate */}
+  </div>
+  <p data-date-empty class="hidden text-center text-gb-text-muted py-4">
+    No available class times in the next 14 days. Please call (562) 640-1400.
+  </p>
 </div>
 
-<script define:vars={{ schedule, TZ }}>
+<script define:vars={{ TZ }}>
   const root = document.getElementById('booking-flow');
   if (root) {
     const node = root.querySelector('[data-step="date"]');
     const ageEl = node?.querySelector('[data-program-age]');
     const nameEl = node?.querySelector('[data-program-name]');
     const row = node?.querySelector('[data-date-row]');
+    const loading = node?.querySelector('[data-date-loading]');
+    const empty = node?.querySelector('[data-date-empty]');
     const back = node?.querySelector('[data-change-program]');
 
     const PROGRAM_AGE = {
@@ -46,31 +55,56 @@ import { schedule, TZ } from '../../data/schedule';
       if (s.step !== 'date' || !s.program) return;
       ageEl.textContent = PROGRAM_AGE[s.program];
       nameEl.textContent = s.programName;
+
+      const loaded = s.availabilityLoadedFor === s.program;
+      if (!loaded) {
+        loading.classList.remove('hidden');
+        row.classList.add('hidden');
+        empty.classList.add('hidden');
+        return;
+      }
+
+      const slotsByDate = s.slotsByDate || {};
+      const dateKeys = Object.keys(slotsByDate).filter((k) => (slotsByDate[k] || []).length > 0);
+      if (dateKeys.length === 0) {
+        loading.classList.add('hidden');
+        row.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      loading.classList.add('hidden');
+      empty.classList.add('hidden');
+      row.classList.remove('hidden');
       row.innerHTML = '';
 
-      const programWeekdays = new Set(schedule[s.program].map((c) => c.weekday));
       const today = new Date();
       for (let i = 0; i < 14; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
         const wd = weekdayInTZ(d, TZ);
         const iso = isoDate(d, TZ);
-        const hasClass = programWeekdays.has(wd);
+        const dailySlots = slotsByDate[iso] || [];
+        const hasSlots = dailySlots.length > 0;
 
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.dataset.date = iso;
-        btn.disabled = !hasClass;
+        btn.disabled = !hasSlots;
         btn.className =
-          'shrink-0 min-w-[64px] py-2 px-3 rounded-xl border-2 text-center transition-colors ' +
-          (hasClass
+          'shrink-0 min-w-[72px] py-2 px-3 rounded-xl border-2 text-center transition-colors ' +
+          (hasSlots
             ? 'border-gray-300 hover:border-gb-navy text-gb-text bg-white'
             : 'border-gray-200 text-gray-300 bg-gray-50 cursor-not-allowed');
+        const countLine = hasSlots
+          ? '<div class="text-[10px] font-semibold text-gb-red mt-0.5">' + dailySlots.length + ' time' + (dailySlots.length === 1 ? '' : 's') + '</div>'
+          : '<div class="text-[10px] text-gray-300 mt-0.5">—</div>';
         btn.innerHTML =
           '<div class="text-[10px] uppercase tracking-wider">' + WEEKDAY_SHORT[wd] + '</div>' +
           '<div class="text-lg font-bold">' + d.getDate() + '</div>' +
-          '<div class="text-[10px] text-gb-text-muted">' + MONTH_SHORT[d.getMonth()] + '</div>';
-        if (hasClass) {
+          '<div class="text-[10px] text-gb-text-muted">' + MONTH_SHORT[d.getMonth()] + '</div>' +
+          countLine;
+        if (hasSlots) {
           btn.addEventListener('click', () => {
             row.querySelectorAll('button').forEach((b) => b.classList.remove('bg-gb-navy','text-white','border-gb-navy'));
             btn.classList.add('bg-gb-navy','text-white','border-gb-navy');
@@ -91,7 +125,7 @@ import { schedule, TZ } from '../../data/schedule';
     }
     function isoDate(d, tz) {
       const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
-      return fmt.format(d); // en-CA gives YYYY-MM-DD
+      return fmt.format(d);
     }
   }
 </script>

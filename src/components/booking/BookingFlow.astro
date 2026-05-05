@@ -58,6 +58,9 @@ const renderTs = Date.now();
       selectedSlot: null as Slot | null,
       slots: [] as Slot[],
       slotsLoadedFor: null as string | null,
+      // Pre-loaded slots for the next 14 days, grouped by YYYY-MM-DD.
+      slotsByDate: {} as Record<string, Slot[]>,
+      availabilityLoadedFor: null as ProgramKey | null,
       parent: { firstName: '', lastName: '', email: '', phone: '' } as Parent,
       trainee: { firstName: '', age: 0, isSelf: false } as Trainee,
       marketingConsent: false,
@@ -100,7 +103,7 @@ const renderTs = Date.now();
     }
 
     // ─── Transitions ─────────────────────────────────────────────────────
-    root.addEventListener('booking:program-selected', (e: Event) => {
+    root.addEventListener('booking:program-selected', async (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: ProgramKey; name: string; isSelf?: boolean };
       state.program = detail.key;
       state.programName = detail.name;
@@ -110,19 +113,21 @@ const renderTs = Date.now();
       state.selectedDate = null;
       state.selectedSlot = null;
       state.slots = [];
+      state.slotsByDate = {};
+      state.availabilityLoadedFor = null;
       state.step = 'date';
       render();
+      await loadAvailabilityForProgram(detail.key);
     });
 
-    root.addEventListener('booking:date-selected', async (e: Event) => {
+    root.addEventListener('booking:date-selected', (e: Event) => {
       const date = (e as CustomEvent).detail as string;
       state.selectedDate = date;
       state.selectedSlot = null;
-      state.slots = [];
-      state.slotsLoadedFor = null;
+      state.slots = state.slotsByDate[date] ?? [];
+      state.slotsLoadedFor = date;
       state.step = 'slot';
       render();
-      await loadSlotsForDate(date);
     });
 
     root.addEventListener('booking:slot-selected', (e: Event) => {
@@ -153,6 +158,8 @@ const renderTs = Date.now();
       state.selectedDate = null;
       state.selectedSlot = null;
       state.slots = [];
+      state.slotsByDate = {};
+      state.availabilityLoadedFor = null;
       state.trainee = { firstName: '', age: 0, isSelf: false };
       state.lastError = '';
       state.lastAlternates = [];
@@ -172,20 +179,43 @@ const renderTs = Date.now();
     });
 
     // ─── Network ─────────────────────────────────────────────────────────
-    async function loadSlotsForDate(date: string) {
-      if (!state.program) return;
+    async function loadAvailabilityForProgram(program: ProgramKey) {
+      const today = isoDateToday();
+      const end = isoDatePlus(today, 13); // inclusive 14-day window
       try {
-        const r = await fetch(`/api/availability?program=${state.program}&from=${date}&to=${date}&t=${Date.now()}`);
+        const r = await fetch(`/api/availability?program=${program}&from=${today}&to=${end}&t=${Date.now()}`);
         const data = await r.json();
         if (!data.ok) throw new Error(data.code ?? 'unknown');
-        state.slots = data.slots as Slot[];
-        state.slotsLoadedFor = date;
+        const byDate: Record<string, Slot[]> = {};
+        for (const slot of data.slots as Slot[]) {
+          const day = slot.startISO.slice(0, 10);
+          (byDate[day] ??= []).push(slot);
+        }
+        // Drop in only if the user hasn't moved on to a different program.
+        if (state.program !== program) return;
+        state.slotsByDate = byDate;
+        state.availabilityLoadedFor = program;
         render();
       } catch {
+        if (state.program !== program) return;
         state.lastError = 'We can\'t load class times right now.';
         state.step = 'error';
         render();
       }
+    }
+
+    function isoDateToday(): string {
+      const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+      });
+      return fmt.format(new Date());
+    }
+
+    function isoDatePlus(isoDate: string, days: number): string {
+      const d = new Date(`${isoDate}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().slice(0, 10);
     }
 
     async function submitBooking() {
