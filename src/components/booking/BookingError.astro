@@ -1,4 +1,70 @@
 ---
-// Stub — implemented in Task 5.7.
+/**
+ * BookingError — STATE 6b.
+ * Inline error card with retry + studio phone fallback.
+ * If the error is SLOT_TAKEN, lists alternate times the user can pick instantly.
+ *
+ * Emits booking:retry-from-error, booking:slot-selected (alternate), or booking:book-another.
+ */
+import { nap } from '../../content/nap.ts';
 ---
-<div data-component="booking-error">BOOKING ERROR (stub)</div>
+
+<div class="bg-white border border-red-200 rounded-2xl p-6 md:p-8 shadow-sm text-center">
+  <h3 class="text-xl md:text-2xl font-bold text-gb-navy">Something went wrong.</h3>
+  <p class="mt-2 text-gb-text" data-error-message></p>
+
+  <div data-alternates class="mt-6 hidden">
+    <p class="text-sm font-semibold text-gb-navy mb-2">Try one of these instead:</p>
+    <div class="flex flex-wrap gap-2 justify-center" data-alternates-list></div>
+  </div>
+
+  <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+    <button type="button" data-retry
+      class="min-h-[56px] px-6 rounded-full border-2 border-gb-navy text-gb-navy font-semibold hover:bg-gb-navy hover:text-white transition-colors">
+      Try again
+    </button>
+    <a href={`tel:${nap.phoneTel}`}
+      class="min-h-[56px] px-6 rounded-full bg-gb-red text-white font-semibold hover:bg-red-700 transition-colors flex items-center justify-center">
+      Or call us: {nap.phone}
+    </a>
+  </div>
+</div>
+
+<script>
+  const root = document.getElementById('booking-flow');
+  if (root) {
+    const node = root.querySelector('[data-step="error"]') as HTMLElement | null;
+    const msg = node?.querySelector<HTMLElement>('[data-error-message]');
+    const altsBox = node?.querySelector<HTMLElement>('[data-alternates]');
+    const altsList = node?.querySelector<HTMLElement>('[data-alternates-list]');
+    const retry = node?.querySelector<HTMLButtonElement>('[data-retry]');
+
+    retry?.addEventListener('click', () => {
+      root.dispatchEvent(new CustomEvent('booking:retry-from-error'));
+    });
+
+    root.addEventListener('booking:render', (e) => {
+      const s = (e as CustomEvent).detail;
+      if (s.step !== 'error') return;
+      if (msg) msg.textContent = s.lastError || 'Please try again or call us.';
+      if (altsList && altsBox) {
+        altsList.innerHTML = '';
+        if (s.lastAlternates && s.lastAlternates.length > 0) {
+          for (const slot of s.lastAlternates) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'min-h-[44px] px-4 rounded-full border-2 border-gray-300 text-gb-text hover:border-gb-navy';
+            btn.textContent = slot.label;
+            btn.addEventListener('click', () => {
+              root.dispatchEvent(new CustomEvent('booking:slot-selected', { detail: slot }));
+            });
+            altsList.appendChild(btn);
+          }
+          altsBox.classList.remove('hidden');
+        } else {
+          altsBox.classList.add('hidden');
+        }
+      }
+    });
+  }
+</script>
