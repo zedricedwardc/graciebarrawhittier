@@ -3,7 +3,7 @@ import { AvailabilityRequest, type AvailabilitySlot } from '../../lib/booking-ty
 import { generateSlots } from '../../lib/slot-resolver';
 import { getProgram } from '../../data/programs';
 import { blackouts } from '../../data/blackouts';
-import { getFreeSlots, GhlError } from '../../lib/ghl';
+import { getFreeSlots, GhlError, readEnv } from '../../lib/ghl';
 
 export const prerender = false;
 
@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({ url }) => {
     return json({ ok: false, code: 'INVALID_RANGE' });
   }
 
-  const calendarId = process.env[getProgram(program).calendarIdEnvVar];
+  const calendarId = readEnv(getProgram(program).calendarIdEnvVar);
   if (!calendarId) {
     console.error('[availability] missing calendar env var', getProgram(program).calendarIdEnvVar);
     return json({ ok: false, code: 'GHL_UNAVAILABLE' });

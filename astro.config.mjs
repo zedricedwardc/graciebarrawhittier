@@ -3,6 +3,10 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 import tailwindcss from '@tailwindcss/vite';
+import dotenv from 'dotenv';
+
+// Load .env into process.env for local dev — Vercel injects production env automatically.
+dotenv.config();
 
 export default defineConfig({
   site: 'https://gbwhittier.com',

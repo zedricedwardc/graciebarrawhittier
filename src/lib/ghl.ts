@@ -25,16 +25,26 @@ export class GhlError extends Error {
   }
 }
 
+function readEnv(key: string): string | undefined {
+  // Astro/Vite exposes .env vars via import.meta.env in dev/build;
+  // Vercel injects production env into process.env at runtime.
+  // Read both so a single token works everywhere.
+  const fromVite = (import.meta.env as Record<string, string | undefined>)[key];
+  return fromVite ?? process.env[key];
+}
+
 function token(): string {
-  const t = process.env.GHL_PIT_TOKEN;
+  const t = readEnv('GHL_PIT_TOKEN');
   if (!t) throw new Error('GHL_PIT_TOKEN env var not set');
   return t;
 }
 function locationId(): string {
-  const l = process.env.GHL_LOCATION_ID;
+  const l = readEnv('GHL_LOCATION_ID');
   if (!l) throw new Error('GHL_LOCATION_ID env var not set');
   return l;
 }
+
+export { readEnv };
 
 async function request(path: string, init: RequestInit = {}): Promise<unknown> {
   const res = await fetch(`${BASE}${path}`, {

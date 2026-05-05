@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { BookingRequest, type BookingResponse, type AvailabilitySlot } from '../../lib/booking-types';
 import { getProgram, type ProgramKey } from '../../data/programs';
-import { upsertContact, createAppointment, getFreeSlots, GhlError } from '../../lib/ghl';
+import { upsertContact, createAppointment, getFreeSlots, GhlError, readEnv } from '../../lib/ghl';
 import { generateSlots } from '../../lib/slot-resolver';
 import { blackouts } from '../../data/blackouts';
 
@@ -40,7 +40,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'RATE_LIMITED' });
   }
 
-  const calendarId = process.env[getProgram(body.program).calendarIdEnvVar];
+  const calendarId = readEnv(getProgram(body.program).calendarIdEnvVar);
   if (!calendarId) {
     console.error('[book] missing calendar env var', getProgram(body.program).calendarIdEnvVar);
     return json({ ok: false, code: 'GHL_FAILED', message: 'Calendar not configured.' });
