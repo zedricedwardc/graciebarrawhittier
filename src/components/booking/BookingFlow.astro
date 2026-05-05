@@ -1,0 +1,224 @@
+---
+/**
+ * BookingFlow — the in-place state machine that replaces the GHL iframes.
+ * Renders all 6 states pre-rendered in the DOM; controller toggles `hidden`.
+ */
+import ProgramSurvey from './ProgramSurvey.astro';
+import DatePicker from './DatePicker.astro';
+import SlotPicker from './SlotPicker.astro';
+import TraineeForm from './TraineeForm.astro';
+import BookingSuccess from './BookingSuccess.astro';
+import BookingError from './BookingError.astro';
+
+const renderTs = Date.now();
+---
+
+<section
+  id="booking-flow"
+  class="max-w-3xl mx-auto px-4 md:px-6 pb-10"
+  data-render-ts={renderTs}
+>
+  <div data-step="survey">
+    <ProgramSurvey />
+  </div>
+  <div data-step="date" hidden>
+    <DatePicker />
+  </div>
+  <div data-step="slot" hidden>
+    <SlotPicker />
+  </div>
+  <div data-step="form" hidden>
+    <TraineeForm />
+  </div>
+  <div data-step="success" hidden>
+    <BookingSuccess />
+  </div>
+  <div data-step="error" hidden>
+    <BookingError />
+  </div>
+</section>
+
+<script>
+  // ─── State ─────────────────────────────────────────────────────────────
+  type ProgramKey = 'tiny'|'lc1'|'lc2'|'juniors'|'adults';
+  type Step = 'survey'|'date'|'slot'|'form'|'success'|'error';
+
+  interface Slot { startISO: string; endISO: string; label: string; }
+  interface Parent { firstName: string; lastName: string; email: string; phone: string; }
+  interface Trainee { firstName: string; age: number; isSelf: boolean; }
+  interface BookingSummary { programName: string; label: string; traineeName: string; }
+
+  const root = document.getElementById('booking-flow') as HTMLElement | null;
+  if (root) {
+    let state = {
+      step: 'survey' as Step,
+      program: null as ProgramKey | null,
+      programName: '',
+      selectedDate: null as string | null,
+      selectedSlot: null as Slot | null,
+      slots: [] as Slot[],
+      parent: { firstName: '', lastName: '', email: '', phone: '' } as Parent,
+      trainee: { firstName: '', age: 0, isSelf: false } as Trainee,
+      marketingConsent: false,
+      bookings: [] as BookingSummary[],
+      pageRenderTs: Number(root.dataset.renderTs ?? Date.now()),
+      lastError: '' as string,
+      lastAlternates: [] as Slot[],
+      submitting: false,
+    };
+
+    // Pre-fill from URL params (name/email/phone forwarded from opt-in).
+    try {
+      const p = new URLSearchParams(location.search);
+      const name = (p.get('name') ?? '').trim();
+      if (name) {
+        const [first, ...rest] = name.split(/\s+/);
+        state.parent.firstName = pretty(first ?? '');
+        if (rest.length) state.parent.lastName = pretty(rest.join(' '));
+      }
+      const email = (p.get('email') ?? '').trim();
+      if (email) state.parent.email = email;
+      const phone = (p.get('phone') ?? '').trim();
+      if (phone) state.parent.phone = phone;
+    } catch { /* ignore */ }
+
+    function pretty(s: string): string {
+      const clean = s.replace(/[^A-Za-z\-']/g, '');
+      return clean ? clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase() : '';
+    }
+
+    // ─── Render ──────────────────────────────────────────────────────────
+    function render() {
+      const steps: Step[] = ['survey','date','slot','form','success','error'];
+      for (const s of steps) {
+        const el = root!.querySelector<HTMLElement>(`[data-step="${s}"]`);
+        if (el) el.hidden = s !== state.step;
+      }
+      // Each child component reads state on render via custom event.
+      root!.dispatchEvent(new CustomEvent('booking:render', { detail: state }));
+    }
+
+    // ─── Transitions ─────────────────────────────────────────────────────
+    root.addEventListener('booking:program-selected', (e: Event) => {
+      const detail = (e as CustomEvent).detail as { key: ProgramKey; name: string };
+      state.program = detail.key;
+      state.programName = detail.name;
+      state.selectedDate = null;
+      state.selectedSlot = null;
+      state.slots = [];
+      state.step = 'date';
+      render();
+    });
+
+    root.addEventListener('booking:date-selected', async (e: Event) => {
+      const date = (e as CustomEvent).detail as string;
+      state.selectedDate = date;
+      state.selectedSlot = null;
+      state.step = 'slot';
+      render();
+      await loadSlotsForDate(date);
+    });
+
+    root.addEventListener('booking:slot-selected', (e: Event) => {
+      const slot = (e as CustomEvent).detail as Slot;
+      state.selectedSlot = slot;
+      state.step = 'form';
+      render();
+    });
+
+    root.addEventListener('booking:form-submit', async (e: Event) => {
+      const detail = (e as CustomEvent).detail as { parent: Parent; trainee: Trainee; marketingConsent: boolean };
+      state.parent = detail.parent;
+      state.trainee = detail.trainee;
+      state.marketingConsent = detail.marketingConsent;
+      await submitBooking();
+    });
+
+    root.addEventListener('booking:book-another', () => {
+      // Keep parent + consent; reset everything else.
+      state.program = null;
+      state.programName = '';
+      state.selectedDate = null;
+      state.selectedSlot = null;
+      state.slots = [];
+      state.trainee = { firstName: '', age: 0, isSelf: false };
+      state.lastError = '';
+      state.lastAlternates = [];
+      state.pageRenderTs = Date.now();
+      state.step = 'survey';
+      render();
+      root!.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    root.addEventListener('booking:done', () => {
+      window.location.href = `/congrats?count=${state.bookings.length}`;
+    });
+
+    root.addEventListener('booking:retry-from-error', () => {
+      state.step = 'form';
+      render();
+    });
+
+    // ─── Network ─────────────────────────────────────────────────────────
+    async function loadSlotsForDate(date: string) {
+      if (!state.program) return;
+      try {
+        const r = await fetch(`/api/availability?program=${state.program}&from=${date}&to=${date}&t=${Date.now()}`);
+        const data = await r.json();
+        if (!data.ok) throw new Error(data.code ?? 'unknown');
+        state.slots = data.slots as Slot[];
+        render();
+      } catch {
+        state.lastError = 'We can\'t load class times right now.';
+        state.step = 'error';
+        render();
+      }
+    }
+
+    async function submitBooking() {
+      if (state.submitting) return;
+      if (!state.program || !state.selectedSlot) return;
+      state.submitting = true;
+      render();
+      try {
+        const res = await fetch('/api/book', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            program: state.program,
+            slotStartISO: state.selectedSlot.startISO,
+            parent: state.parent,
+            trainee: state.trainee,
+            marketingConsent: state.marketingConsent,
+            website: '',
+            ts: state.pageRenderTs,
+          }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          state.bookings.push({
+            programName: state.programName,
+            label: state.selectedSlot.label,
+            traineeName: state.trainee.isSelf ? state.parent.firstName : state.trainee.firstName,
+          });
+          state.step = 'success';
+        } else if (data.code === 'SLOT_TAKEN') {
+          state.lastError = 'That slot just filled up.';
+          state.lastAlternates = (data.alternates as Slot[] | undefined) ?? [];
+          state.step = 'error';
+        } else {
+          state.lastError = data.message ?? 'Something went wrong on our end.';
+          state.step = 'error';
+        }
+      } catch {
+        state.lastError = 'Network error. Please try again.';
+        state.step = 'error';
+      } finally {
+        state.submitting = false;
+        render();
+      }
+    }
+
+    render();
+  }
+</script>
