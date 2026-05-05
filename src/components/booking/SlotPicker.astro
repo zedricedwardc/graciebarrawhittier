@@ -1,4 +1,74 @@
 ---
-// Stub — implemented in Task 5.4.
+/**
+ * SlotPicker — STATE 4.
+ * Renders the slots fetched by BookingFlow into pill buttons.
+ * Emits booking:slot-selected with the chosen Slot.
+ */
 ---
-<div data-component="slot-picker">SLOT PICKER (stub)</div>
+
+<div>
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-xl md:text-2xl font-bold text-gb-navy" data-slot-header></h3>
+    <button type="button" data-change-date class="text-sm text-gb-text-muted hover:text-gb-navy underline">← Change date</button>
+  </div>
+
+  <div data-slot-list class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div data-skeleton class="col-span-full text-center text-gb-text-muted py-8">Loading available times…</div>
+  </div>
+
+  <p data-no-slots class="hidden text-center text-gb-text-muted mt-6">
+    No available times on this date. Try another day above.
+  </p>
+</div>
+
+<script>
+  const root = document.getElementById('booking-flow');
+  if (root) {
+    const node = root.querySelector('[data-step="slot"]');
+    const list = node?.querySelector('[data-slot-list]') as HTMLElement | null;
+    const empty = node?.querySelector('[data-no-slots]') as HTMLElement | null;
+    const header = node?.querySelector('[data-slot-header]') as HTMLElement | null;
+    const back = node?.querySelector('[data-change-date]') as HTMLElement | null;
+
+    back?.addEventListener('click', () => {
+      root.dispatchEvent(new CustomEvent('booking:back-to-date'));
+    });
+
+    root.addEventListener('booking:render', (e) => {
+      const s = (e as CustomEvent).detail;
+      if (s.step !== 'slot') return;
+      if (header) {
+        const dateLabel = s.selectedDate ? formatDate(s.selectedDate) : '';
+        header.textContent = `${s.programName} · ${dateLabel}`;
+      }
+      if (!list || !empty) return;
+      list.innerHTML = '';
+      if (!s.slots || s.slots.length === 0) {
+        // Either still loading (slots = []) or genuinely empty after fetch.
+        const skel = document.createElement('div');
+        skel.className = 'col-span-full text-center text-gb-text-muted py-8';
+        skel.textContent = 'Loading available times…';
+        list.appendChild(skel);
+        empty.classList.add('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      for (const slot of s.slots) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'min-h-[56px] px-4 rounded-full border-2 border-gray-300 font-semibold text-gb-text hover:border-gb-navy transition-colors';
+        const time = slot.label.split(' · ')[1] ?? slot.label;
+        btn.textContent = time;
+        btn.addEventListener('click', () => {
+          root.dispatchEvent(new CustomEvent('booking:slot-selected', { detail: slot }));
+        });
+        list.appendChild(btn);
+      }
+    });
+
+    function formatDate(iso: string): string {
+      const d = new Date(`${iso}T12:00:00`);
+      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+  }
+</script>
