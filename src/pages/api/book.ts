@@ -96,6 +96,26 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not create appointment.' });
   }
 
+  const appointmentHook = readEnv('GHL_APPOINTMENT_WEBHOOK_URL');
+  if (appointmentHook) {
+    void fetch(appointmentHook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        appointmentId,
+        contactId,
+        program: body.program,
+        programName: getProgram(body.program).name,
+        calendarId,
+        startISO: body.slotStartISO,
+        endISO,
+        title,
+        parent: body.parent,
+        trainee: body.trainee,
+      }),
+    }).catch((err) => console.error('[book] appointment webhook failed', err));
+  }
+
   return json({ ok: true, appointmentId });
 };
 

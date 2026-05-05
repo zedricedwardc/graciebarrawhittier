@@ -49,7 +49,19 @@
       "Bash(curl -s \"http://localhost:4323/api/availability?program=adults&from=2026-05-05&to=2026-05-19\")",
       "Bash(curl -s 'http://localhost:4323/api/availability?program=__TRACKED_VAR__&from=2026-05-05&to=2026-05-19')",
       "Bash(curl -s \"http://localhost:4323/api/availability?program=adults&from=2026-05-05&to=2026-05-31\")",
-      "Bash(curl -s \"http://localhost:4323/api/availability?program=adults&from=2026-06-01&to=2026-06-30&t=$\\(date +%s\\)\")"
+      "Bash(curl -s \"http://localhost:4323/api/availability?program=adults&from=2026-06-01&to=2026-06-30&t=$\\(date +%s\\)\")",
+      "WebFetch(domain:highlevel.stoplight.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ideas.gohighlevel.com)",
+      "WebFetch(domain:ghl-services-playbooks-automation-crm-marketing.ghost.io)",
+      "WebFetch(domain:netpartners.marketing)",
+      "WebFetch(domain:blog.gohighlevel.com)",
+      "WebFetch(domain:rhinofit.ca)",
+      "WebFetch(domain:consultevo.com)",
+      "Bash(vercel --version)",
+      "Bash(where.exe vercel *)",
+      "Bash(vercel env *)",
+      "Bash(vercel deploy *)"
     ]
   },
   "enabledPlugins": {
