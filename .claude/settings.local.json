@@ -61,7 +61,12 @@
       "Bash(vercel --version)",
       "Bash(where.exe vercel *)",
       "Bash(vercel env *)",
-      "Bash(vercel deploy *)"
+      "Bash(vercel deploy *)",
+      "Bash(vercel logs *)",
+      "Bash(curl -s \"https://graciebarrawebsite.vercel.app/api/availability?program=adults&from=2026-05-05&to=2026-05-19\")",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST 'https://services.leadconnectorhq.com/hooks/MM0yOIjwfyMnOJGHxlSj/webhook-trigger/2fee1417-870c-4468-bf46-417c7e14fa0b' -H 'Content-Type: application/json' -d '{\"name\":\"Test Optin\",\"email\":\"test+optin@graciebarrawhittier.test\",\"phone\":\"\\(562\\) 555-0101\",\"source\":\"/kickstart\",\"__test\":true}')",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST 'https://services.leadconnectorhq.com/hooks/MM0yOIjwfyMnOJGHxlSj/webhook-trigger/9ea92381-6868-45b7-b705-a585cf0a4269' -H 'Content-Type: application/json' -d '{\"appointmentId\":\"test_appt_0001\",\"contactId\":\"test_contact_0001\",\"program\":\"adults\",\"programName\":\"Adults Brazilian Jiu-Jitsu\",\"calendarId\":\"SOFcOBaw1OysvzMsfuxa\",\"startISO\":\"2026-05-11T11:00:00-07:00\",\"endISO\":\"2026-05-11T12:00:00-07:00\",\"title\":\"Adults Brazilian Jiu-Jitsu trial — Test User \\(28\\)\",\"parent\":{\"firstName\":\"Test\",\"lastName\":\"Parent\",\"email\":\"test+appt@graciebarrawhittier.test\",\"phone\":\"\\(562\\) 555-0102\"},\"trainee\":{\"isSelf\":true,\"firstName\":\"Test\",\"age\":28},\"__test\":true}')",
+      "Bash(vercel ls *)"
     ]
   },
   "enabledPlugins": {

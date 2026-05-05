@@ -289,10 +289,17 @@ const renderTs = Date.now();
           state.lastError = 'That slot just filled up.';
           state.lastAlternates = (data.alternates as Slot[] | undefined) ?? [];
           state.step = 'error';
+        } else if (data.code === 'RATE_LIMITED') {
+          state.lastError = 'Too many attempts from your network. Please wait a few minutes or call us.';
+          state.step = 'error';
+        } else if (data.code === 'INVALID_INPUT') {
+          state.lastError = 'One of your details looks invalid — please double-check name, email, phone, and age.';
+          state.step = 'error';
         } else {
-          state.lastError = data.message ?? 'Something went wrong on our end.';
+          state.lastError = data.message ?? `Something went wrong on our end. (${data.code ?? 'unknown'})`;
           state.step = 'error';
         }
+        console.warn('[booking] /api/book response', data);
       } catch {
         state.lastError = 'Network error. Please try again.';
         state.step = 'error';
