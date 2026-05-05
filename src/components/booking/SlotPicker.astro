@@ -1,7 +1,9 @@
 ---
 /**
  * SlotPicker — STATE 4.
- * Renders the slots fetched by BookingFlow into pill buttons.
+ * Card-wrapped list of bookable times for the selected date.
+ * Each slot is a tile with the start time + duration.
+ *
  * Emits booking:slot-selected with the chosen Slot.
  */
 ---
@@ -12,13 +14,23 @@
     <button type="button" data-change-date class="text-sm text-gb-text-muted hover:text-gb-navy underline">← Change date</button>
   </div>
 
-  <div data-slot-list class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-    <div data-skeleton class="col-span-full text-center text-gb-text-muted py-8">Loading available times…</div>
-  </div>
+  <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-sm">
+    <p class="text-xs uppercase tracking-wider text-gb-text-muted font-semibold mb-3">
+      Available times
+    </p>
 
-  <p data-no-slots class="hidden text-center text-gb-text-muted mt-6">
-    No available times on this date. Try another day above.
-  </p>
+    <div data-slot-list class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div data-skeleton class="col-span-full text-center text-gb-text-muted py-8">
+        Loading available times&hellip;
+      </div>
+    </div>
+
+    <p data-no-slots class="hidden text-center text-gb-text-muted py-6">
+      No available times on this date.
+      <br />
+      <button type="button" data-empty-back class="underline hover:text-gb-navy mt-2">Pick a different date</button>
+    </p>
+  </div>
 </div>
 
 <script>
@@ -29,8 +41,12 @@
     const empty = node?.querySelector('[data-no-slots]') as HTMLElement | null;
     const header = node?.querySelector('[data-slot-header]') as HTMLElement | null;
     const back = node?.querySelector('[data-change-date]') as HTMLElement | null;
+    const emptyBack = node?.querySelector('[data-empty-back]') as HTMLElement | null;
 
     back?.addEventListener('click', () => {
+      root.dispatchEvent(new CustomEvent('booking:back-to-date'));
+    });
+    emptyBack?.addEventListener('click', () => {
       root.dispatchEvent(new CustomEvent('booking:back-to-date'));
     });
 
@@ -58,12 +74,36 @@
         return;
       }
       empty.classList.add('hidden');
+
       for (const slot of s.slots) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'min-h-[56px] px-4 rounded-full border-2 border-gray-300 font-semibold text-gb-text hover:border-gb-navy transition-colors';
+        btn.className =
+          'group flex items-center justify-between gap-3 px-5 py-4 rounded-xl border-2 border-gray-200 ' +
+          'bg-white hover:border-gb-navy hover:shadow-sm hover:bg-gb-bg-light/30 ' +
+          'transition-all text-left cursor-pointer';
+
         const time = slot.label.split(' · ')[1] ?? slot.label;
-        btn.textContent = time;
+        const minutes = durationMinutes(slot.startISO, slot.endISO);
+
+        btn.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="shrink-0 w-10 h-10 rounded-full bg-gb-bg-light flex items-center justify-center text-gb-navy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div class="min-w-0">
+              <div class="text-lg font-bold text-gb-navy leading-tight">${time}</div>
+              <div class="text-xs text-gb-text-muted">${minutes} min class</div>
+            </div>
+          </div>
+          <span class="shrink-0 text-gb-navy font-semibold text-sm group-hover:translate-x-0.5 transition-transform">
+            Book &rsaquo;
+          </span>
+        `;
+
         btn.addEventListener('click', () => {
           root.dispatchEvent(new CustomEvent('booking:slot-selected', { detail: slot }));
         });
@@ -74,6 +114,11 @@
     function formatDate(iso: string): string {
       const d = new Date(`${iso}T12:00:00`);
       return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    function durationMinutes(startISO: string, endISO: string): number {
+      const ms = Date.parse(endISO) - Date.parse(startISO);
+      return Math.round(ms / 60_000);
     }
   }
 </script>
