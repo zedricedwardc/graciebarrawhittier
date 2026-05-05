@@ -164,7 +164,8 @@ const {
           body: JSON.stringify({ name, email, phone, source: window.location.pathname }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        window.location.href = `/kickstart?name=${encodeURIComponent(name)}`;
+        const qs = new URLSearchParams({ name, email, phone });
+        window.location.href = `/kickstart?${qs.toString()}`;
       } catch {
         errorEl?.classList.remove('hidden');
       }
