@@ -1,8 +1,3 @@
-/**
- * Homepage FAQs — 8 questions per build brief Part 2 Section 10.
- * Answers verbatim from brief where specified; existing 4 retained, 4 new added
- * (cost, ages, experience, location).
- */
 export interface FAQItemData {
   question: string;
   answer: string;
