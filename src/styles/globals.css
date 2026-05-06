@@ -49,6 +49,15 @@ body.mobile-nav-open [data-sticky-mobile-cta] {
   display: none;
 }
 
+/* Hide native scrollbar on horizontal carousels while preserving scroll. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Native <dialog> reset — kill default UA padding/border/margin so
  * Tailwind layout wins cleanly. Lock body scroll on modal. */
 dialog {

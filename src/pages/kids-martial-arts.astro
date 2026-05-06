@@ -87,7 +87,7 @@ const breadcrumb = [
   <div class="bg-gb-bg-light">
     {/* HERO — rounded card on light-gray background */}
     <section class="px-4 md:px-6 pt-6 md:pt-8">
-      <div class="max-w-7xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
         <Image
           src={kidsHero}
           alt="Kids Brazilian Jiu-Jitsu class at Gracie Barra Whittier, CA"
@@ -144,7 +144,7 @@ const breadcrumb = [
     </section>
 
     {/* BENEFITS FOR PARENTS */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
       <div class="max-w-6xl mx-auto">
         <div class="text-center mb-10 md:mb-12">
           <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">What Parents Tell Us After Their Child Starts Training</h2>
@@ -167,8 +167,8 @@ const breadcrumb = [
     </section>
 
     {/* WHAT TO EXPECT */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
-      <div class="max-w-5xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+      <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
         <div class="text-center mb-8">
           <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">What Happens at Your Child's First Class</h2>
         </div>
@@ -189,12 +189,23 @@ const breadcrumb = [
     </section>
 
     {/* CERTIFIED INSTRUCTORS */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
-      <div class="max-w-3xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center">
-        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Certified Gracie Barra Instructors — Not Just Athletes, But Teachers</h2>
-        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
-          Every instructor at Gracie Barra Whittier completes the official Gracie Barra certification program before stepping on the mat with your child. The same curriculum is taught at over 1,000 GB academies worldwide. Our lead instructors, Professor Phil and Professor Eric, bring decades of training experience and a teaching-first mindset — your child isn't just learning Jiu-Jitsu, they're being mentored.
-        </p>
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+      <div class="max-w-6xl mx-auto grid md:grid-cols-5 gap-5 md:gap-6 items-stretch">
+        <div class="md:col-span-3 bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center md:text-left flex flex-col justify-center">
+          <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Certified Gracie Barra Instructors — Not Just Athletes, But Teachers</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+            Every instructor at Gracie Barra Whittier completes the official Gracie Barra certification program before stepping on the mat with your child. The same curriculum is taught at over 1,000 GB academies worldwide. Our lead instructors, Professor Phil and Professor Eric, bring decades of training experience and a teaching-first mindset — your child isn't just learning Jiu-Jitsu, they're being mentored.
+          </p>
+        </div>
+        <div class="md:col-span-2 relative bg-gb-white rounded-2xl shadow-sm overflow-hidden min-h-[260px] md:min-h-[320px]">
+          <img
+            src="/images/kids/kids-juniors.jpg"
+            alt="Gracie Barra Whittier certified instructors teaching kids Brazilian Jiu-Jitsu"
+            class="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
       </div>
     </section>
 
@@ -210,45 +221,47 @@ const breadcrumb = [
       imageSrc="/images/home/gallery/kids-1.jpg"
       imageAlt="Kids Brazilian Jiu-Jitsu class at Gracie Barra Whittier"
     />
+
+    {/* CONVERSION CTA — bento-style navy card */}
+    <section class="px-4 md:px-6 pt-2 pb-6 md:pt-4 md:pb-8">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-2xl md:text-4xl font-extrabold">Ready to Get Your Child Started?</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+            Try any of our kids programs free for 3 classes — no commitment, no contracts, free uniform rental included. Just bring your child and let us take it from there.
+          </p>
+          <div class="mt-7 flex justify-center">
+            <CTAButton variant="primary" label="Claim My Child's Free 3-Class Pass" href="#trial" />
+          </div>
+          <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts • No pressure</p>
+        </div>
+      </div>
+    </section>
+
+    {/* FAQ — plain on light gray background */}
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="kids-faq-heading">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-8 md:mb-10">
+          <h2 id="kids-faq-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Questions About Kids Jiu-Jitsu</h2>
+        </div>
+        <div class="space-y-2">
+          {kidsFaqs.map((item) => (
+            <details class="group border-b border-gb-navy/15 py-4">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-navy">
+                <span class="flex items-center gap-3">
+                  <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span>{item.question}</span>
+                </span>
+              </summary>
+              <p class="mt-3 ml-7 text-sm text-gb-text-muted leading-relaxed">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
   </div>
-
-  {/* CONVERSION CTA — full-width navy band */}
-  <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6">
-    <div class="max-w-3xl mx-auto text-center">
-      <h2 class="text-2xl md:text-4xl font-extrabold">Ready to Get Your Child Started?</h2>
-      <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
-        Try any of our kids programs free for 3 classes — no commitment, no contracts, free uniform rental included. Just bring your child and let us take it from there.
-      </p>
-      <div class="mt-7 flex justify-center">
-        <CTAButton variant="primary" label="Claim My Child's Free 3-Class Pass" href="#trial" />
-      </div>
-      <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts • No pressure</p>
-    </div>
-  </section>
-
-  {/* FAQ — full-width navy band, inline details accordion */}
-  <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6" aria-labelledby="kids-faq-heading">
-    <div class="max-w-3xl mx-auto">
-      <div class="text-center mb-8 md:mb-10">
-        <h2 id="kids-faq-heading" class="text-2xl md:text-4xl font-extrabold">Questions About Kids Jiu-Jitsu</h2>
-      </div>
-      <div class="space-y-2">
-        {kidsFaqs.map((item) => (
-          <details class="group border-b border-gb-white/15 py-4">
-            <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-white">
-              <span class="flex items-center gap-3">
-                <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-                <span>{item.question}</span>
-              </span>
-            </summary>
-            <p class="mt-3 ml-7 text-sm text-gb-white/80 leading-relaxed">{item.answer}</p>
-          </details>
-        ))}
-      </div>
-    </div>
-  </section>
 
   <SchemaFAQ items={kidsFaqs} />
   <SchemaBreadcrumb items={breadcrumb} />

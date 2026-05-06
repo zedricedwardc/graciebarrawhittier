@@ -23,7 +23,7 @@ const breadcrumb = [
   <div class="bg-gb-bg-light">
     {/* HERO — rounded card on light-gray background */}
     <section class="px-4 md:px-6 pt-6 md:pt-8">
-      <div class="max-w-7xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
         <div class="absolute inset-0 -z-10 bg-gradient-to-br from-gb-navy via-gb-navy/95 to-gb-navy-dark"></div>
         <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
           <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
@@ -41,8 +41,8 @@ const breadcrumb = [
     </section>
 
     {/* LIVE REVIEWS WIDGET */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
-      <div class="max-w-5xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+    <section class="px-4 md:px-6 pt-10 pb-12 md:pt-14 md:pb-16">
+      <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
         <div class="text-center mb-6">
           <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Live Google Reviews</h2>
           <p class="mt-2 text-sm text-gb-text-muted">Powered by Google Reviews — updated in real time</p>
@@ -54,7 +54,7 @@ const breadcrumb = [
     </section>
 
     {/* FEATURED REVIEW QUOTES */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
       <div class="max-w-6xl mx-auto">
         <div class="text-center mb-10 md:mb-12">
           <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Stories From the Mat</h2>
@@ -83,21 +83,23 @@ const breadcrumb = [
         <p class="mt-8 text-xs text-gb-text-muted text-center">Placeholder quotes pending publication of real reviews.</p>
       </div>
     </section>
-  </div>
 
-  {/* FINAL CTA — full-width navy band */}
-  <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6">
-    <div class="max-w-3xl mx-auto text-center">
-      <h2 class="text-2xl md:text-4xl font-extrabold">Ready to write your own success story?</h2>
-      <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
-        Try 3 classes free at Gracie Barra Whittier. No risk, no contracts, free uniform rental included.
-      </p>
-      <div class="mt-7 flex justify-center">
-        <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+    {/* FINAL CTA — bento navy card */}
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-2xl md:text-4xl font-extrabold">Ready to write your own success story?</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+            Try 3 classes free at Gracie Barra Whittier. No risk, no contracts, free uniform rental included.
+          </p>
+          <div class="mt-7 flex justify-center">
+            <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+          </div>
+          <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts</p>
+        </div>
       </div>
-      <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts</p>
-    </div>
-  </section>
+    </section>
+  </div>
 
   <SchemaBreadcrumb items={breadcrumb} />
 </BaseLayout>

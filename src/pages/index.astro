@@ -67,7 +67,7 @@ const galleryImages = [
        HERO — rounded card on light gray background
        ============================================================ */}
     <section class="px-4 md:px-6 pt-6 md:pt-8">
-      <div class="max-w-7xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
         <Image
           src={homepageHero}
           alt="Young student smiling in a blue Gracie Barra gi at Gracie Barra Whittier, Whittier, CA"
@@ -88,7 +88,7 @@ const galleryImages = [
                 src="/logo/gb-whittier-logo.webp"
                 alt=""
                 aria-hidden="true"
-                class="w-10 h-10 md:w-12 md:h-12 shrink-0"
+                class="w-10 h-10 md:w-20 md:h-20 shrink-0"
                 width="48"
                 height="48"
               />
@@ -143,10 +143,10 @@ const galleryImages = [
     {/* ============================================================
        START YOUR JIU-JITSU JOURNEY
        ============================================================ */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
-      <div class="max-w-3xl mx-auto text-center">
-        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-red">Start Your Jiu-Jitsu Journey</h2>
-        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+    <section class="px-4 md:px-6 pt-12 md:pt-16 pb-2 md:pb-4">
+      <div class="max-w-6xl mx-auto">
+        <h2 class="text-3xl md:text-5xl font-extrabold text-gb-red leading-tight">Start Your Jiu-Jitsu Journey</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed max-w-3xl">
           Whether you're brand new or ready to level up, our Brazilian Jiu-Jitsu classes in Whittier are designed to help you build confidence, strength, and real-world self-defense skills. With beginner-friendly instruction and a supportive community, getting started has never been easier.
         </p>
       </div>
@@ -157,20 +157,20 @@ const galleryImages = [
        ============================================================ */}
     <OptInForm
       id="trial"
-      header="UNLOCK YOUR FREE 3-CLASS PASS"
+      header="UNLOCK YOUR FREE CLASS"
       subheader="+ VIEW OUR FULL CLASS SCHEDULE INSTANTLY"
-      description="Enter your info below to claim your Free 3-Class Pass and access our full class schedule."
-      offerLabel="FREE 3-CLASS PASS"
-      riskLine="No Risk. No Pressure. Free Uniform Rental Included."
-      submitLabel="CLAIM MY FREE 3-CLASS PASS"
-      imageSrc="/images/home/gallery/kids-1.jpg"
-      imageAlt="Kids Brazilian Jiu-Jitsu class at Gracie Barra Whittier"
+      description="Enter your info below to access our schedule and reserve your free class now."
+      offerLabel="FREE FIRST CLASS"
+      riskLine="No Risk. No Pressure."
+      submitLabel="CLAIM MY FREE CLASS"
+      imageSrc="/images/home/tmp9t0n0l1j.jpg"
+      imageAlt="Brazilian Jiu-Jitsu class at Gracie Barra Whittier"
     />
 
     {/* ============================================================
        OUR PROGRAMS
        ============================================================ */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
+    <section class="px-4 md:px-6 pt-12 md:pt-16 pb-4 md:pb-6">
       <div class="max-w-6xl mx-auto">
         <div class="text-center mb-8 md:mb-10">
           <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Our Programs</h2>
@@ -228,19 +228,19 @@ const galleryImages = [
     {/* ============================================================
        REAL STORIES. REAL GROWTH.
        ============================================================ */}
-    <section class="px-4 md:px-6 py-8 md:py-12">
-      <div class="max-w-5xl mx-auto bg-gb-white rounded-2xl shadow-sm p-8 md:p-12">
+    <section class="px-4 md:px-6 py-4 md:py-6">
+      <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-8">
         <div class="text-center">
           <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Real Stories. Real Growth.</h2>
-          <p class="mt-4 text-sm md:text-base text-gb-text-muted max-w-2xl mx-auto leading-relaxed">
+          <p class="mt-3 text-sm md:text-base text-gb-text-muted max-w-2xl mx-auto leading-relaxed">
             Behind every review is a student building confidence, developing discipline, and learning practical self-defense in a positive, family-friendly environment. Here's what our members are saying about their journey.
           </p>
-          <div class="mt-6 inline-block">
+          <div class="mt-5 inline-block">
             <CTAButton variant="primary" label="Start My Free Trial" href="#trial" />
           </div>
         </div>
 
-        <div class="mt-10 pt-8 border-t border-gb-bg-light flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="mt-6 pt-5 border-t border-gb-bg-light flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <p class="text-base font-semibold text-gb-navy">What our clients say about us</p>
           <div class="flex items-center gap-4">
             <div class="text-right">
@@ -266,17 +266,17 @@ const galleryImages = [
        WHY GRACIE BARRA WHITTIER — split layout
        ============================================================ */}
     <section class="px-4 md:px-6 py-12 md:py-16">
-      <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl overflow-hidden shadow-sm grid md:grid-cols-2">
-        <div class="relative min-h-[320px] md:min-h-full">
+      <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-5 md:gap-6 items-stretch">
+        <div class="relative bg-gb-white rounded-2xl overflow-hidden shadow-sm border border-gb-bg-light min-h-[320px] md:min-h-full">
           <img
-            src="/images/home/gallery/team-1.jpg"
+            src="/images/home/why-section.jpg"
             alt="Gracie Barra Whittier team and academy community"
             class="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
             decoding="async"
           />
         </div>
-        <div class="p-6 md:p-10">
+        <div class="bg-gb-white rounded-2xl shadow-sm border border-gb-bg-light p-6 md:p-10">
           <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Why Gracie Barra Whittier?</h2>
           <div class="mt-4 space-y-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
             <p>Gracie Barra Whittier is more than a martial arts academy — it's a structured path to confidence, discipline, and real-world self-defense.</p>
@@ -314,10 +314,10 @@ const galleryImages = [
       <div class="max-w-6xl mx-auto">
         <div class="text-center mb-10">
           <img
-            src="/logo/gb-whittier-logo.webp"
+            src="/logo/favicon.webp"
             alt=""
             aria-hidden="true"
-            class="w-14 h-14 md:w-16 md:h-16 mx-auto"
+            class="w-14 h-14 md:w-25 md:h-25 mx-auto"
             width="64"
             height="64"
           />
@@ -366,63 +366,184 @@ const galleryImages = [
     {/* ============================================================
        SEE LIFE INSIDE GRACIE BARRA WHITTIER
        ============================================================ */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
+    <section class="px-4 md:px-6 pt-4 md:pt-6 pb-12 md:pb-16">
       <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-8">
+        <div class="text-center mb-6 md:mb-8">
           <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">See Life Inside Gracie Barra Whittier</h2>
           <p class="mt-3 text-sm md:text-base text-gb-text-muted max-w-2xl mx-auto leading-relaxed">
-            Real classes, real students, real Brazilian Jiu-Jitsu — straight from our Whittier academy.
+            Gracie Barra is one of the most respected Brazilian Jiu-Jitsu organizations in the world — and you can experience that same world-class training right here in Whittier.
           </p>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-          {galleryImages.map((g) => (
-            <div class="aspect-[4/3] overflow-hidden rounded-xl bg-gb-bg-light">
-              <img
-                src={g.src}
-                alt={g.alt}
-                loading="lazy"
-                decoding="async"
-                class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-              />
+
+        <div data-gallery-carousel>
+          <div class="overflow-hidden -mx-4 md:-mx-6">
+            <div
+              class="flex gap-3 md:gap-4 px-4 md:px-6 will-change-transform"
+              data-carousel-track
+            >
+              {[...galleryImages, ...galleryImages].map((g, i) => (
+                <div
+                  class="shrink-0 w-[78%] sm:w-[48%] md:w-[32%] aspect-[4/3] overflow-hidden rounded-xl bg-gb-bg-light"
+                  aria-hidden={i >= galleryImages.length ? 'true' : undefined}
+                >
+                  <img
+                    src={g.src}
+                    alt={i >= galleryImages.length ? '' : g.alt}
+                    loading="lazy"
+                    decoding="async"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div class="mt-4 flex justify-center gap-2" data-carousel-dots>
+            {galleryImages.map((_, i) => (
+              <button
+                type="button"
+                data-dot
+                data-index={i}
+                aria-label={`Go to slide ${i + 1}`}
+                class="w-2 h-2 rounded-full bg-gb-text-muted/30 hover:bg-gb-text-muted/60 transition-colors"
+              />
+            ))}
+          </div>
         </div>
+
         <div class="mt-8 text-center">
           <CTAButton variant="primary" label="Start My Free Trial" href="#trial" />
         </div>
       </div>
     </section>
+
+    <script>
+      const carousels = document.querySelectorAll<HTMLElement>('[data-gallery-carousel]');
+      carousels.forEach((root) => {
+        const track = root.querySelector<HTMLElement>('[data-carousel-track]');
+        const dots = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-dot]'));
+        if (!track) return;
+
+        const SPEED_PX_PER_SEC = 40;
+        let offset = 0;
+        let halfWidth = 0;
+        let cardStep = 0;
+        let rafId: number | undefined;
+        let lastT = 0;
+        let activeIdx = -1;
+
+        const recalc = () => {
+          const children = track.children;
+          if (children.length < 2) return;
+          const halfIndex = Math.floor(children.length / 2);
+          const halfStart = (children[halfIndex] as HTMLElement).offsetLeft;
+          halfWidth = halfStart;
+          const a = (children[0] as HTMLElement).offsetLeft;
+          const b = (children[1] as HTMLElement).offsetLeft;
+          cardStep = b - a;
+          if (offset >= halfWidth) offset = offset % halfWidth;
+        };
+
+        const updateDots = () => {
+          if (cardStep <= 0 || dots.length === 0) return;
+          const idx = Math.round(offset / cardStep) % dots.length;
+          if (idx === activeIdx) return;
+          activeIdx = idx;
+          dots.forEach((d, i) => {
+            const isActive = i === idx;
+            d.classList.toggle('bg-gb-navy', isActive);
+            d.classList.toggle('w-6', isActive);
+            d.classList.toggle('bg-gb-text-muted/30', !isActive);
+          });
+        };
+
+        const apply = () => {
+          track.style.transform = `translate3d(${-offset}px, 0, 0)`;
+          updateDots();
+        };
+
+        const tick = (t: number) => {
+          if (!lastT) lastT = t;
+          const dt = t - lastT;
+          lastT = t;
+          offset += (SPEED_PX_PER_SEC * dt) / 1000;
+          if (halfWidth > 0 && offset >= halfWidth) offset -= halfWidth;
+          apply();
+          rafId = requestAnimationFrame(tick);
+        };
+
+        const start = () => {
+          if (rafId !== undefined) return;
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          lastT = 0;
+          rafId = requestAnimationFrame(tick);
+        };
+        const stop = () => {
+          if (rafId !== undefined) {
+            cancelAnimationFrame(rafId);
+            rafId = undefined;
+          }
+        };
+
+        recalc();
+        apply();
+        window.addEventListener('resize', () => {
+          recalc();
+          apply();
+        });
+
+        dots.forEach((dot, i) => {
+          dot.addEventListener('click', () => {
+            offset = cardStep * i;
+            apply();
+          });
+        });
+
+        root.addEventListener('mouseenter', stop);
+        root.addEventListener('mouseleave', start);
+        root.addEventListener('focusin', stop);
+        root.addEventListener('focusout', start);
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) stop();
+          else start();
+        });
+
+        start();
+      });
+    </script>
+
+    {/* ============================================================
+       FAQ — bento navy card
+       ============================================================ */}
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="faq-heading">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto">
+          <div class="text-center mb-8 md:mb-10">
+            <h2 id="faq-heading" class="text-2xl md:text-4xl font-extrabold">Questions About Jiu-Jitsu? We've Got Answers.</h2>
+            <p class="mt-3 text-sm md:text-base text-gb-white/80 max-w-xl mx-auto leading-relaxed">
+              Here are the most common questions about starting your journey at Gracie Barra Whittier.
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            {homepageFaqs.map((item) => (
+              <details class="group border-b border-gb-white/15 py-4">
+                <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-white">
+                  <span class="flex items-center gap-3">
+                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                    <span>{item.question}</span>
+                  </span>
+                </summary>
+                <p class="mt-3 ml-7 text-sm text-gb-white/80 leading-relaxed">{item.answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
-
-  {/* ============================================================
-     FAQ — full-width navy band
-     ============================================================ */}
-  <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6" aria-labelledby="faq-heading">
-    <div class="max-w-3xl mx-auto">
-      <div class="text-center mb-8 md:mb-10">
-        <h2 id="faq-heading" class="text-2xl md:text-4xl font-extrabold">Questions About Jiu-Jitsu? We've Got Answers.</h2>
-        <p class="mt-3 text-sm md:text-base text-gb-white/80 max-w-xl mx-auto leading-relaxed">
-          Here are the most common questions about starting your journey at Gracie Barra Whittier.
-        </p>
-      </div>
-
-      <div class="space-y-2">
-        {homepageFaqs.map((item) => (
-          <details class="group border-b border-gb-white/15 py-4">
-            <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-white">
-              <span class="flex items-center gap-3">
-                <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-                <span>{item.question}</span>
-              </span>
-            </summary>
-            <p class="mt-3 ml-7 text-sm text-gb-white/80 leading-relaxed">{item.answer}</p>
-          </details>
-        ))}
-      </div>
-    </div>
-  </section>
 
   <SchemaFAQ items={homepageFaqs} />
   <SchemaLocalBusiness />

@@ -1,7 +1,7 @@
 ---
 /**
  * BaseLayout — default layout for public pages.
- * Includes: SeoHead, GTM, Nav, slot, Footer, AIChatWidget, StickyMobileCTA, Inter font.
+ * Includes: SeoHead, GTM, Nav, StickyMobileCTA, slot, Footer, AIChatWidget, Inter font.
  */
 import '../styles/globals.css';
 import SeoHead from '../components/seo/SeoHead.astro';
@@ -61,7 +61,7 @@ const { title, description, canonical, ogImage, schema, hideStickyCTA = false } 
       )
     }
   </head>
-  <body class="min-h-screen flex flex-col bg-gb-white text-gb-text">
+  <body class="min-h-screen flex flex-col bg-gb-bg-light text-gb-text">
     <GTM body />
 
     <a
@@ -73,6 +73,8 @@ const { title, description, canonical, ogImage, schema, hideStickyCTA = false } 
 
     <Nav />
 
+    {!hideStickyCTA && <StickyMobileCTA />}
+
     <main id="main" class="flex-1">
       <slot />
     </main>
@@ -80,7 +82,5 @@ const { title, description, canonical, ogImage, schema, hideStickyCTA = false } 
     <Footer />
 
     <AIChatWidget />
-
-    {!hideStickyCTA && <StickyMobileCTA />}
   </body>
 </html>

@@ -15,42 +15,16 @@ const breadcrumb = [
   { name: 'Contact', url: 'https://gbwhittier.com/contact/' },
 ];
 
-interface ScheduleRow {
+interface HoursRow {
   day: string;
-  classes: string[];
+  hours: string;
 }
 
-const schedule: ScheduleRow[] = [
-  {
-    day: 'Monday – Thursday',
-    classes: [
-      '11:00 AM — Adults Fundamentals',
-      '12:00 PM — Adults Advanced',
-      '3:00 PM – 7:00 PM — Kids classes (varying age groups by hour)',
-      '7:00 PM — Adults Fundamentals',
-      '8:00 PM — Adults Advanced (No Gi / Gi alternating)',
-    ],
-  },
-  {
-    day: 'Friday',
-    classes: [
-      '4:00 PM — Top Team (invite only)',
-      '7:00 PM — Open Mat (all levels)',
-    ],
-  },
-  {
-    day: 'Saturday',
-    classes: [
-      '10:00 AM — Little Champs 1 & 2',
-      '11:00 AM — Juniors BJJ + Adults Fundamentals',
-      '12:00 PM — Adults Fundamentals',
-      '1:00 PM — Adults Advanced',
-    ],
-  },
-  {
-    day: 'Sunday',
-    classes: ['No classes — see you Monday'],
-  },
+const hours: HoursRow[] = [
+  { day: 'Monday – Thursday', hours: '11:00 AM – 9:00 PM' },
+  { day: 'Friday', hours: '4:00 PM – 8:00 PM' },
+  { day: 'Saturday', hours: '10:00 AM – 2:00 PM' },
+  { day: 'Sunday', hours: 'Closed' },
 ];
 ---
 
@@ -79,10 +53,11 @@ const schedule: ScheduleRow[] = [
       </div>
     </section>
 
-    {/* NAP + SCHEDULE — two-column white card */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
-      <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
-        <div class="grid md:grid-cols-2 gap-8 md:gap-12">
+    {/* NAP + HOURS + FORM — two-column layout */}
+    <section class="px-4 md:px-6 pt-8 md:pt-10 pb-6 md:pb-8" aria-labelledby="contact-form-heading">
+      <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-6 md:gap-8 items-stretch">
+        {/* LEFT: Visit/Call/Email + Hours of Operation */}
+        <div class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 space-y-8 md:space-y-10 h-full">
           <div>
             <h2 class="text-xl md:text-2xl font-extrabold text-gb-navy">Visit, Call, or Email</h2>
             <address class="not-italic mt-4 text-sm md:text-base text-gb-text space-y-2">
@@ -102,110 +77,104 @@ const schedule: ScheduleRow[] = [
             </address>
           </div>
           <div>
-            <h2 class="text-xl md:text-2xl font-extrabold text-gb-navy">Class Schedule</h2>
-            <p class="mt-2 text-sm text-gb-text-muted">Drop-in times for our weekly Brazilian Jiu-Jitsu and kids martial arts classes.</p>
-            <dl class="mt-4 space-y-4">
-              {schedule.map((row) => (
-                <div>
+            <h2 class="text-xl md:text-2xl font-extrabold text-gb-navy">Hours of Operation</h2>
+            <p class="mt-2 text-sm text-gb-text-muted">When our doors are open at Gracie Barra Whittier.</p>
+            <dl class="mt-4 space-y-3">
+              {hours.map((row) => (
+                <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-4 border-b border-gb-bg-light pb-3 last:border-b-0 last:pb-0">
                   <dt class="font-semibold text-gb-navy">{row.day}</dt>
-                  <dd class="mt-1">
-                    <ul class="list-disc list-inside text-sm md:text-base text-gb-text space-y-1">
-                      {row.classes.map((c) => <li>{c}</li>)}
-                    </ul>
-                  </dd>
+                  <dd class="text-sm md:text-base text-gb-text">{row.hours}</dd>
                 </div>
               ))}
             </dl>
           </div>
         </div>
-      </div>
-    </section>
 
-    {/* CONTACT FORM */}
-    <section class="px-4 md:px-6 py-12 md:py-16" aria-labelledby="contact-form-heading">
-      <div class="max-w-xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
-        <h2 id="contact-form-heading" class="text-2xl md:text-3xl font-extrabold text-gb-navy text-center">
-          Send Us a Message
-        </h2>
-        <p class="mt-2 text-center text-sm text-gb-text-muted">
-          Have a question? We'll get back to you within one business day.
-        </p>
-
-        <form data-contact-form class="mt-6 space-y-4" novalidate>
-          <div>
-            <label for="contact-name" class="block text-sm font-medium text-gb-text mb-1">Full Name</label>
-            <input
-              id="contact-name"
-              name="name"
-              type="text"
-              inputmode="text"
-              autocomplete="name"
-              required
-              class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
-              placeholder="Jane Doe"
-            />
-          </div>
-          <div>
-            <label for="contact-email" class="block text-sm font-medium text-gb-text mb-1">Email</label>
-            <input
-              id="contact-email"
-              name="email"
-              type="email"
-              inputmode="email"
-              autocomplete="email"
-              required
-              class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
-              placeholder="jane@example.com"
-            />
-          </div>
-          <div>
-            <label for="contact-phone" class="block text-sm font-medium text-gb-text mb-1">Phone</label>
-            <input
-              id="contact-phone"
-              name="phone"
-              type="tel"
-              inputmode="tel"
-              autocomplete="tel-national"
-              required
-              class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
-              placeholder="(555) 123-4567"
-            />
-          </div>
-          <div>
-            <label for="contact-message" class="block text-sm font-medium text-gb-text mb-1">
-              Message <span class="text-gb-text-muted font-normal">(optional)</span>
-            </label>
-            <textarea
-              id="contact-message"
-              name="message"
-              rows="5"
-              class="w-full min-h-[120px] px-4 py-3 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
-              placeholder="Tell us a bit about who you'd like to train (kid's age, your goals, etc.)"
-            ></textarea>
-          </div>
-
-          <CTAButton variant="formSubmit" type="submit" label="Send Message" fullWidth={true} />
-
-          <p
-            data-contact-success
-            class="hidden text-center text-gb-navy bg-gb-bg-light rounded-lg p-4"
-            role="status"
-          >
-            Thanks for reaching out! We'll be in touch within one business day.
-          </p>
-          <p data-contact-error class="hidden text-sm text-gb-red text-center" role="alert">
-            Something went wrong sending your message. Please try again or call us directly.
+        {/* RIGHT: Send Us a Message */}
+        <div class="bg-gb-white rounded-2xl shadow-lg border border-gb-gold/40 p-6 md:p-10 h-full">
+          <h2 id="contact-form-heading" class="text-2xl md:text-3xl font-extrabold text-gb-navy text-center">
+            Send Us a Message
+          </h2>
+          <p class="mt-2 text-center text-sm text-gb-text-muted">
+            Have a question? We'll get back to you within one business day.
           </p>
 
-          <p class="text-[11px] leading-relaxed text-gb-text-muted text-center">
-            By submitting, you agree to be contacted by Gracie Barra Whittier about your inquiry.
-          </p>
-        </form>
+          <form data-contact-form class="mt-6 space-y-4" novalidate>
+            <div>
+              <label for="contact-name" class="block text-sm font-medium text-gb-text mb-1">Full Name</label>
+              <input
+                id="contact-name"
+                name="name"
+                type="text"
+                inputmode="text"
+                autocomplete="name"
+                required
+                class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+                placeholder="Jane Doe"
+              />
+            </div>
+            <div>
+              <label for="contact-email" class="block text-sm font-medium text-gb-text mb-1">Email</label>
+              <input
+                id="contact-email"
+                name="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                required
+                class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+                placeholder="jane@example.com"
+              />
+            </div>
+            <div>
+              <label for="contact-phone" class="block text-sm font-medium text-gb-text mb-1">Phone</label>
+              <input
+                id="contact-phone"
+                name="phone"
+                type="tel"
+                inputmode="tel"
+                autocomplete="tel-national"
+                required
+                class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+                placeholder="(555) 123-4567"
+              />
+            </div>
+            <div>
+              <label for="contact-message" class="block text-sm font-medium text-gb-text mb-1">
+                Message <span class="text-gb-text-muted font-normal">(optional)</span>
+              </label>
+              <textarea
+                id="contact-message"
+                name="message"
+                rows="5"
+                class="w-full min-h-[120px] px-4 py-3 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+                placeholder="Tell us a bit about who you'd like to train (kid's age, your goals, etc.)"
+              ></textarea>
+            </div>
+
+            <CTAButton variant="formSubmit" type="submit" label="Send Message" fullWidth={true} />
+
+            <p
+              data-contact-success
+              class="hidden text-center text-gb-navy bg-gb-bg-light rounded-lg p-4"
+              role="status"
+            >
+              Thanks for reaching out! We'll be in touch within one business day.
+            </p>
+            <p data-contact-error class="hidden text-sm text-gb-red text-center" role="alert">
+              Something went wrong sending your message. Please try again or call us directly.
+            </p>
+
+            <p class="text-[11px] leading-relaxed text-gb-text-muted text-center">
+              By submitting, you agree to be contacted by Gracie Barra Whittier about your inquiry.
+            </p>
+          </form>
+        </div>
       </div>
     </section>
 
     {/* GOOGLE MAP — lazy-loaded below the fold */}
-    <section class="px-4 md:px-6 py-12 md:py-16" aria-labelledby="map-heading">
+    <section class="px-4 md:px-6 py-6 md:py-8" aria-labelledby="map-heading">
       <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
         <h2 id="map-heading" class="text-2xl md:text-3xl font-extrabold text-gb-navy text-center">Find Us</h2>
         <p class="mt-2 text-center text-sm text-gb-text-muted">
@@ -223,30 +192,31 @@ const schedule: ScheduleRow[] = [
       </div>
     </section>
 
-    {/* SERVICE AREAS */}
-    <section class="px-4 md:px-6 py-12 md:py-16">
-      <div class="max-w-3xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center">
-        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Serving the Greater Whittier Area</h2>
-        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
-          Gracie Barra Whittier is conveniently located on Whittier Blvd and easily accessible from Whittier, La Habra, La Mirada, and Pico Rivera.
-        </p>
+    {/* SERVICE AREAS + FINAL CTA — bento grid */}
+    <section class="px-4 md:px-6 pt-6 md:pt-8 pb-10 md:pb-14">
+      <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-6 md:gap-8 items-stretch">
+        {/* Service Areas — light card */}
+        <div class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center flex flex-col justify-center h-full">
+          <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Serving the Greater Whittier Area</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+            Gracie Barra Whittier is conveniently located on Whittier Blvd and easily accessible from Whittier, La Habra, La Mirada, and Pico Rivera.
+          </p>
+        </div>
+
+        {/* Final CTA — navy bento card */}
+        <div class="bg-gb-navy text-gb-white rounded-2xl shadow-lg p-6 md:p-10 text-center flex flex-col justify-center h-full">
+          <h2 class="text-2xl md:text-3xl font-extrabold">Ready to step on the mat?</h2>
+          <p class="mt-3 text-sm md:text-base text-gb-white/85 leading-relaxed">
+            Try 3 classes free. No risk, no contracts, free uniform rental included.
+          </p>
+          <div class="mt-5 flex justify-center">
+            <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+          </div>
+          <p class="mt-3 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts</p>
+        </div>
       </div>
     </section>
   </div>
-
-  {/* FINAL CTA — full-width navy band */}
-  <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6">
-    <div class="max-w-3xl mx-auto text-center">
-      <h2 class="text-2xl md:text-4xl font-extrabold">Ready to step on the mat?</h2>
-      <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
-        Try 3 classes free. No risk, no contracts, free uniform rental included.
-      </p>
-      <div class="mt-7 flex justify-center">
-        <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
-      </div>
-      <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts</p>
-    </div>
-  </section>
 
   <SchemaBreadcrumb items={breadcrumb} />
   <SchemaLocalBusiness />
