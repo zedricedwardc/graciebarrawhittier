@@ -1,20 +1,16 @@
 ---
 export const prerender = true;
 /**
- * Contact page (/contact) — local SEO weight page.
- * NAP must be plain HTML (not images). Includes contact form (custom),
- * Google Maps embed, service-area paragraph, and final CTA strip.
- * Per build brief Part 3 — Contact Us.
+ * /contact — contact form, NAP block, map, service areas.
+ * Copy aligned to build brief Part 3 Contact section.
  */
-import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import SchemaLocalBusiness from '../components/seo/SchemaLocalBusiness.astro';
 import { nap } from '../content/nap';
-import contactHero from '../assets/images/contact/contact-hero.jpg';
 
-const breadcrumbItems = [
+const breadcrumb = [
   { name: 'Home', url: 'https://gbwhittier.com/' },
   { name: 'Contact', url: 'https://gbwhittier.com/contact/' },
 ];
@@ -56,262 +52,204 @@ const schedule: ScheduleRow[] = [
     classes: ['No classes — see you Monday'],
   },
 ];
-
-// Build a Google Maps embed URL for the studio address.
-const mapsQuery = encodeURIComponent(nap.address);
-const mapsEmbedSrc = `https://www.google.com/maps?q=${mapsQuery}&output=embed`;
 ---
 
 <BaseLayout
   title="Contact Us | Gracie Barra Whittier — Whittier, CA"
-  description="Visit Gracie Barra Whittier, 13595 Whittier Blvd. #104, Whittier, CA 90605. Call (562) 640-1400. Brazilian Jiu-Jitsu for kids and adults."
+  description="Visit Gracie Barra Whittier at 13595 Whittier Blvd. #104, Whittier, CA 90605. Call (562) 640-1400 or email info@gbwhittier.com to claim your Free 3-Class Pass."
   canonical="https://gbwhittier.com/contact/"
 >
-  <SchemaBreadcrumb items={breadcrumbItems} />
-  <SchemaLocalBusiness />
-
-  <!-- Section 1 — Hero (full-bleed background image) -->
-  <section class="relative isolate overflow-hidden bg-gb-navy text-gb-white">
-    <Image
-      src={contactHero}
-      alt="Adult Brazilian Jiu-Jitsu class at Gracie Barra Whittier, CA"
-      widths={[768, 1280, 1920, 2400]}
-      sizes="100vw"
-      format="webp"
-      quality={82}
-      loading="eager"
-      class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
-    />
-    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-gb-navy/85 via-gb-navy/70 to-gb-navy/60"></div>
-
-    <div class="max-w-5xl mx-auto text-center px-4 md:px-6 py-16 md:py-24 lg:py-32">
-      <p class="text-xs md:text-sm font-bold tracking-widest uppercase text-gb-gold">
-        Visit · Call · Email
-      </p>
-      <h1 class="mt-3 text-3xl md:text-5xl font-extrabold drop-shadow-lg">
-        Contact Gracie Barra Whittier
-      </h1>
-      <p class="mt-4 text-lg text-gb-white/90 max-w-2xl mx-auto">
-        We&rsquo;re here to answer your questions about Brazilian Jiu-Jitsu classes for kids and adults.
-      </p>
-    </div>
-  </section>
-
-  <!-- Section 2 — Contact info block (NAP in plain HTML) -->
-  <section class="py-12 md:py-20 px-4 md:px-6">
-    <div class="max-w-5xl mx-auto">
-      <div class="grid gap-8 md:grid-cols-2">
-        <div class="bg-gb-bg-light rounded-2xl p-6 md:p-8">
-          <h2 class="text-xl md:text-2xl font-bold text-gb-navy">Visit, Call, or Email</h2>
-          <address class="mt-4 not-italic text-gb-text leading-relaxed">
-            <p class="font-semibold text-gb-navy">{nap.name}</p>
-            <p>{nap.streetAddress}</p>
-            <p>
-              {nap.addressLocality}, {nap.addressRegion} {nap.postalCode}
-            </p>
-            <p class="mt-4">
-              <span class="text-sm text-gb-text-muted">Phone:</span>{' '}
-              <a
-                href={`tel:${nap.phoneTel}`}
-                class="font-semibold text-gb-red hover:underline inline-block min-h-[48px] py-3"
-              >
-                {nap.phone}
-              </a>
-            </p>
-            <p>
-              <span class="text-sm text-gb-text-muted">Email:</span>{' '}
-              <a
-                href={`mailto:${nap.email}`}
-                class="font-semibold text-gb-red hover:underline inline-block min-h-[48px] py-3"
-              >
-                {nap.email}
-              </a>
-            </p>
-          </address>
-        </div>
-
-        <div class="bg-gb-bg-light rounded-2xl p-6 md:p-8">
-          <h2 class="text-xl md:text-2xl font-bold text-gb-navy">Class Schedule</h2>
-          <p class="mt-2 text-sm text-gb-text-muted">
-            Drop-in times for our weekly Brazilian Jiu-Jitsu and kids martial arts classes.
+  <div class="bg-gb-bg-light">
+    {/* HERO — rounded card on light-gray bg */}
+    <section class="px-4 md:px-6 pt-6 md:pt-8">
+      <div class="max-w-7xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+        <div class="absolute inset-0 -z-10 bg-gradient-to-br from-gb-navy via-gb-navy/95 to-gb-navy-dark"></div>
+        <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            Contact Gracie Barra Whittier
           </p>
-          <dl class="mt-4 space-y-4">
-            {
-              schedule.map((row) => (
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+            Contact Gracie Barra Whittier
+          </h1>
+          <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+            Drop in, call, email, or send a message. We answer every inquiry.
+          </p>
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+        </div>
+      </div>
+    </section>
+
+    {/* NAP + SCHEDULE — two-column white card */}
+    <section class="px-4 md:px-6 py-12 md:py-16">
+      <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <div class="grid md:grid-cols-2 gap-8 md:gap-12">
+          <div>
+            <h2 class="text-xl md:text-2xl font-extrabold text-gb-navy">Visit, Call, or Email</h2>
+            <address class="not-italic mt-4 text-sm md:text-base text-gb-text space-y-2">
+              <div class="font-semibold">{nap.name}</div>
+              <div>{nap.streetAddress}</div>
+              <div>{nap.addressLocality}, {nap.addressRegion} {nap.postalCode}</div>
+              <div>
+                <a href={`tel:${nap.phoneTel}`} class="inline-flex items-center min-h-[44px] py-2 text-gb-navy font-semibold hover:text-gb-red transition-colors">
+                  {nap.phone}
+                </a>
+              </div>
+              <div>
+                <a href={`mailto:${nap.email}`} class="inline-flex items-center min-h-[44px] py-2 text-gb-navy font-semibold hover:text-gb-red transition-colors">
+                  {nap.email}
+                </a>
+              </div>
+            </address>
+          </div>
+          <div>
+            <h2 class="text-xl md:text-2xl font-extrabold text-gb-navy">Class Schedule</h2>
+            <p class="mt-2 text-sm text-gb-text-muted">Drop-in times for our weekly Brazilian Jiu-Jitsu and kids martial arts classes.</p>
+            <dl class="mt-4 space-y-4">
+              {schedule.map((row) => (
                 <div>
                   <dt class="font-semibold text-gb-navy">{row.day}</dt>
                   <dd class="mt-1">
-                    <ul class="list-disc list-inside text-gb-text space-y-1">
-                      {row.classes.map((c) => (
-                        <li>{c}</li>
-                      ))}
+                    <ul class="list-disc list-inside text-sm md:text-base text-gb-text space-y-1">
+                      {row.classes.map((c) => <li>{c}</li>)}
                     </ul>
                   </dd>
                 </div>
-              ))
-            }
-          </dl>
+              ))}
+            </dl>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Section 2 — Contact form -->
-  <section
-    class="bg-gb-bg-light py-12 md:py-16 px-4 md:px-6"
-    aria-labelledby="contact-form-heading"
-  >
-    <div class="max-w-xl mx-auto bg-gb-white rounded-2xl shadow-lg p-6 md:p-10">
-      <h2 id="contact-form-heading" class="text-2xl md:text-3xl font-bold text-gb-navy text-center">
-        Send Us a Message
-      </h2>
-      <p class="mt-2 text-center text-gb-text-muted">
-        Have a question? We&rsquo;ll get back to you within one business day.
-      </p>
-
-      <form data-contact-form class="mt-6 space-y-4" novalidate>
-        <div>
-          <label for="contact-name" class="block text-sm font-medium text-gb-text mb-1">
-            Full Name
-          </label>
-          <input
-            id="contact-name"
-            name="name"
-            type="text"
-            inputmode="text"
-            autocomplete="name"
-            required
-            class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
-            placeholder="Jane Doe"
-          />
-        </div>
-
-        <div>
-          <label for="contact-email" class="block text-sm font-medium text-gb-text mb-1">
-            Email
-          </label>
-          <input
-            id="contact-email"
-            name="email"
-            type="email"
-            inputmode="email"
-            autocomplete="email"
-            required
-            class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
-            placeholder="jane@example.com"
-          />
-        </div>
-
-        <div>
-          <label for="contact-phone" class="block text-sm font-medium text-gb-text mb-1">
-            Phone
-          </label>
-          <input
-            id="contact-phone"
-            name="phone"
-            type="tel"
-            inputmode="tel"
-            autocomplete="tel-national"
-            required
-            class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
-            placeholder="(555) 123-4567"
-          />
-        </div>
-
-        <div>
-          <label for="contact-message" class="block text-sm font-medium text-gb-text mb-1">
-            Message <span class="text-gb-text-muted font-normal">(optional)</span>
-          </label>
-          <textarea
-            id="contact-message"
-            name="message"
-            rows="5"
-            class="w-full min-h-[120px] px-4 py-3 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
-            placeholder="Tell us a bit about who you'd like to train (kid's age, your goals, etc.)"
-          ></textarea>
-        </div>
-
-        <CTAButton
-          variant="formSubmit"
-          type="submit"
-          label="Send Message"
-          fullWidth={true}
-        />
-
-        <p
-          data-contact-success
-          class="hidden text-center text-gb-navy bg-gb-bg-light rounded-lg p-4"
-          role="status"
-        >
-          Thanks for reaching out! We&rsquo;ll be in touch within one business day.
+    {/* CONTACT FORM */}
+    <section class="px-4 md:px-6 py-12 md:py-16" aria-labelledby="contact-form-heading">
+      <div class="max-w-xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 id="contact-form-heading" class="text-2xl md:text-3xl font-extrabold text-gb-navy text-center">
+          Send Us a Message
+        </h2>
+        <p class="mt-2 text-center text-sm text-gb-text-muted">
+          Have a question? We'll get back to you within one business day.
         </p>
 
-        <p
-          data-contact-error
-          class="hidden text-sm text-gb-red text-center"
-          role="alert"
-        >
-          Something went wrong sending your message. Please try again or call us at {nap.phone}.
+        <form data-contact-form class="mt-6 space-y-4" novalidate>
+          <div>
+            <label for="contact-name" class="block text-sm font-medium text-gb-text mb-1">Full Name</label>
+            <input
+              id="contact-name"
+              name="name"
+              type="text"
+              inputmode="text"
+              autocomplete="name"
+              required
+              class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+              placeholder="Jane Doe"
+            />
+          </div>
+          <div>
+            <label for="contact-email" class="block text-sm font-medium text-gb-text mb-1">Email</label>
+            <input
+              id="contact-email"
+              name="email"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              required
+              class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+              placeholder="jane@example.com"
+            />
+          </div>
+          <div>
+            <label for="contact-phone" class="block text-sm font-medium text-gb-text mb-1">Phone</label>
+            <input
+              id="contact-phone"
+              name="phone"
+              type="tel"
+              inputmode="tel"
+              autocomplete="tel-national"
+              required
+              class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+              placeholder="(555) 123-4567"
+            />
+          </div>
+          <div>
+            <label for="contact-message" class="block text-sm font-medium text-gb-text mb-1">
+              Message <span class="text-gb-text-muted font-normal">(optional)</span>
+            </label>
+            <textarea
+              id="contact-message"
+              name="message"
+              rows="5"
+              class="w-full min-h-[120px] px-4 py-3 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+              placeholder="Tell us a bit about who you'd like to train (kid's age, your goals, etc.)"
+            ></textarea>
+          </div>
+
+          <CTAButton variant="formSubmit" type="submit" label="Send Message" fullWidth={true} />
+
+          <p
+            data-contact-success
+            class="hidden text-center text-gb-navy bg-gb-bg-light rounded-lg p-4"
+            role="status"
+          >
+            Thanks for reaching out! We'll be in touch within one business day.
+          </p>
+          <p data-contact-error class="hidden text-sm text-gb-red text-center" role="alert">
+            Something went wrong sending your message. Please try again or call us directly.
+          </p>
+
+          <p class="text-[11px] leading-relaxed text-gb-text-muted text-center">
+            By submitting, you agree to be contacted by Gracie Barra Whittier about your inquiry.
+          </p>
+        </form>
+      </div>
+    </section>
+
+    {/* GOOGLE MAP — lazy-loaded below the fold */}
+    <section class="px-4 md:px-6 py-12 md:py-16" aria-labelledby="map-heading">
+      <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 id="map-heading" class="text-2xl md:text-3xl font-extrabold text-gb-navy text-center">Find Us</h2>
+        <p class="mt-2 text-center text-sm text-gb-text-muted">
+          {nap.streetAddress}, {nap.addressLocality}, {nap.addressRegion} {nap.postalCode}
         </p>
-      </form>
-    </div>
-  </section>
-
-  <!-- Section 3 — Google Maps embed (below the fold, lazy loaded) -->
-  <section class="py-12 md:py-16 px-4 md:px-6" aria-labelledby="map-heading">
-    <div class="max-w-6xl mx-auto">
-      <h2 id="map-heading" class="text-2xl md:text-3xl font-bold text-gb-navy text-center">
-        Find Our Whittier Academy
-      </h2>
-      <p class="mt-2 text-center text-gb-text-muted">
-        {nap.address}
-      </p>
-      <div class="mt-8 rounded-2xl overflow-hidden shadow-md">
-        <iframe
-          title={`Google Map — ${nap.name}, ${nap.address}`}
-          src={mapsEmbedSrc}
-          width="100%"
-          height="450"
-          style="border:0;"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          allowfullscreen
-        ></iframe>
+        <div class="mt-6 aspect-video rounded-xl overflow-hidden border border-gb-bg-light">
+          <iframe
+            title="Map showing Gracie Barra Whittier at 13595 Whittier Blvd #104, Whittier, CA 90605"
+            src="https://www.google.com/maps?q=13595+Whittier+Blvd+%23104,+Whittier,+CA+90605&output=embed"
+            class="w-full h-full"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Section 4 — Service areas -->
-  <section class="bg-gb-bg-light py-12 md:py-16 px-4 md:px-6">
-    <div class="max-w-3xl mx-auto text-center">
-      <h2 class="text-2xl md:text-3xl font-bold text-gb-navy">
-        Serving the Greater Whittier Area
-      </h2>
-      <p class="mt-4 text-gb-text leading-relaxed">
-        Gracie Barra Whittier is conveniently located on Whittier Blvd and easily accessible from
-        Whittier, La Habra, La Mirada, and Pico Rivera.
-      </p>
-    </div>
-  </section>
-
-  <!-- Section 5 — Final CTA strip (navy) -->
-  <section class="bg-gb-navy py-12 md:py-16 px-4 md:px-6">
-    <div class="max-w-3xl mx-auto text-center">
-      <h2 class="text-2xl md:text-4xl font-bold text-gb-white">
-        Ready to Train With Us?
-      </h2>
-      <p class="mt-3 text-gb-white/80">
-        3 free classes &bull; Free uniform rental &bull; No contracts
-      </p>
-      <div class="mt-6 flex justify-center">
-        <CTAButton
-          variant="primary"
-          label="Claim My Free 3-Class Pass"
-          href="/#trial"
-        />
+    {/* SERVICE AREAS */}
+    <section class="px-4 md:px-6 py-12 md:py-16">
+      <div class="max-w-3xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Serving the Greater Whittier Area</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Gracie Barra Whittier is conveniently located on Whittier Blvd and easily accessible from Whittier, La Habra, La Mirada, and Pico Rivera.
+        </p>
       </div>
+    </section>
+  </div>
+
+  {/* FINAL CTA — full-width navy band */}
+  <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-2xl md:text-4xl font-extrabold">Ready to step on the mat?</h2>
+      <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+        Try 3 classes free. No risk, no contracts, free uniform rental included.
+      </p>
+      <div class="mt-7 flex justify-center">
+        <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+      </div>
+      <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts</p>
     </div>
   </section>
+
+  <SchemaBreadcrumb items={breadcrumb} />
+  <SchemaLocalBusiness />
 </BaseLayout>
 
 <script>
@@ -319,10 +257,10 @@ const mapsEmbedSrc = `https://www.google.com/maps?q=${mapsQuery}&output=embed`;
   forms.forEach((form) => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const errorEl = form.querySelector<HTMLElement>('[data-contact-error]');
       const successEl = form.querySelector<HTMLElement>('[data-contact-success]');
-      errorEl?.classList.add('hidden');
+      const errorEl = form.querySelector<HTMLElement>('[data-contact-error]');
       successEl?.classList.add('hidden');
+      errorEl?.classList.add('hidden');
 
       const data = new FormData(form);
       const name = String(data.get('name') ?? '').trim();
@@ -349,12 +287,11 @@ const mapsEmbedSrc = `https://www.google.com/maps?q=${mapsQuery}&output=embed`;
             email,
             phone,
             message,
-            formType: 'contact',
-            source: window.location.pathname,
+            source: 'contact-form',
+            page: window.location.pathname,
           }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        // Inline thank-you — do NOT redirect to /kickstart (different intent).
         form.reset();
         successEl?.classList.remove('hidden');
       } catch {
