@@ -20,12 +20,12 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <label class="block">
-        <span class="text-sm font-medium text-gb-text">Parent first name *</span>
+        <span class="text-sm font-medium text-gb-text" data-parent-first-label>Parent first name *</span>
         <input name="parentFirst" required minlength="1" maxlength="50"
           class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
       </label>
       <label class="block">
-        <span class="text-sm font-medium text-gb-text">Parent last name *</span>
+        <span class="text-sm font-medium text-gb-text" data-parent-last-label>Parent last name *</span>
         <input name="parentLast" required minlength="1" maxlength="50"
           class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
       </label>
@@ -78,6 +78,8 @@
     const form = node?.querySelector<HTMLFormElement>('[data-trainee-form]');
     const ctx = node?.querySelector<HTMLElement>('[data-form-context]');
     const studentBlock = node?.querySelector<HTMLElement>('[data-student-block]');
+    const parentFirstLabel = node?.querySelector<HTMLElement>('[data-parent-first-label]');
+    const parentLastLabel = node?.querySelector<HTMLElement>('[data-parent-last-label]');
     const submitBtn = node?.querySelector<HTMLButtonElement>('[data-submit]');
     const errorEl = node?.querySelector<HTMLElement>('[data-form-error]');
 
@@ -99,6 +101,8 @@
           studentBlock.querySelectorAll('input').forEach((i) => i.setAttribute('required', ''));
         }
       }
+      if (parentFirstLabel) parentFirstLabel.textContent = isSelf ? 'First name *' : 'Parent first name *';
+      if (parentLastLabel)  parentLastLabel.textContent  = isSelf ? 'Last name *'  : 'Parent last name *';
 
       // Pre-fill parent fields from state.
       if (form && s.parent) {
