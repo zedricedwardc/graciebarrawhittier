@@ -1,166 +1,103 @@
 ---
 export const prerender = true;
 /**
- * Reviews page (/reviews) — social proof hub.
- * Sections: minimal hero, reviews widget mount point, featured review quotes,
- * conversion CTA section. Per build brief Part 3 — Reviews.
+ * /reviews — social-proof hub for Gracie Barra Whittier.
+ * Copy aligned to build brief Part 3 Reviews section.
  */
-import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
-import TrustStrip from '../components/cta/TrustStrip.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import { reviews } from '../content/reviews';
-import reviewsHero from '../assets/images/reviews/reviews-hero.jpg';
 
-const breadcrumbItems = [
+const breadcrumb = [
   { name: 'Home', url: 'https://gbwhittier.com/' },
   { name: 'Reviews', url: 'https://gbwhittier.com/reviews/' },
 ];
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('');
-}
 ---
 
 <BaseLayout
-  title="Reviews — Gracie Barra Whittier | BJJ in Whittier, CA"
-  description="Read reviews from Gracie Barra Whittier students and families. See why families across Whittier, La Habra, and La Mirada train with us in BJJ."
+  title="Reviews — Gracie Barra Whittier | Brazilian Jiu-Jitsu in Whittier, CA"
+  description="Read reviews from students and families training at Gracie Barra Whittier. See why families across Whittier, La Habra, La Mirada, and Pico Rivera trust us for kids and adult BJJ."
   canonical="https://gbwhittier.com/reviews/"
 >
-  <SchemaBreadcrumb items={breadcrumbItems} />
-
-  <!-- Section 1 — Hero (full-bleed background image) -->
-  <section class="relative isolate overflow-hidden bg-gb-navy text-gb-white">
-    <Image
-      src={reviewsHero}
-      alt="Gracie Barra Whittier students and instructors team photo"
-      widths={[768, 1280, 1920, 2400]}
-      sizes="100vw"
-      format="webp"
-      quality={82}
-      loading="eager"
-      class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
-    />
-    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-gb-navy/80 via-gb-navy/70 to-gb-navy/60"></div>
-
-    <div class="max-w-3xl mx-auto text-center px-4 md:px-6 py-16 md:py-24 lg:py-32">
-      <p class="text-xs md:text-sm font-bold tracking-widest uppercase text-gb-gold">
-        Real Reviews. Real Families.
-      </p>
-      <h1 class="mt-3 text-3xl md:text-5xl font-extrabold drop-shadow-lg">
-        What Students Say About Gracie Barra Whittier
-      </h1>
-      <p class="mt-4 text-lg text-gb-white/90">
-        Real reviews from real families in Whittier, La Habra, La Mirada, and Pico Rivera.
-      </p>
-      <div class="mt-8 flex justify-center">
-        <CTAButton variant="primary" label="Start My Free Trial" href="/#trial" />
+  <div class="bg-gb-bg-light">
+    {/* HERO — rounded card on light-gray background */}
+    <section class="px-4 md:px-6 pt-6 md:pt-8">
+      <div class="max-w-7xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+        <div class="absolute inset-0 -z-10 bg-gradient-to-br from-gb-navy via-gb-navy/95 to-gb-navy-dark"></div>
+        <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            Reviews — Gracie Barra Whittier
+          </p>
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+            What Students Say About Gracie Barra Whittier
+          </h1>
+          <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+            Real reviews from real families in Whittier, La Habra, La Mirada, and Pico Rivera.
+          </p>
+          <CTAButton variant="primary" label="Start My Free Trial" href="/#trial" />
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Section 2 — Reviews widget (GHL / LocalCraze mount point) -->
-  <section class="py-12 md:py-16 px-4 md:px-6" aria-labelledby="reviews-widget-heading">
-    <div class="max-w-5xl mx-auto">
-      <h2 id="reviews-widget-heading" class="sr-only">Live Google Reviews</h2>
-      <p class="text-center text-sm text-gb-text-muted mb-6">
-        Powered by Google Reviews — updated in real time
-      </p>
-      <div
-        id="reviews-widget"
-        class="min-h-[200px] rounded-2xl border border-gb-bg-light bg-gb-white p-6 md:p-8"
-      >
-        <!-- GHL/LocalCraze widget mounts here when PUBLIC_REVIEWS_EMBED_ID is set -->
+    {/* LIVE REVIEWS WIDGET */}
+    <section class="px-4 md:px-6 py-12 md:py-16">
+      <div class="max-w-5xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <div class="text-center mb-6">
+          <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Live Google Reviews</h2>
+          <p class="mt-2 text-sm text-gb-text-muted">Powered by Google Reviews — updated in real time</p>
+        </div>
+        <div id="reviews-widget" class="bg-gb-bg-light rounded-xl p-6 md:p-8 text-center text-gb-text-muted">
+          Reviews loading...
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Section 3 — Featured review quotes -->
-  <section class="bg-gb-bg-light py-12 md:py-20 px-4 md:px-6" aria-labelledby="featured-reviews-heading">
-    <div class="max-w-6xl mx-auto">
-      <h2
-        id="featured-reviews-heading"
-        class="text-2xl md:text-4xl font-bold text-gb-navy text-center"
-      >
-        What Our Students &amp; Parents Are Saying
-      </h2>
-      <p class="mt-3 text-center text-gb-text-muted max-w-2xl mx-auto">
-        Featured testimonials from students and families in our Whittier community.
-      </p>
-
-      <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
-        {
-          reviews.map((review) => (
-            <article class="bg-gb-white rounded-2xl shadow-md p-6 md:p-8 flex flex-col">
-              <div class="flex items-center gap-4">
-                <div
-                  class="w-12 h-12 rounded-full bg-gb-navy text-gb-white flex items-center justify-center font-bold text-lg shrink-0"
-                  aria-hidden="true"
-                >
-                  {initials(review.name)}
-                </div>
-                <div>
-                  <p class="font-semibold text-gb-navy">{review.name}</p>
-                  <p class="text-sm text-gb-text-muted">{review.role}</p>
-                </div>
+    {/* FEATURED REVIEW QUOTES */}
+    <section class="px-4 md:px-6 py-12 md:py-16">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10 md:mb-12">
+          <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Stories From the Mat</h2>
+          <p class="mt-3 text-sm md:text-base text-gb-text-muted max-w-2xl mx-auto leading-relaxed">
+            What students and families across Whittier are saying about training at Gracie Barra Whittier.
+          </p>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {reviews.map((r) => (
+            <article class="bg-gb-white rounded-2xl shadow-sm p-5 md:p-6 flex flex-col">
+              <div class="flex gap-0.5 text-gb-gold mb-3" aria-label={`${r.rating} out of 5 stars`}>
+                {Array.from({ length: r.rating }).map(() => (
+                  <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.785.57-1.84-.196-1.54-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.073 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z" />
+                  </svg>
+                ))}
               </div>
-
-              <div
-                class="mt-4 flex gap-1"
-                role="img"
-                aria-label={`${review.rating} out of 5 stars`}
-              >
-                {
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <svg
-                      class={
-                        i < review.rating
-                          ? 'w-5 h-5 text-gb-gold'
-                          : 'w-5 h-5 text-gb-bg-light'
-                      }
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.287 3.957c.299.921-.756 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.783.57-1.838-.197-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.071 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.286-3.957z" />
-                    </svg>
-                  ))
-                }
+              <p class="text-sm text-gb-text leading-relaxed flex-1">"{r.quote}"</p>
+              <div class="mt-4 pt-4 border-t border-gb-bg-light">
+                <p class="text-sm font-semibold text-gb-navy">{r.name}</p>
+                <p class="text-xs text-gb-text-muted">{r.role}</p>
               </div>
-
-              <blockquote class="mt-4 text-gb-text leading-relaxed">
-                &ldquo;{review.quote}&rdquo;
-              </blockquote>
             </article>
-          ))
-        }
+          ))}
+        </div>
+        <p class="mt-8 text-xs text-gb-text-muted text-center">Placeholder quotes pending publication of real reviews.</p>
       </div>
+    </section>
+  </div>
+
+  {/* FINAL CTA — full-width navy band */}
+  <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-2xl md:text-4xl font-extrabold">Ready to write your own success story?</h2>
+      <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+        Try 3 classes free at Gracie Barra Whittier. No risk, no contracts, free uniform rental included.
+      </p>
+      <div class="mt-7 flex justify-center">
+        <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+      </div>
+      <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts</p>
     </div>
   </section>
 
-  <!-- Section 4 — Conversion CTA (navy bg) -->
-  <section class="bg-gb-navy py-14 md:py-20 px-4 md:px-6">
-    <div class="max-w-3xl mx-auto text-center">
-      <h2 class="text-2xl md:text-4xl font-bold text-gb-white">
-        Ready to Write Your Own Success Story?
-      </h2>
-      <p class="mt-4 text-gb-white/80">
-        Join families across Whittier, La Habra, La Mirada, and Pico Rivera who train with us.
-      </p>
-      <div class="mt-8 flex justify-center">
-        <CTAButton
-          variant="primary"
-          label="Claim My Free 3-Class Pass"
-          href="/#trial"
-        />
-      </div>
-      <TrustStrip class="mt-8 text-gb-white/80" />
-    </div>
-  </section>
+  <SchemaBreadcrumb items={breadcrumb} />
 </BaseLayout>
