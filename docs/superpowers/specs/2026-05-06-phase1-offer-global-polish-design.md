@@ -138,7 +138,7 @@ Items 1–4 (restored richer answers — no per-question structural change):
 Items 5–8 appended (verbatim from brief Part 2 Section 10):
 
 5. **How much do classes cost at Gracie Barra Whittier?** — "The best way to get accurate pricing is to speak with our Program Director Alex after your free trial. Monthly memberships typically start at $160/month depending on the program and training frequency. We also offer enrollment specials for families. Your first 3 classes are completely free."
-6. **What age groups do you offer classes for?** — "We offer programs for all ages. Tiny Champions (ages 3–4), Little Champions (ages 5–9), Juniors Jiu-Jitsu (ages 10–15), and Adults Brazilian Jiu-Jitsu (ages 16+). Every class is age-appropriate and taught by certified Gracie Barra instructors."
+6. **What age groups do you offer classes for?** — "We offer programs for all ages. Tiny Champions (ages 3-4), Little Champions (ages 5-9), Juniors Jiu-Jitsu (ages 10-15), and Adults Brazilian Jiu-Jitsu (ages 16+). Every class is age-appropriate and taught by certified Gracie Barra instructors."
 7. **Do I need any experience to start?** — "Zero experience required. Our programs are specifically designed for beginners. Every black belt at Gracie Barra Whittier started exactly where you are. Just show up — we take care of everything else."
 8. **Where is Gracie Barra Whittier located?** — "We're located at 13595 Whittier Blvd. #104, Whittier, CA 90605. We're easily accessible from Whittier, La Habra, La Mirada, and Pico Rivera. Call us at (562) 640-1400 or email info@gbwhittier.com."
 
