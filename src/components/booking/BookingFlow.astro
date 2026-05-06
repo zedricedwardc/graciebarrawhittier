@@ -39,6 +39,8 @@ const renderTs = Date.now();
 </section>
 
 <script>
+  import { trackEvent } from '../../lib/analytics';
+
   // ─── State ─────────────────────────────────────────────────────────────
   type ProgramKey = 'tiny'|'lc1'|'lc2'|'juniors'|'adults';
   type Step = 'survey'|'date'|'slot'|'form'|'success'|'error';
@@ -49,6 +51,9 @@ const renderTs = Date.now();
   interface BookingSummary { programName: string; label: string; traineeName: string; }
 
   const root = document.getElementById('booking-flow') as HTMLElement | null;
+
+  let bookingInitiatedFired = false;
+
   if (root) {
     let state = {
       step: 'survey' as Step,
@@ -102,6 +107,10 @@ const renderTs = Date.now();
       for (const s of steps) {
         const el = root!.querySelector<HTMLElement>(`[data-step="${s}"]`);
         if (el) el.hidden = s !== state.step;
+      }
+      if (state.step === 'date' && !bookingInitiatedFired) {
+        trackEvent('booking_initiated', { program: state.program });
+        bookingInitiatedFired = true;
       }
       // Each child component reads state on render via custom event.
       root!.dispatchEvent(new CustomEvent('booking:render', { detail: state }));
@@ -283,6 +292,10 @@ const renderTs = Date.now();
             programName: state.programName,
             label: state.selectedSlot.label,
             traineeName: state.trainee.isSelf ? state.parent.firstName : state.trainee.firstName,
+          });
+          trackEvent('booking_complete', {
+            appointmentId: data.appointmentId,
+            program: state.program,
           });
           state.step = 'success';
         } else if (data.code === 'SLOT_TAKEN') {
