@@ -28,4 +28,20 @@ describe('homepageFaqs', () => {
     expect(questions).toContain('What should I expect in my first class?');
     expect(questions).toContain('Do you offer programs for both kids & adults?');
   });
+
+  it('orders the four "keep existing" questions before the four new questions', () => {
+    const questions = homepageFaqs.map((f) => f.question);
+    expect(questions.slice(0, 4)).toEqual([
+      'What Makes Gracie Barra Whittier Different?',
+      'Is jiu-jitsu safe for beginners?',
+      'What should I expect in my first class?',
+      'Do you offer programs for both kids & adults?',
+    ]);
+    expect(questions.slice(4, 8)).toEqual([
+      'How much do classes cost at Gracie Barra Whittier?',
+      'What age groups do you offer classes for?',
+      'Do I need any experience to start?',
+      'Where is Gracie Barra Whittier located?',
+    ]);
+  });
 });
