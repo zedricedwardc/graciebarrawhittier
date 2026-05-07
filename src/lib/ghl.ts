@@ -5,7 +5,9 @@
  * Endpoints used:
  *   GET  /calendars/{calendarId}/free-slots?startDate=ms&endDate=ms&timezone=America/Los_Angeles
  *   POST /contacts/upsert
+ *   POST /contacts/search
  *   POST /calendars/events/appointments
+ *   GET  /opportunities/search
  *
  * VERIFY: payload shapes must be validated against the GBW sub-account
  * before this is trusted in production.
@@ -115,6 +117,77 @@ export async function upsertContact(args: UpsertContactArgs): Promise<string> {
   const id = data?.contact?.id ?? data?.id;
   if (!id) throw new GhlError(500, JSON.stringify(data), 'upsertContact: no contact id in response');
   return id;
+}
+
+/**
+ * Search for a contact by email + lastName (used by /api/rebook-lookup).
+ * Returns the contact's full record + custom fields, or null if no match.
+ *
+ * GHL `/contacts/search` is a POST with filter array. We require BOTH email
+ * AND lastName to match — raises enumeration cost vs. email-only.
+ */
+export interface ContactRecord {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  customFields?: Array<{ id: string; key?: string; value?: unknown; field_value?: unknown }>;
+}
+
+export async function searchContactByEmailAndLastName(args: {
+  email: string;
+  lastName: string;
+}): Promise<ContactRecord | null> {
+  const body = {
+    locationId: locationId(),
+    pageLimit: 5,
+    filters: [
+      { field: 'email', operator: 'eq', value: args.email.toLowerCase() },
+      { field: 'lastName', operator: 'eq', value: args.lastName },
+    ],
+  };
+  const data = (await request('/contacts/search', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })) as { contacts?: ContactRecord[] };
+  const contact = data.contacts?.[0];
+  return contact ?? null;
+}
+
+// ── Opportunities ────────────────────────────────────────────────────────
+export interface OpportunityRecord {
+  id: string;
+  name?: string;
+  pipelineId?: string;
+  pipelineStageId?: string;
+  status?: 'open' | 'won' | 'lost' | 'abandoned';
+  contactId?: string;
+  customFields?: Array<{ id: string; key?: string; value?: unknown; field_value?: unknown }>;
+}
+
+/**
+ * Search opportunities for a contact within a pipeline (optionally filtered to open).
+ * Used by the rebook flow to detect existing Trial Conversion / Trial Credit Monitoring
+ * opportunities for the contact, so we can update in place rather than create duplicates.
+ */
+export async function searchOpportunities(args: {
+  contactId: string;
+  pipelineId?: string;
+  status?: 'open' | 'won' | 'lost' | 'abandoned' | 'all';
+  limit?: number;
+}): Promise<OpportunityRecord[]> {
+  const params = new URLSearchParams({
+    location_id: locationId(),
+    contact_id: args.contactId,
+    limit: String(args.limit ?? 20),
+  });
+  if (args.pipelineId) params.set('pipeline_id', args.pipelineId);
+  if (args.status && args.status !== 'all') params.set('status', args.status);
+  const data = (await request(`/opportunities/search?${params.toString()}`)) as {
+    opportunities?: OpportunityRecord[];
+  };
+  return data.opportunities ?? [];
 }
 
 // ── Appointments ─────────────────────────────────────────────────────────

@@ -1,0 +1,538 @@
+---
+/**
+ * /rebook — active-trial rebooking page.
+ *
+ * Two entry paths:
+ *   1. Magic link (?t=<token>) — minted at trial activation (Phase 4) and merged
+ *      into rebook reminder SMS/email. Page POSTs token to /api/rebook-context,
+ *      receives credit context, jumps straight to date picker.
+ *   2. Lookup form — fallback when customer lost the link. Page POSTs
+ *      { email, lastName } to /api/rebook-lookup, receives same shape.
+ *
+ * Flow: lookup → date → slot → confirm → success → error
+ *
+ * Reuses DatePicker + SlotPicker from /kickstart by mounting the same
+ * `#booking-flow` root and dispatching the same custom events.
+ *
+ * Booking submit goes to /api/book with `is_rebook: true` + `existing_opp_id`
+ * so the GHL backflow workflow (Phase 4) moves the Credit Monitoring opp to
+ * ANOTHER TRIAL BOOKED instead of creating a new Trial Conversion opp.
+ */
+import FunnelLayout from '../layouts/FunnelLayout.astro';
+import DatePicker from '../components/booking/DatePicker.astro';
+import SlotPicker from '../components/booking/SlotPicker.astro';
+import RebookHeader from '../components/booking/RebookHeader.astro';
+
+const renderTs = Date.now();
+---
+
+<FunnelLayout
+  title="Book Your Next Class | Gracie Barra Whittier"
+  description="Book your next class on your active trial pass."
+>
+  <section
+    id="booking-flow"
+    class="max-w-3xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-10"
+    data-render-ts={renderTs}
+    data-flow="rebook"
+  >
+    <div class="text-center mb-6 md:mb-8">
+      <p class="text-gb-text-muted uppercase tracking-widest text-xs md:text-sm font-semibold mb-2">
+        Active Trial Pass
+      </p>
+      <h1 class="text-3xl md:text-5xl font-extrabold text-gb-navy leading-tight">
+        Book Your Next Class
+      </h1>
+    </div>
+
+    <RebookHeader />
+
+    {/* Step: lookup (also entry point for magic-link validation) */}
+    <div data-step="lookup">
+      <div data-lookup-loading hidden class="bg-gb-white rounded-2xl shadow-lg border-2 border-gb-gold p-8 text-center text-gb-text-muted">
+        Verifying your link&hellip;
+      </div>
+
+      <div data-lookup-form>
+        <div class="bg-gb-white rounded-2xl shadow-lg border-2 border-gb-gold p-6 md:p-10">
+          <h2 class="text-xl md:text-2xl font-bold text-gb-navy mb-2">Find your trial pass</h2>
+          <p class="text-sm text-gb-text-muted mb-6">
+            Enter the email and last name you used when you signed up. We'll find your remaining classes.
+          </p>
+
+          <form data-rebook-lookup-form class="space-y-4" novalidate>
+            <div>
+              <label for="rebook-email" class="block text-sm font-medium text-gb-text mb-1">Email</label>
+              <input
+                id="rebook-email"
+                name="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                required
+                class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label for="rebook-lastname" class="block text-sm font-medium text-gb-text mb-1">Last Name</label>
+              <input
+                id="rebook-lastname"
+                name="lastName"
+                type="text"
+                autocomplete="family-name"
+                required
+                class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+                placeholder="Smith"
+              />
+            </div>
+
+            <button
+              type="submit"
+              data-lookup-submit
+              class="w-full h-14 rounded-full bg-gb-red text-gb-white font-bold text-base hover:bg-gb-red-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Find My Pass
+            </button>
+
+            <p data-lookup-error class="hidden text-sm text-gb-red text-center" role="alert">
+              We couldn't find an active trial pass for that email + last name. Double-check or
+              <a href="/contact" class="underline font-semibold hover:text-gb-red-dark">contact us</a>.
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div data-step="date" hidden>
+      <DatePicker />
+    </div>
+
+    <div data-step="slot" hidden>
+      <SlotPicker />
+    </div>
+
+    <div data-step="confirm" hidden>
+      <div class="bg-gb-white rounded-2xl shadow-lg border-2 border-gb-gold p-6 md:p-10">
+        <h2 class="text-xl md:text-2xl font-bold text-gb-navy mb-2">Confirm your booking</h2>
+        <p class="text-sm text-gb-text-muted mb-6" data-confirm-summary>&nbsp;</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            data-confirm-back
+            class="h-14 rounded-full bg-gb-white border-2 border-gb-navy text-gb-navy font-bold hover:bg-gb-bg-light transition-colors"
+          >
+            ← Change time
+          </button>
+          <button
+            type="button"
+            data-confirm-submit
+            class="h-14 rounded-full bg-gb-red text-gb-white font-bold hover:bg-gb-red-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Confirm Booking
+          </button>
+        </div>
+
+        <p data-confirm-error class="hidden mt-4 text-sm text-gb-red text-center" role="alert">
+          Something went wrong booking. Please try again or call us at (562) 640-1400.
+        </p>
+      </div>
+    </div>
+
+    <div data-step="success" hidden>
+      <div class="bg-gb-white rounded-2xl shadow-lg border-2 border-gb-gold p-6 md:p-10 text-center">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-gb-gold/20 flex items-center justify-center">
+          <svg class="w-7 h-7 text-gb-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">You're booked!</h2>
+        <p class="mt-3 text-base text-gb-text-muted" data-success-summary>&nbsp;</p>
+        <p class="mt-6 text-sm text-gb-text-muted">
+          We'll send a reminder before your class. See you on the mat.
+        </p>
+
+        <a href="/" class="inline-block mt-7 text-gb-navy font-semibold underline hover:text-gb-red transition-colors">
+          ← Back to homepage
+        </a>
+      </div>
+    </div>
+
+    <div data-step="error" hidden>
+      <div class="bg-gb-white rounded-2xl shadow-lg border-2 border-gb-gold p-6 md:p-10 text-center">
+        <h2 class="text-2xl font-bold text-gb-navy">Something went wrong</h2>
+        <p class="mt-3 text-base text-gb-text-muted" data-error-message>&nbsp;</p>
+        <button
+          type="button"
+          data-error-retry
+          class="mt-6 h-12 px-8 rounded-full bg-gb-red text-gb-white font-bold hover:bg-gb-red-dark transition-colors"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  </section>
+</FunnelLayout>
+
+<script>
+  /**
+   * /rebook controller.
+   * State machine very similar to BookingFlow.astro but for active-trial rebookings.
+   * Reuses DatePicker + SlotPicker from /kickstart by dispatching booking:* events
+   * on the same #booking-flow root.
+   */
+
+  type ProgramKey = 'tiny' | 'lc1' | 'lc2' | 'juniors' | 'adults';
+  type Step = 'lookup' | 'date' | 'slot' | 'confirm' | 'success' | 'error';
+
+  interface Slot { startISO: string; endISO: string; label: string; }
+  interface RebookContext {
+    authenticated: boolean;
+    sessionToken: string | null;
+    contactId: string | null;
+    traineeName: string;
+    traineeKey: string | null;
+    program: ProgramKey | null;
+    creditsRemaining: number;
+  }
+
+  const PROGRAM_NAME: Record<ProgramKey, string> = {
+    tiny: 'Tiny Champions',
+    lc1: 'Little Champions 1',
+    lc2: 'Little Champions 2',
+    juniors: 'Juniors Jiu-Jitsu',
+    adults: 'Adults Brazilian Jiu-Jitsu',
+  };
+
+  const root = document.getElementById('booking-flow') as HTMLElement | null;
+  if (root) {
+    const state = {
+      step: 'lookup' as Step,
+      rebook: {
+        authenticated: false,
+        sessionToken: null,
+        contactId: null,
+        traineeName: '',
+        traineeKey: null,
+        program: null,
+        creditsRemaining: 0,
+      } as RebookContext,
+      // Booking-flow shape — DatePicker + SlotPicker read these fields from state.
+      program: null as ProgramKey | null,
+      programName: '',
+      selectedDate: null as string | null,
+      selectedSlot: null as Slot | null,
+      slots: [] as Slot[],
+      slotsLoadedFor: null as string | null,
+      slotsByDate: {} as Record<string, Slot[]>,
+      loadedMonths: new Set<string>(),
+      viewYear: 0,
+      viewMonth: 0,
+      monthLoading: false,
+      submitting: false,
+      pageRenderTs: Number(root.dataset.renderTs ?? Date.now()),
+      lastError: '',
+    };
+
+    const lookupLoading = root.querySelector<HTMLElement>('[data-lookup-loading]');
+    const lookupForm = root.querySelector<HTMLElement>('[data-lookup-form]');
+    const lookupFormEl = root.querySelector<HTMLFormElement>('[data-rebook-lookup-form]');
+    const lookupSubmit = root.querySelector<HTMLButtonElement>('[data-lookup-submit]');
+    const lookupError = root.querySelector<HTMLElement>('[data-lookup-error]');
+
+    const confirmSummary = root.querySelector<HTMLElement>('[data-confirm-summary]');
+    const confirmBack = root.querySelector<HTMLButtonElement>('[data-confirm-back]');
+    const confirmSubmit = root.querySelector<HTMLButtonElement>('[data-confirm-submit]');
+    const confirmError = root.querySelector<HTMLElement>('[data-confirm-error]');
+
+    const successSummary = root.querySelector<HTMLElement>('[data-success-summary]');
+    const errorMessage = root.querySelector<HTMLElement>('[data-error-message]');
+    const errorRetry = root.querySelector<HTMLButtonElement>('[data-error-retry]');
+
+    // ─── Render ─────────────────────────────────────────────────────────
+    function render() {
+      const steps: Step[] = ['lookup', 'date', 'slot', 'confirm', 'success', 'error'];
+      for (const s of steps) {
+        const el = root!.querySelector<HTMLElement>(`[data-step="${s}"]`);
+        if (el) el.hidden = s !== state.step;
+      }
+      root!.dispatchEvent(new CustomEvent('booking:render', { detail: state }));
+    }
+
+    function setStep(s: Step) {
+      state.step = s;
+      render();
+    }
+
+    // ─── Auth: magic link OR lookup ─────────────────────────────────────
+    function applyAuthContext(ctx: {
+      sessionToken: string;
+      contactId: string;
+      traineeName: string;
+      traineeKey: string;
+      program: string;
+      creditsRemaining: number;
+    }) {
+      const program = ctx.program as ProgramKey;
+      state.rebook = {
+        authenticated: true,
+        sessionToken: ctx.sessionToken,
+        contactId: ctx.contactId,
+        traineeName: ctx.traineeName,
+        traineeKey: ctx.traineeKey,
+        program,
+        creditsRemaining: ctx.creditsRemaining,
+      };
+      state.program = program;
+      state.programName = PROGRAM_NAME[program] ?? program;
+      const today = todayInTZ();
+      state.viewYear = today.year;
+      state.viewMonth = today.month;
+      setStep('date');
+      void loadMonth(program, state.viewYear, state.viewMonth);
+    }
+
+    async function tryMagicLink() {
+      const params = new URLSearchParams(location.search);
+      const token = params.get('t');
+      if (!token) return false;
+
+      if (lookupLoading) lookupLoading.hidden = false;
+      if (lookupForm) lookupForm.hidden = true;
+      try {
+        const res = await fetch('/api/rebook-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.code ?? 'unknown');
+        applyAuthContext(data);
+        return true;
+      } catch {
+        // Fall back to lookup form silently — don't reveal token validation failure.
+        if (lookupLoading) lookupLoading.hidden = true;
+        if (lookupForm) lookupForm.hidden = false;
+        return false;
+      }
+    }
+
+    lookupFormEl?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (lookupSubmit?.disabled) return;
+      lookupError?.classList.add('hidden');
+
+      const data = new FormData(lookupFormEl);
+      const email = String(data.get('email') ?? '').trim();
+      const lastName = String(data.get('lastName') ?? '').trim();
+      if (!email || !lastName) {
+        lookupError?.classList.remove('hidden');
+        return;
+      }
+      if (lookupSubmit) {
+        lookupSubmit.disabled = true;
+        lookupSubmit.textContent = 'Searching…';
+      }
+
+      try {
+        const res = await fetch('/api/rebook-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, lastName }),
+        });
+        const json = await res.json();
+        if (!json.ok) {
+          lookupError?.classList.remove('hidden');
+          return;
+        }
+        applyAuthContext(json);
+      } catch {
+        lookupError?.classList.remove('hidden');
+      } finally {
+        if (lookupSubmit) {
+          lookupSubmit.disabled = false;
+          lookupSubmit.textContent = 'Find My Pass';
+        }
+      }
+    });
+
+    // ─── Booking flow events (DatePicker / SlotPicker dispatch these) ─
+    root.addEventListener('booking:change-month', async (e: Event) => {
+      if (!state.program) return;
+      const { delta } = (e as CustomEvent).detail as { delta: 1 | -1 };
+      const next = addMonths(state.viewYear, state.viewMonth, delta);
+      const today = todayInTZ();
+      const maxAhead = addMonths(today.year, today.month, 3);
+      const beforeToday = next.year < today.year || (next.year === today.year && next.month < today.month);
+      const afterMax = next.year > maxAhead.year || (next.year === maxAhead.year && next.month > maxAhead.month);
+      if (beforeToday || afterMax) return;
+      state.viewYear = next.year;
+      state.viewMonth = next.month;
+      render();
+      await loadMonth(state.program, next.year, next.month);
+    });
+
+    root.addEventListener('booking:date-selected', (e: Event) => {
+      const date = (e as CustomEvent).detail as string;
+      state.selectedDate = date;
+      state.selectedSlot = null;
+      state.slots = state.slotsByDate[date] ?? [];
+      state.slotsLoadedFor = date;
+      setStep('slot');
+    });
+
+    root.addEventListener('booking:slot-selected', (e: Event) => {
+      const slot = (e as CustomEvent).detail as Slot;
+      state.selectedSlot = slot;
+      if (confirmSummary && state.selectedSlot) {
+        const traineeName = state.rebook.traineeName || 'you';
+        confirmSummary.textContent = `Booking ${state.programName} for ${traineeName} on ${state.selectedSlot.label}.`;
+      }
+      setStep('confirm');
+    });
+
+    root.addEventListener('booking:back-to-date', () => {
+      state.selectedSlot = null;
+      setStep('date');
+    });
+
+    // The DatePicker emits 'booking:book-another' on its "← Change program" button —
+    // for the rebook flow that's a no-op (program is locked to the trial they already used).
+    // We override by hiding the back button via state, but the safer bet is to just ignore.
+    root.addEventListener('booking:book-another', () => {
+      // Locked: rebook is for the program tied to the trial pass. Ignore.
+    });
+
+    confirmBack?.addEventListener('click', () => {
+      setStep('slot');
+    });
+
+    confirmSubmit?.addEventListener('click', async () => {
+      await submitBooking();
+    });
+
+    errorRetry?.addEventListener('click', () => {
+      setStep('confirm');
+    });
+
+    // ─── Network ────────────────────────────────────────────────────────
+    async function loadMonth(program: ProgramKey, year: number, month: number) {
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      if (state.loadedMonths.has(monthKey)) return;
+      const today = todayInTZ();
+      const isCurrentMonth = year === today.year && month === today.month;
+      const fromDay = isCurrentMonth ? today.day : 1;
+      const lastDay = lastDayOfMonth(year, month);
+      const from = `${monthKey}-${String(fromDay).padStart(2, '0')}`;
+      const to = `${monthKey}-${String(lastDay).padStart(2, '0')}`;
+
+      state.monthLoading = true;
+      render();
+      try {
+        const r = await fetch(`/api/availability?program=${program}&from=${from}&to=${to}&t=${Date.now()}`);
+        const data = await r.json();
+        if (!data.ok) throw new Error(data.code ?? 'unknown');
+        if (state.program !== program) return;
+        for (const slot of data.slots as Slot[]) {
+          const day = slot.startISO.slice(0, 10);
+          (state.slotsByDate[day] ??= []).push(slot);
+        }
+        state.loadedMonths.add(monthKey);
+      } catch {
+        if (state.program !== program) return;
+        state.lastError = "We can't load class times right now.";
+        if (errorMessage) errorMessage.textContent = state.lastError;
+        setStep('error');
+        return;
+      } finally {
+        state.monthLoading = false;
+        render();
+      }
+    }
+
+    async function submitBooking() {
+      if (state.submitting) return;
+      if (!state.program || !state.selectedSlot || !state.rebook.contactId || !state.rebook.traineeKey) return;
+      state.submitting = true;
+      if (confirmSubmit) {
+        confirmSubmit.disabled = true;
+        confirmSubmit.textContent = 'Booking…';
+      }
+      confirmError?.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/book', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            program: state.program,
+            slotStartISO: state.selectedSlot.startISO,
+            // Rebook context — picked up by /api/book extension in Phase 3.
+            // Until Phase 3 ships, /api/book ignores these and creates a normal appointment.
+            rebook: {
+              contactId: state.rebook.contactId,
+              traineeKey: state.rebook.traineeKey,
+              sessionToken: state.rebook.sessionToken,
+            },
+            // Pre-fill parent + trainee from rebook context so existing /api/book
+            // upsertContact + appointment creation flow works unchanged.
+            parent: {
+              firstName: state.rebook.traineeName || '',
+              lastName: '',
+              email: '',
+              phone: '',
+            },
+            trainee: {
+              firstName: state.rebook.traineeName || '',
+              age: 30,
+              isSelf: state.program === 'adults',
+            },
+            marketingConsent: false,
+            website: '',
+            ts: state.pageRenderTs,
+          }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.code ?? 'unknown');
+
+        if (successSummary && state.selectedSlot) {
+          const traineeName = state.rebook.traineeName || 'you';
+          successSummary.textContent = `${traineeName} is booked for ${state.programName} on ${state.selectedSlot.label}.`;
+        }
+        setStep('success');
+      } catch (err) {
+        confirmError?.classList.remove('hidden');
+        console.warn('[rebook] /api/book failed', err);
+      } finally {
+        state.submitting = false;
+        if (confirmSubmit) {
+          confirmSubmit.disabled = false;
+          confirmSubmit.textContent = 'Confirm Booking';
+        }
+      }
+    }
+
+    // ─── Helpers ────────────────────────────────────────────────────────
+    function todayInTZ(): { year: number; month: number; day: number } {
+      const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+      });
+      const iso = fmt.format(new Date());
+      const parts = iso.split('-').map(Number);
+      return { year: parts[0]!, month: parts[1]!, day: parts[2]! };
+    }
+    function addMonths(year: number, month: number, delta: number): { year: number; month: number } {
+      const total = (year * 12 + (month - 1)) + delta;
+      return { year: Math.floor(total / 12), month: (total % 12) + 1 };
+    }
+    function lastDayOfMonth(year: number, month: number): number {
+      return new Date(Date.UTC(year, month, 0)).getUTCDate();
+    }
+
+    // ─── Boot ───────────────────────────────────────────────────────────
+    render();
+    void tryMagicLink();
+  }
+</script>
