@@ -18,7 +18,7 @@
     <button type="button" data-change-program class="text-sm text-gb-text-muted hover:text-gb-navy underline">← Change program</button>
   </div>
 
-  <div class="bg-white border-2 border-gb-gold rounded-2xl p-4 sm:p-6 shadow-lg">
+  <div class="bg-white border-2 border-gb-gold rounded-2xl p-3 sm:p-6 shadow-lg">
     <div class="flex items-center justify-between mb-4">
       <button
         type="button"
@@ -40,7 +40,7 @@
     </div>
 
     <div class="relative">
-      <div class="grid grid-cols-7 gap-y-2 gap-x-1" data-date-grid>
+      <div class="grid grid-cols-7 gap-y-2 gap-x-0.5 sm:gap-x-1" data-date-grid>
         {/* cells populated client-side */}
       </div>
       <div data-month-loading class="hidden absolute inset-0 flex items-center justify-center bg-white/80 text-gb-text-muted text-sm">
@@ -137,7 +137,7 @@
 
       for (let i = 0; i < firstWeekday; i++) {
         const blank = document.createElement('div');
-        blank.className = 'h-14 sm:h-16';
+        blank.className = 'h-16';
         grid.appendChild(blank);
       }
 
@@ -162,9 +162,9 @@
         // Variant logic: 4 visual states.
         // 1. selected (navy fill)
         // 2. bookable (white card with red dot)
-        // 3. today + bookable handled by (2) + a small TODAY marker
+        // 3. today + bookable handled by (2) + a ring around the cell
         // 4. unavailable (subtle, no chrome)
-        let cls = 'relative h-14 sm:h-16 w-full rounded-lg text-center transition flex flex-col items-center justify-center px-1';
+        let cls = 'relative h-16 w-full rounded-lg text-center transition flex flex-col items-center justify-center';
         if (isSelected && bookable) {
           cls += ' bg-gb-navy text-white shadow-md';
         } else if (bookable) {
@@ -172,24 +172,28 @@
         } else {
           cls += ' text-gray-300 cursor-not-allowed';
         }
+        if (isToday && bookable) {
+          cls += ' ring-2 ring-gb-navy ring-offset-1';
+        }
         btn.className = cls;
 
         const dayNum = `<div class="text-base sm:text-lg font-bold leading-none">${day}</div>`;
         let extra = '';
         if (bookable && !isSelected) {
           const noun = dailySlots.length === 1 ? 'time' : 'times';
-          extra = `<div class="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-gb-red leading-none">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-gb-red"></span>${dailySlots.length} ${noun}
+          extra = `<div class="mt-1 inline-flex items-center gap-0.5 sm:gap-1 leading-none">
+            <span class="inline-block w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-gb-red"></span>
+            <span class="text-[8px] sm:text-[10px] font-semibold text-gb-red">${dailySlots.length} ${noun}</span>
           </div>`;
         } else if (bookable && isSelected) {
           const noun = dailySlots.length === 1 ? 'time' : 'times';
-          extra = `<div class="mt-1 text-[10px] font-semibold text-white/90 leading-none">${dailySlots.length} ${noun}</div>`;
+          extra = `<div class="mt-1 inline-flex items-center gap-0.5 sm:gap-1 leading-none">
+            <span class="inline-block w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white"></span>
+            <span class="text-[8px] sm:text-[10px] font-semibold text-white/90">${dailySlots.length} ${noun}</span>
+          </div>`;
         }
-        const todayMark = isToday
-          ? `<div class="mt-0.5 text-[8px] uppercase tracking-wider font-bold leading-none ${isSelected ? 'text-white/80' : 'text-gb-navy/60'}">Today</div>`
-          : '';
 
-        btn.innerHTML = dayNum + extra + todayMark;
+        btn.innerHTML = dayNum + extra;
 
         if (bookable) {
           btn.addEventListener('click', () => {

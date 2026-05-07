@@ -9,7 +9,6 @@ import GTM from '../components/analytics/GTM.astro';
 import Nav from '../components/nav/Nav.astro';
 import Footer from '../components/footer/Footer.astro';
 import AIChatWidget from '../components/widgets/AIChatWidget.astro';
-import StickyMobileCTA from '../components/cta/StickyMobileCTA.astro';
 
 export interface Props {
   title: string;
@@ -71,9 +70,7 @@ const { title, description, canonical, ogImage, schema, hideStickyCTA = false } 
       Skip to main content
     </a>
 
-    <Nav />
-
-    {!hideStickyCTA && <StickyMobileCTA />}
+    <Nav hideStickyCTA={hideStickyCTA} />
 
     <main id="main" class="flex-1">
       <slot />

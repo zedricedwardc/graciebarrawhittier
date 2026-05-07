@@ -9,6 +9,14 @@
  */
 import CTAButton from '../cta/CTAButton.astro';
 import MobileNavDrawer from './MobileNavDrawer.astro';
+import StickyMobileCTA from '../cta/StickyMobileCTA.astro';
+
+export interface Props {
+  /** Hide the mobile CTA bar at the top of the header (e.g. legal pages). */
+  hideStickyCTA?: boolean;
+}
+
+const { hideStickyCTA = false } = Astro.props;
 
 const links = [
   { label: 'Home', href: '/' },
@@ -20,6 +28,7 @@ const links = [
 ---
 
 <header class="sticky top-0 z-30 bg-gb-white/95 backdrop-blur border-b border-gb-bg-light">
+  {!hideStickyCTA && <StickyMobileCTA />}
   <nav
     class="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between"
     aria-label="Primary"
