@@ -1,7 +1,30 @@
+/**
+ * POST /api/lead
+ *
+ * Single endpoint for all opt-in form submissions:
+ *   - Homepage opt-in (source: homepage-optin)
+ *   - Kids page opt-in (source: kids-optin)
+ *   - Adults page opt-in (source: adults-optin)
+ *   - Contact form (source: contact-form)
+ *
+ * Phase 2: replaces the legacy direct-to-GHL webhook fired from the browser.
+ * The endpoint now upserts the contact + creates the Lead Acquisition opp via
+ * the GHL REST API directly, by calling ghl-adapter.handleOptIn.
+ *
+ * Spam mitigations (mirrors /api/book):
+ *   - Honeypot field (`website`) — silent 200 if filled
+ *   - Min dwell time (3s) — silent 200 if too fast
+ *   - Per-IP rate limit (10 / 10min)
+ *   - Idempotency: sha1(email|trainee_key|source|YYYYMMDD) for 24h
+ */
+
 import type { APIRoute } from 'astro';
 import { createHash } from 'node:crypto';
 import { LeadRequest, type LeadResponse } from '../../lib/lead-types';
-import { readEnv } from '../../lib/ghl';
+import { handleOptIn } from '../../lib/ghl-adapter';
+import { idempotency, computeIdempotencyKey } from '../../lib/idempotency';
+import { GhlError } from '../../lib/ghl-rate-limit';
+import { deriveTraineeKey } from '../../lib/trainee-key';
 
 export const prerender = false;
 
@@ -13,61 +36,94 @@ const buckets = new Map<string, { count: number; firstSeen: number }>();
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   let payload: unknown;
-  try { payload = await request.json(); } catch { return json({ ok: false, code: 'INVALID_INPUT' }); }
+  try {
+    payload = await request.json();
+  } catch {
+    return json({ ok: false, code: 'INVALID_INPUT' });
+  }
 
   const parsed = LeadRequest.safeParse(payload);
   if (!parsed.success) return json({ ok: false, code: 'INVALID_INPUT' });
   const body = parsed.data;
 
-  // Layer 1 — Honeypot. Silent OK so bots don't learn.
+  // Honeypot — silent 200 so bots don't learn
   if (body.website && body.website.length > 0) {
-    return json({ ok: true });
+    return json({ ok: true, contactId: 'spam-discarded', opportunityId: null, isReplay: false });
   }
 
-  // Layer 2 — Min dwell time.
+  // Min dwell time
   if (Date.now() - body.ts < MIN_DWELL_MS) {
-    return json({ ok: true });
+    return json({ ok: true, contactId: 'spam-discarded', opportunityId: null, isReplay: false });
   }
 
-  // Layer 3 — Per-IP token bucket.
+  // Per-IP rate limit
   const ip = clientAddress || 'unknown';
-  if (!checkRate(ip)) {
-    return json({ ok: false, code: 'RATE_LIMITED' });
+  if (!checkRate(ip)) return json({ ok: false, code: 'RATE_LIMITED' });
+
+  // Idempotency
+  const traineeKey = body.trainee
+    ? deriveTraineeKey({
+        isSelf: body.trainee.isSelf ?? false,
+        firstName: body.trainee.firstName,
+        lastName: body.trainee.lastName ?? body.lastName,
+        dob: body.trainee.dob,
+      })
+    : '';
+  const dayBucket = new Date().toISOString().slice(0, 10);
+  const idemKey = sha1(
+    computeIdempotencyKey([body.email.toLowerCase(), traineeKey, body.source, dayBucket]),
+  );
+  const replay = idempotency.check<{ contactId: string; opportunityId: string | null }>(idemKey);
+  if (replay) {
+    return json({ ok: true, ...replay, isReplay: true });
   }
 
-  // Resolve webhook URL — server-only env preferred; PUBLIC_ retained as transitional fallback.
-  const webhookUrl = readEnv('GHL_WEBHOOK_URL') || readEnv('PUBLIC_GHL_WEBHOOK_URL');
-  if (!webhookUrl) {
-    console.error('[lead] no webhook configured (GHL_WEBHOOK_URL / PUBLIC_GHL_WEBHOOK_URL)');
-    return json({ ok: false, code: 'NOT_CONFIGURED' });
+  // Normalize name: prefer explicit firstName/lastName; fall back to splitting `name`.
+  let firstName = body.firstName ?? '';
+  let lastName = body.lastName ?? '';
+  if ((!firstName || !lastName) && body.name) {
+    const parts = body.name.trim().split(/\s+/);
+    if (!firstName) firstName = parts[0] ?? '';
+    if (!lastName) lastName = parts.slice(1).join(' ') || firstName; // single-name → repeat
   }
 
+  // Dispatch to adapter
   try {
-    const r = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: body.name,
-        firstName: body.firstName ?? body.name.split(/\s+/)[0] ?? '',
-        lastName: body.lastName ?? body.name.split(/\s+/).slice(1).join(' ') ?? '',
-        email: body.email,
-        phone: body.phone,
-        message: body.message ?? '',
-        source: body.source,
-        page: body.page,
-      }),
+    const result = await handleOptIn({
+      firstName,
+      lastName,
+      email: body.email,
+      phone: body.phone,
+      source: body.source,
+      message: body.message,
+      trainee: body.trainee,
+      page: body.page,
     });
-    if (!r.ok) {
-      const text = await r.text().catch(() => '');
-      console.error('[lead] webhook non-2xx', { status: r.status, body: text.slice(0, 200), ctx: redactLeadForLog(body) });
-      return json({ ok: false, code: 'WEBHOOK_FAILED' });
-    }
-  } catch (err) {
-    console.error('[lead] webhook fetch failed', { err: String(err), ctx: redactLeadForLog(body) });
-    return json({ ok: false, code: 'WEBHOOK_FAILED' });
-  }
 
-  return json({ ok: true });
+    idempotency.set(
+      idemKey,
+      { contactId: result.contactId, opportunityId: result.opportunityId },
+      24 * 3600,
+    );
+
+    return json({
+      ok: true,
+      contactId: result.contactId,
+      opportunityId: result.opportunityId,
+      isReplay: false,
+    });
+  } catch (err) {
+    const log =
+      err instanceof GhlError
+        ? { status: err.status, body: err.bodyText.slice(0, 200), path: err.path, ctx: redactLeadForLog(body) }
+        : { err: String(err), ctx: redactLeadForLog(body) };
+    console.error('[lead] handleOptIn failed', log);
+    return json({
+      ok: false,
+      code: 'GHL_FAILED',
+      message: err instanceof GhlError ? `GHL ${err.status}` : 'Unexpected error',
+    });
+  }
 };
 
 function checkRate(ip: string): boolean {
@@ -82,13 +138,18 @@ function checkRate(ip: string): boolean {
   return true;
 }
 
-function redactLeadForLog(b: LeadRequest): Record<string, unknown> {
+function redactLeadForLog(b: ReturnType<typeof LeadRequest.parse>): Record<string, unknown> {
   return {
     source: b.source,
     page: b.page,
     emailHash: createHash('sha256').update(b.email).digest('hex').slice(0, 12),
     hasPhone: Boolean(b.phone),
+    hasTrainee: Boolean(b.trainee),
   };
+}
+
+function sha1(s: string): string {
+  return createHash('sha1').update(s).digest('hex');
 }
 
 function json(body: LeadResponse): Response {

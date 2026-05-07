@@ -247,12 +247,19 @@ const hours: HoursRow[] = [
         return;
       }
 
+      // Split full name into first/last for the LeadRequest schema.
+      const nameParts = name.split(/\s+/);
+      const firstName = nameParts[0] ?? name;
+      const lastName = nameParts.slice(1).join(' ') || firstName;
+
       try {
         const res = await fetch('/api/lead', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name,
+            firstName,
+            lastName,
             email,
             phone,
             message,

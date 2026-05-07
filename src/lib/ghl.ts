@@ -35,16 +35,26 @@ function locationId(): string {
 /**
  * Legacy request shim — delegates to ghlFetch. Kept so the existing call sites
  * in this file work unchanged. New code should call ghlFetch directly.
+ *
+ * Calendar endpoints use Version `2021-04-15`; everything else uses the wrapper's
+ * DEFAULT_VERSION. Pass `version` to override per-call.
  */
-async function request(path: string, init: RequestInit = {}): Promise<unknown> {
+async function request(
+  path: string,
+  init: RequestInit & { version?: string } = {},
+): Promise<unknown> {
   const method = (init.method as 'GET' | 'POST' | 'PUT' | 'DELETE') ?? 'GET';
   const body = typeof init.body === 'string' ? init.body : undefined;
   return ghlFetch(path, {
     method,
     body,
+    version: init.version,
     headers: init.headers as Record<string, string> | undefined,
   });
 }
+
+// Calendar endpoints require this older API version (per existing test contract).
+const CALENDAR_VERSION = '2021-04-15';
 
 // ── Free slots ───────────────────────────────────────────────────────────
 export interface GetFreeSlotsArgs {
@@ -63,7 +73,7 @@ export async function getFreeSlots(args: GetFreeSlotsArgs): Promise<Set<string>>
     `/calendars/${encodeURIComponent(calendarId)}/free-slots` +
     `?startDate=${startDate}&endDate=${endDate}` +
     `&timezone=${encodeURIComponent('America/Los_Angeles')}`;
-  const data = (await request(url)) as Record<string, { slots?: string[] }>;
+  const data = (await request(url, { version: CALENDAR_VERSION })) as Record<string, { slots?: string[] }>;
   const out = new Set<string>();
   for (const [k, v] of Object.entries(data)) {
     if (k.startsWith('_')) continue; // skip envelope keys like "_dates_"
@@ -220,6 +230,106 @@ export async function getContact(contactId: string): Promise<ContactRecord | nul
   }
 }
 
+/** Update a contact (custom fields, name, etc.). */
+export interface UpdateContactArgs {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  customFields?: Array<{ id: string; field_value: string | number | boolean | null }>;
+}
+
+export async function updateContact(contactId: string, patch: UpdateContactArgs): Promise<ContactRecord> {
+  const data = (await request(`/contacts/${encodeURIComponent(contactId)}`, {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  })) as { contact?: ContactRecord };
+  if (!data.contact) {
+    throw new GhlError(500, JSON.stringify(data), `/contacts/${contactId}`, 'updateContact: no contact in response');
+  }
+  return data.contact;
+}
+
+/** Add tags to a contact. Idempotent; GHL dedupes. */
+export async function addContactTags(contactId: string, tags: string[]): Promise<void> {
+  if (tags.length === 0) return;
+  await request(`/contacts/${encodeURIComponent(contactId)}/tags`, {
+    method: 'POST',
+    body: JSON.stringify({ tags }),
+  });
+}
+
+/** Remove tags from a contact. */
+export async function removeContactTags(contactId: string, tags: string[]): Promise<void> {
+  if (tags.length === 0) return;
+  await request(`/contacts/${encodeURIComponent(contactId)}/tags`, {
+    method: 'DELETE',
+    body: JSON.stringify({ tags }),
+  });
+}
+
+/**
+ * Add contact to a workflow (programmatic enrollment).
+ * No-op if workflowId is empty (so Phase 2 can run before all workflows are wired).
+ */
+export async function addContactToWorkflow(contactId: string, workflowId: string): Promise<void> {
+  if (!workflowId) return;
+  await request(`/contacts/${encodeURIComponent(contactId)}/workflow/${encodeURIComponent(workflowId)}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+/** Remove contact from a workflow. No-op if workflowId empty. */
+export async function removeContactFromWorkflow(contactId: string, workflowId: string): Promise<void> {
+  if (!workflowId) return;
+  await request(`/contacts/${encodeURIComponent(contactId)}/workflow/${encodeURIComponent(workflowId)}`, {
+    method: 'DELETE',
+  });
+}
+
+/** Add a note on a contact for audit trail. */
+export async function addContactNote(contactId: string, body: string): Promise<void> {
+  await request(`/contacts/${encodeURIComponent(contactId)}/notes`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  });
+}
+
+// ── Opportunity create ───────────────────────────────────────────────────
+
+export interface CreateOpportunityArgs {
+  pipelineId: string;
+  pipelineStageId: string;
+  contactId: string;
+  name: string;
+  status?: 'open' | 'won' | 'lost' | 'abandoned';
+  monetaryValue?: number;
+  source?: string;
+  customFields?: Array<{ id: string; field_value: string | number | boolean | null }>;
+}
+
+export async function createOpportunity(args: CreateOpportunityArgs): Promise<OpportunityRecord> {
+  const data = (await request('/opportunities/', {
+    method: 'POST',
+    body: JSON.stringify({
+      locationId: locationId(),
+      pipelineId: args.pipelineId,
+      pipelineStageId: args.pipelineStageId,
+      contactId: args.contactId,
+      name: args.name,
+      status: args.status ?? 'open',
+      monetaryValue: args.monetaryValue ?? 0,
+      source: args.source,
+      customFields: args.customFields,
+    }),
+  })) as { opportunity?: OpportunityRecord };
+  if (!data.opportunity) {
+    throw new GhlError(500, JSON.stringify(data), '/opportunities/', 'createOpportunity: no opportunity in response');
+  }
+  return data.opportunity;
+}
+
 // ── Appointments ─────────────────────────────────────────────────────────
 export interface CreateAppointmentArgs {
   calendarId: string;
@@ -232,6 +342,7 @@ export interface CreateAppointmentArgs {
 export async function createAppointment(args: CreateAppointmentArgs): Promise<string> {
   const data = (await request('/calendars/events/appointments', {
     method: 'POST',
+    version: CALENDAR_VERSION,
     body: JSON.stringify({
       calendarId: args.calendarId,
       locationId: locationId(),
