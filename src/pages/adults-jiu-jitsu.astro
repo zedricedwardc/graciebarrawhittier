@@ -14,6 +14,51 @@ import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
 import { adultsFaqs } from '../content/adults-faqs';
 import adultsHero from '../assets/images/adults/adults-hero.jpg';
 
+const programs = [
+  {
+    badge: 'GB1  |  FUNDAMENTALS',
+    name: 'GB1 Fundamentals',
+    sub: 'For beginners and all levels',
+    description:
+      'GB1 is where every Gracie Barra journey begins. This structured fundamentals program teaches the core positions, self-defense principles, and foundational techniques of Brazilian Jiu-Jitsu using the proven 16-week GB curriculum. No experience needed. No live sparring to start. Just technique, structure, and a supportive environment built to get you moving confidently on the mat.',
+    bullets: [
+      'Perfect for absolute beginners',
+      'Structured 16-week rotating curriculum',
+      'Real self-defense from day one',
+    ],
+    image: '/images/adults/adults-fundamentals.jpg',
+    alt: 'Adults drilling Brazilian Jiu-Jitsu fundamentals at Gracie Barra Whittier',
+  },
+  {
+    badge: 'GB2  |  ADVANCED',
+    name: 'GB2 Advanced',
+    sub: 'Live training, sparring, and no-gi',
+    description:
+      "GB2 is where your Jiu-Jitsu comes alive. Building on the fundamentals, this program introduces live rolling, complex technique chains, and no-gi training. You'll develop a real game — fluid, responsive, and built to work under pressure. For students who have completed GB1 or who train consistently and are ready to push their game to the next level.",
+    bullets: [
+      'Live rolling and positional sparring',
+      'No-gi training included',
+      'Complex submissions, sweeps, and transitions',
+    ],
+    image: '/images/home/gallery/adults-2.jpg',
+    alt: 'Adult Brazilian Jiu-Jitsu sparring session at Gracie Barra Whittier',
+  },
+  {
+    badge: 'GB3  |  COMPETITION',
+    name: 'GB3 Competition Program',
+    sub: 'For competitors and advanced practitioners',
+    description:
+      'GB3 is where serious Jiu-Jitsu happens. High-intensity drills, advanced technique, and competitive sparring. If you want to compete — or simply train alongside the sharpest practitioners at the academy — this is your program. Blue belts and above. Competition training available for all levels of competitor.',
+    bullets: [
+      'Competition prep and high-intensity training',
+      'Advanced guard systems and transitions',
+      'For blue belts and above',
+    ],
+    image: '/images/home/gallery/adults-3.jpg',
+    alt: 'Advanced Brazilian Jiu-Jitsu competition training at Gracie Barra Whittier',
+  },
+];
+
 const benefits = [
   {
     title: 'Real self-defense',
@@ -96,6 +141,60 @@ const breadcrumb = [
       </div>
     </section>
 
+    {/* OPT-IN FORM — navy horizontal variant, directly under hero */}
+    <OptInForm
+      id="trial"
+      variant="navy"
+      source="adults-optin"
+      header="UNLOCK YOUR FREE 3-CLASS PASS"
+      subheader="+ VIEW OUR FULL CLASS SCHEDULE INSTANTLY"
+      description="Enter your info below to claim your Free 3-Class Pass and access our full class schedule."
+      offerLabel="FREE 3-CLASS PASS"
+      riskLine="No Risk. No Pressure. Free Uniform Rental Included."
+      submitLabel="CLAIM MY FREE 3-CLASS PASS"
+    />
+
+    {/* ADULT PROGRAMS — GB1 / GB2 / GB3 cards */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10 md:mb-12">
+          <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Our Adult Brazilian Jiu-Jitsu Programs</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed max-w-2xl mx-auto">
+            Whether you're stepping on the mat for the first time or training to compete, Gracie Barra Whittier has a structured program built for where you are right now.
+          </p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-5 md:gap-6">
+          {programs.map((p) => (
+            <article class="bg-gb-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+              <img src={p.image} alt={p.alt} loading="lazy" decoding="async" class="w-full h-48 object-cover" />
+              <div class="p-6 flex flex-col flex-1">
+                <p class="text-xs font-bold tracking-widest text-gb-red uppercase">{p.badge}</p>
+                <h3 class="mt-2 text-xl font-extrabold text-gb-navy">{p.name}</h3>
+                <p class="mt-1 text-sm italic text-gb-text-muted">{p.sub}</p>
+                <p class="mt-4 text-sm text-gb-text-muted leading-relaxed">{p.description}</p>
+                <ul class="mt-4 space-y-2">
+                  {p.bullets.map((b) => (
+                    <li class="flex gap-2 text-sm text-gb-text leading-relaxed">
+                      <svg class="shrink-0 w-4 h-4 text-gb-red mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div class="mt-auto pt-6">
+                  <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" fullWidth={true} />
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p class="mt-8 text-center text-xs md:text-sm text-gb-text-muted leading-relaxed max-w-2xl mx-auto">
+          Not sure which program is right for you? Start with GB1. Every student at GB Whittier begins with fundamentals. Your instructor will guide your progression from there.
+        </p>
+      </div>
+    </section>
+
     {/* THE CASE FOR BJJ — 4 benefit cards with icons */}
     <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
       <div class="max-w-6xl mx-auto">
@@ -163,19 +262,6 @@ const breadcrumb = [
         </ol>
       </div>
     </section>
-
-    {/* OPT-IN FORM — identical props to homepage */}
-    <OptInForm
-      id="trial"
-      header="UNLOCK YOUR FREE 3-CLASS PASS"
-      subheader="+ VIEW OUR FULL CLASS SCHEDULE INSTANTLY"
-      description="Enter your info below to claim your Free 3-Class Pass and access our full class schedule."
-      offerLabel="FREE 3-CLASS PASS"
-      riskLine="No Risk. No Pressure. Free Uniform Rental Included."
-      submitLabel="CLAIM MY FREE 3-CLASS PASS"
-      imageSrc="/images/home/gallery/kids-1.jpg"
-      imageAlt="Kids Brazilian Jiu-Jitsu class at Gracie Barra Whittier"
-    />
 
     {/* CONVERSION CTA — bento navy card */}
     <section class="px-4 md:px-6 pt-2 pb-6 md:pt-4 md:pb-8">

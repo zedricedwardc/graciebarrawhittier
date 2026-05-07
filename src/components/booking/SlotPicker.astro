@@ -85,6 +85,7 @@
 
         const time = slot.label.split(' · ')[1] ?? slot.label;
         const minutes = durationMinutes(slot.startISO, slot.endISO);
+        const meta = slotMeta(s.program, slot.startISO);
 
         btn.innerHTML = `
           <div class="flex items-center gap-3 min-w-0">
@@ -97,6 +98,9 @@
             <div class="min-w-0">
               <div class="text-lg font-bold text-gb-navy leading-tight">${time}</div>
               <div class="text-xs text-gb-text-muted">${minutes} min class</div>
+              <div class="mt-1.5">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${meta.badgeClass}">${meta.code}: ${meta.label}</span>
+              </div>
             </div>
           </div>
           <span class="shrink-0 text-gb-navy font-semibold text-sm group-hover:translate-x-0.5 transition-transform">
@@ -119,6 +123,52 @@
     function durationMinutes(startISO: string, endISO: string): number {
       const ms = Date.parse(endISO) - Date.parse(startISO);
       return Math.round(ms / 60_000);
+    }
+
+    type ProgramKey = 'tiny'|'lc1'|'lc2'|'juniors'|'adults';
+
+    function slotMeta(program: ProgramKey, startISO: string): {
+      code: string; label: string; badgeClass: string;
+    } {
+      const d = new Date(startISO);
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Los_Angeles',
+        weekday: 'short',
+        hour: 'numeric',
+        hour12: false,
+      }).formatToParts(d);
+      const wd = parts.find((p) => p.type === 'weekday')?.value ?? '';
+      const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
+      const isMonWed = wd === 'Mon' || wd === 'Wed';
+      const isTueThu = wd === 'Tue' || wd === 'Thu';
+      const isSat = wd === 'Sat';
+
+      // GB1 = cyan, GBK = navy — matches the studio flyer.
+      const GB1 = 'bg-sky-500 text-white';
+      const GBK = 'bg-gb-navy text-white';
+
+      if (program === 'adults') {
+        return { code: 'GB1', label: 'Adults: All Levels (Fundamentals)', badgeClass: GB1 };
+      }
+
+      const sectionForKids = isMonWed ? 'Section A' : isTueThu ? 'Section B' : '';
+
+      if (program === 'tiny') {
+        return { code: 'GBK', label: `Tiny Champs · ${sectionForKids}`, badgeClass: GBK };
+      }
+      if (program === 'lc1') {
+        const label = isSat ? 'Little Champs 1 & 2 (Combined)' : `Little Champs 1 · ${sectionForKids}`;
+        return { code: 'GBK', label, badgeClass: GBK };
+      }
+      if (program === 'lc2') {
+        const label = isSat ? 'Little Champs 1 & 2 (Combined)' : `Little Champs 2 · ${sectionForKids}`;
+        return { code: 'GBK', label, badgeClass: GBK };
+      }
+      if (program === 'juniors') {
+        const label = isSat ? 'Juniors BJJ · All Sections' : `Juniors BJJ · ${sectionForKids}`;
+        return { code: 'GBK', label, badgeClass: GBK };
+      }
+      return { code: '', label: '', badgeClass: '' };
     }
   }
 </script>

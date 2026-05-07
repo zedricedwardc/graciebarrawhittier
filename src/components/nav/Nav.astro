@@ -1,7 +1,11 @@
 ---
 /**
  * Nav — desktop horizontal nav + slot for mobile drawer trigger.
- * Logo + nav links + a single red "Get Started Free" CTA → #trial.
+ * Logo + nav links + a single red "Get Started Free" CTA.
+ *
+ * "Get Started Free" is page-aware: if the current page has an #trial element,
+ * the inline script below intercepts the click and smooth-scrolls to it.
+ * Otherwise (e.g. /contact, /reviews) the link falls through to /#trial.
  */
 import CTAButton from '../cta/CTAButton.astro';
 import MobileNavDrawer from './MobileNavDrawer.astro';
@@ -50,7 +54,7 @@ const links = [
     </ul>
 
     <div class="hidden md:block">
-      <CTAButton variant="nav" label="Get Started Free" href="/#trial" />
+      <CTAButton variant="nav" label="Get Started Free" href="/#trial" class="js-trial-link" />
     </div>
 
     <div class="md:hidden">
@@ -58,3 +62,24 @@ const links = [
     </div>
   </nav>
 </header>
+
+<script>
+  // Smart-link for any "Get Started" CTA that points to #trial:
+  // if the current page has an #trial element, intercept and scroll to it.
+  // Otherwise let the browser navigate to /#trial (homepage opt-in).
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    const link = target?.closest<HTMLAnchorElement>('a.js-trial-link');
+    if (!link) return;
+    const trial = document.getElementById('trial');
+    if (!trial) return; // no opt-in form on this page → let browser navigate to /#trial
+    e.preventDefault();
+    // Close the mobile drawer if it's open, then scroll on the next frame.
+    const drawer = document.querySelector<HTMLDialogElement>('[data-mobile-nav-drawer]');
+    if (drawer?.open) drawer.close();
+    requestAnimationFrame(() => {
+      trial.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      history.replaceState(null, '', '#trial');
+    });
+  });
+</script>

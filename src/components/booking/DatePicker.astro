@@ -186,7 +186,7 @@
           extra = `<div class="mt-1 text-[10px] font-semibold text-white/90 leading-none">${dailySlots.length} ${noun}</div>`;
         }
         const todayMark = isToday
-          ? `<div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wider font-bold ${isSelected ? 'text-white/80' : 'text-gb-navy/60'}">Today</div>`
+          ? `<div class="mt-0.5 text-[8px] uppercase tracking-wider font-bold leading-none ${isSelected ? 'text-white/80' : 'text-gb-navy/60'}">Today</div>`
           : '';
 
         btn.innerHTML = dayNum + extra + todayMark;
