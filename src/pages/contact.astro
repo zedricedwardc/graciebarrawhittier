@@ -100,6 +100,8 @@ const hours: HoursRow[] = [
           </p>
 
           <form data-contact-form class="mt-6 space-y-4" novalidate>
+            <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+              style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0" />
             <div>
               <label for="contact-name" class="block text-sm font-medium text-gb-text mb-1">Full Name</label>
               <input
@@ -223,6 +225,7 @@ const hours: HoursRow[] = [
 </BaseLayout>
 
 <script>
+  const pageLoadTs = Date.now();
   const forms = document.querySelectorAll<HTMLFormElement>('[data-contact-form]');
   forms.forEach((form) => {
     form.addEventListener('submit', async (e) => {
@@ -237,19 +240,15 @@ const hours: HoursRow[] = [
       const email = String(data.get('email') ?? '').trim();
       const phone = String(data.get('phone') ?? '').trim();
       const message = String(data.get('message') ?? '').trim();
+      const website = String(data.get('website') ?? '');
 
       if (!name || !email || !phone) {
         errorEl?.classList.remove('hidden');
         return;
       }
 
-      const webhookEnv = (import.meta as ImportMeta).env?.PUBLIC_GHL_WEBHOOK_URL as
-        | string
-        | undefined;
-      const target = webhookEnv && webhookEnv.length > 0 ? webhookEnv : '/api/leads-stub';
-
       try {
-        const res = await fetch(target, {
+        const res = await fetch('/api/lead', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -259,9 +258,12 @@ const hours: HoursRow[] = [
             message,
             source: 'contact-form',
             page: window.location.pathname,
+            website,
+            ts: pageLoadTs,
           }),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.ok) throw new Error(`lead failed: ${json.code ?? res.status}`);
         form.reset();
         successEl?.classList.remove('hidden');
       } catch {

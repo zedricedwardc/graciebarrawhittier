@@ -1,4 +1,43 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npm i *)",
+      "Bash(vercel whoami *)",
+      "Bash(vercel project *)",
+      "Bash(vercel link *)",
+      "Bash(curl -s \"https://graciebarrawebsite-1oyjgc121-zedricedwardcs-projects.vercel.app/api/availability?program=adults&from=2026-05-07&to=2026-05-31\")",
+      "Bash(vercel domains *)",
+      "Bash(vercel inspect *)",
+      "Bash(curl -s \"https://graciebarrawebsite.vercel.app/api/availability?program=adults&from=2026-05-07&to=2026-05-31\")",
+      "Bash(curl -s \"https://graciebarrawebsite.vercel.app/api/availability?program=tiny&from=2026-05-07&to=2026-05-31\")",
+      "Bash(curl -sS \"https://graciebarrawebsite.vercel.app/api/availability?program=adults&from=2026-05-07&to=2026-05-31\")",
+      "Bash(curl -sS \"https://graciebarrawebsite.vercel.app/api/availability?program=tiny&from=2026-05-07&to=2026-05-31\")",
+      "Bash(curl -sS \"https://graciebarrawebsite.vercel.app/api/availability?program=lc1&from=2026-05-07&to=2026-05-31\")",
+      "Bash(set -e)",
+      "Bash(npx playwright *)",
+      "Bash(claude --version)",
+      "Bash(claude mcp *)",
+      "Bash(grep \"^GHL_PIT_TOKEN=\" .env.ghl-temp | cut -d'=' -f2- > /tmp/pit-value.txt 2>&1 && wc -c /tmp/pit-value.txt)",
+      "Bash(sed 's/^GHL_PIT_TOKEN=//')",
+      "Bash(rm -f .env.ghl-temp /tmp/pit-value.txt 2>&1; ls .env.ghl-temp 2>&1 | head -2)",
+      "Bash(curl -sI https://graciebarrawebsite.vercel.app/)",
+      "Bash(curl -sI https://graciebarrawebsite.vercel.app/api/availability?program=adults\\\\&from=2026-05-07\\\\&to=2026-05-14)",
+      "Bash(curl -s https://graciebarrawebsite.vercel.app/)",
+      "Bash(npm audit *)",
+      "Bash(curl -sI \"https://graciebarrawebsite.vercel.app/_astro/OptInForm.astro_astro_type_script_index_0_lang.B70Uh_gx.js.map\")",
+      "Bash(curl -sI \"https://graciebarrawebsite.vercel.app/_astro/nap.BtUhQQx1.css.map\")",
+      "Bash(curl -s \"https://graciebarrawebsite.vercel.app/_astro/OptInForm.astro_astro_type_script_index_0_lang.B70Uh_gx.js\")",
+      "Bash(grep -iE \"\\(pit-[a-z0-9-]{20,}|GHL_PIT_TOKEN=[^[:space:]]{10,}|Bearer\\\\s+[A-Za-z0-9]{20,}\\)\")",
+      "Bash(curl -sI \"https://graciebarrawebsite.vercel.app/api/book\" -X OPTIONS -H \"Origin: https://evil.example\")",
+      "Bash(curl -sI \"https://graciebarrawebsite.vercel.app/api/availability?program=adults&from=2026-05-07&to=2026-05-14\")",
+      "Bash(npm view *)",
+      "Bash(npm ls *)"
+    ],
+    "additionalDirectories": [
+      "\\tmp",
+      "C:\\Users\\herna\\Downloads\\Graciebarra whittier website"
+    ]
+  },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true
   }

@@ -1,7 +1,7 @@
 ---
 /**
  * OptInForm — 3-field opt-in form (Name, Email, Phone).
- * - Posts to PUBLIC_GHL_WEBHOOK_URL or falls back to /api/leads-stub.
+ * - Posts to /api/lead (server-side proxy with Zod + honeypot + dwell + rate-limit anti-abuse).
  * - On success: redirects to /kickstart?name=<encoded>.
  * - Mobile-friendly inputmode + autocomplete on every field.
  *
@@ -69,6 +69,8 @@ const split = !isNavy && !!imageSrc;
       </div>
 
       <form data-optin-form data-variant="navy" data-source={source} class="space-y-4" novalidate>
+        <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+          style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0" />
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div>
             <label for={`${id}-first`} class="sr-only">First Name</label>
@@ -207,6 +209,8 @@ const split = !isNavy && !!imageSrc;
       class="space-y-4"
       novalidate
     >
+      <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+        style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0" />
       <div class="relative">
         <label for={`${id}-name`} class="sr-only">Full Name</label>
         <input
@@ -290,6 +294,7 @@ const split = !isNavy && !!imageSrc;
 <script>
   import { trackEvent } from '../../lib/analytics';
 
+  const pageLoadTs = Date.now();
   const forms = document.querySelectorAll<HTMLFormElement>('[data-optin-form]');
   forms.forEach((form) => {
     form.addEventListener('submit', async (e) => {
@@ -315,15 +320,12 @@ const split = !isNavy && !!imageSrc;
         return;
       }
 
-      const webhookEnv = (import.meta as ImportMeta).env?.PUBLIC_GHL_WEBHOOK_URL as
-        | string
-        | undefined;
-      const target = webhookEnv && webhookEnv.length > 0 ? webhookEnv : '/api/leads-stub';
       const page = window.location.pathname;
       const source = (form.dataset.source && form.dataset.source.length > 0) ? form.dataset.source : 'opt-in';
+      const website = String(data.get('website') ?? '');
 
       try {
-        const res = await fetch(target, {
+        const res = await fetch('/api/lead', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -335,9 +337,12 @@ const split = !isNavy && !!imageSrc;
             message: '',
             source,
             page,
+            website,
+            ts: pageLoadTs,
           }),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.ok) throw new Error(`lead failed: ${json.code ?? res.status}`);
         trackEvent('generate_lead', { source, page });
         const qs = new URLSearchParams({ name, email, phone });
         window.location.href = `/kickstart?${qs.toString()}`;

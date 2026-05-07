@@ -1,9 +1,20 @@
 import type { APIRoute } from 'astro';
+import { createHash } from 'node:crypto';
 import { BookingRequest, type BookingResponse, type AvailabilitySlot } from '../../lib/booking-types';
 import { getProgram, type ProgramKey } from '../../data/programs';
 import { upsertContact, createAppointment, getFreeSlots, GhlError, readEnv } from '../../lib/ghl';
 import { generateSlots } from '../../lib/slot-resolver';
 import { blackouts } from '../../data/blackouts';
+
+function redactBookingForLog(b: BookingRequest): Record<string, unknown> {
+  const emailHash = createHash('sha256').update(b.parent.email).digest('hex').slice(0, 12);
+  return {
+    program: b.program,
+    slotStartISO: b.slotStartISO,
+    parent: { emailHash, hasPhone: Boolean(b.parent.phone), hasName: Boolean(b.parent.firstName && b.parent.lastName) },
+    trainee: { age: b.trainee.age, isSelf: b.trainee.isSelf },
+  };
+}
 
 export const prerender = false;
 
@@ -74,7 +85,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     });
   } catch (err) {
     console.error('[book] upsertContact failed',
-      err instanceof GhlError ? { status: err.status, body: err.bodyText, payload: body } : { err, payload: body });
+      err instanceof GhlError ? { status: err.status, body: err.bodyText, ctx: redactBookingForLog(body) } : { err, ctx: redactBookingForLog(body) });
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not create contact.' });
   }
 
@@ -92,7 +103,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     });
   } catch (err) {
     console.error('[book] createAppointment failed',
-      err instanceof GhlError ? { status: err.status, body: err.bodyText, payload: body } : { err, payload: body });
+      err instanceof GhlError ? { status: err.status, body: err.bodyText, ctx: redactBookingForLog(body) } : { err, ctx: redactBookingForLog(body) });
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not create appointment.' });
   }
 
