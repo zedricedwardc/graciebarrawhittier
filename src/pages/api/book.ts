@@ -1,10 +1,25 @@
 import type { APIRoute } from 'astro';
 import { createHash } from 'node:crypto';
-import { BookingRequest, type BookingResponse, type AvailabilitySlot } from '../../lib/booking-types';
+import {
+  BookingRequest,
+  RebookBookingRequest,
+  type BookingResponse,
+  type AvailabilitySlot,
+} from '../../lib/booking-types';
 import { getProgram, type ProgramKey } from '../../data/programs';
-import { upsertContact, createAppointment, getFreeSlots, GhlError, readEnv } from '../../lib/ghl';
+import {
+  upsertContact,
+  createAppointment,
+  getFreeSlots,
+  searchOpportunities,
+  updateOpportunity,
+  getContact,
+  GhlError,
+  readEnv,
+} from '../../lib/ghl';
 import { generateSlots } from '../../lib/slot-resolver';
 import { blackouts } from '../../data/blackouts';
+import { verifyRebookToken } from '../../lib/rebook-token';
 
 function redactBookingForLog(b: BookingRequest): Record<string, unknown> {
   const emailHash = createHash('sha256').update(b.parent.email).digest('hex').slice(0, 12);
@@ -29,6 +44,13 @@ const buckets = new Map<string, { count: number; firstSeen: number }>();
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   let payload: unknown;
   try { payload = await request.json(); } catch { return json({ ok: false, code: 'INVALID_INPUT' }); }
+
+  // ─── Branch: rebook (active-trial student) vs. initial booking ─────────
+  // Rebook payload has a `rebook` object; initial booking has `parent` + `trainee`.
+  // We dispatch by trying RebookBookingRequest first when `rebook` field exists.
+  if (payload && typeof payload === 'object' && 'rebook' in (payload as Record<string, unknown>)) {
+    return handleRebook(payload, clientAddress || 'unknown');
+  }
 
   const parsed = BookingRequest.safeParse(payload);
   if (!parsed.success) return json({ ok: false, code: 'INVALID_INPUT' });
@@ -185,4 +207,164 @@ function json(body: BookingResponse): Response {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+// ─── Rebook flow (active-trial student) ──────────────────────────────────
+/**
+ * Handles bookings from /rebook.astro for customers who already have an active
+ * trial credit pass. Skips the contact-create step (contact already exists),
+ * verifies the session token from /api/rebook-context or /api/rebook-lookup,
+ * creates the appointment, then updates the existing Trial Credit Monitoring
+ * opportunity to ANOTHER TRIAL BOOKED.
+ *
+ * Does NOT create a new Trial Conversion opportunity — the credit opp tracks
+ * usage of the existing trial pass.
+ */
+async function handleRebook(payload: unknown, ip: string): Promise<Response> {
+  const parsed = RebookBookingRequest.safeParse(payload);
+  if (!parsed.success) return json({ ok: false, code: 'INVALID_INPUT' });
+  const body = parsed.data;
+
+  // Honeypot + dwell-time + rate-limit (parity with initial booking).
+  if (body.website && body.website.length > 0) {
+    return json({ ok: true, appointmentId: 'spam-discarded', isRebook: true });
+  }
+  const elapsed = Date.now() - body.ts;
+  if (elapsed < MIN_DWELL_MS) {
+    return json({ ok: true, appointmentId: 'spam-discarded', isRebook: true });
+  }
+  if (!checkRate(ip)) {
+    return json({ ok: false, code: 'RATE_LIMITED' });
+  }
+
+  // Verify the session token. Confirms contactId + traineeKey haven't been forged.
+  const verified = verifyRebookToken(body.rebook.sessionToken);
+  if (!verified.ok) {
+    return json({ ok: false, code: 'INVALID_TOKEN' });
+  }
+  if (verified.payload.contactId !== body.rebook.contactId ||
+      verified.payload.traineeKey !== body.rebook.traineeKey) {
+    return json({ ok: false, code: 'INVALID_TOKEN' });
+  }
+
+  // Resolve calendar for program.
+  const calendarId = readEnv(getProgram(body.program).calendarIdEnvVar);
+  if (!calendarId) {
+    console.error('[book/rebook] missing calendar env var', getProgram(body.program).calendarIdEnvVar);
+    return json({ ok: false, code: 'GHL_FAILED', message: 'Calendar not configured.' });
+  }
+
+  // Re-validate slot availability (parity with initial booking).
+  const slotMs = Date.parse(body.slotStartISO);
+  let stillFree: Set<string>;
+  try {
+    stillFree = await getFreeSlots({ calendarId, startDate: slotMs - 60_000, endDate: slotMs + 60_000 });
+  } catch (err) {
+    console.error('[book/rebook] re-validate getFreeSlots failed',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
+    return json({ ok: false, code: 'GHL_FAILED', message: 'Could not verify slot availability.' });
+  }
+  if (!stillFree.has(body.slotStartISO)) {
+    const alternates = nextAlternates(body.program, body.slotStartISO, 3);
+    return json({ ok: false, code: 'SLOT_TAKEN', alternates });
+  }
+
+  // Confirm the contact still exists (defensive — token might be stale).
+  let contact;
+  try {
+    contact = await getContact(body.rebook.contactId);
+  } catch (err) {
+    console.error('[book/rebook] getContact failed',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
+    return json({ ok: false, code: 'GHL_FAILED', message: 'Could not load contact.' });
+  }
+  if (!contact) {
+    return json({ ok: false, code: 'NOT_FOUND', message: 'Contact not found.' });
+  }
+
+  // Find the matching Trial Credit Monitoring opportunity for this trainee.
+  const creditPipelineId = readEnv('PIPELINE_ID_CREDIT_MON');
+  if (!creditPipelineId) {
+    console.error('[book/rebook] PIPELINE_ID_CREDIT_MON env var not set');
+    return json({ ok: false, code: 'GHL_FAILED', message: 'Pipeline not configured.' });
+  }
+  const anotherTrialBookedStageId = readEnv('STAGE_ID_CREDIT_ANOTHER_TRIAL_BOOKED');
+  if (!anotherTrialBookedStageId) {
+    console.error('[book/rebook] STAGE_ID_CREDIT_ANOTHER_TRIAL_BOOKED env var not set');
+    return json({ ok: false, code: 'GHL_FAILED', message: 'Pipeline stage not configured.' });
+  }
+
+  let creditOpp;
+  try {
+    const opps = await searchOpportunities({
+      contactId: body.rebook.contactId,
+      pipelineId: creditPipelineId,
+      status: 'open',
+    });
+    creditOpp = opps.find((o) => readCfFromOpp(o, 'trainee_key') === body.rebook.traineeKey);
+  } catch (err) {
+    console.error('[book/rebook] searchOpportunities failed',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
+    return json({ ok: false, code: 'GHL_FAILED', message: 'Could not find active trial pass.' });
+  }
+  if (!creditOpp) {
+    return json({ ok: false, code: 'NOT_FOUND', message: 'No active trial pass for this trainee.' });
+  }
+
+  // Create the appointment. Title carries the trainee name from the credit opp.
+  const traineeName = readCfFromOpp(creditOpp, 'trainee_first_name') ?? contact.firstName ?? 'Trainee';
+  const endISO = computeEndISO(body.slotStartISO, body.program);
+  const title = `${getProgram(body.program).name} (rebook) — ${traineeName}`;
+
+  let appointmentId: string;
+  try {
+    appointmentId = await createAppointment({
+      calendarId,
+      contactId: body.rebook.contactId,
+      startISO: body.slotStartISO,
+      endISO,
+      title,
+    });
+  } catch (err) {
+    console.error('[book/rebook] createAppointment failed',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
+    return json({ ok: false, code: 'GHL_FAILED', message: 'Could not create appointment.' });
+  }
+
+  // Update the credit opp: move to ANOTHER TRIAL BOOKED + record appointment.
+  try {
+    await updateOpportunity(creditOpp.id, {
+      pipelineId: creditPipelineId,
+      pipelineStageId: anotherTrialBookedStageId,
+      customFields: [
+        { key: 'last_appointment_id', field_value: appointmentId },
+        { key: 'last_appointment_start_iso', field_value: body.slotStartISO },
+      ],
+    });
+  } catch (err) {
+    // Appointment was created — opp update failure is logged but not fatal for the user.
+    // Backflow webhook (Phase 4) will reconcile, OR admin can move manually.
+    console.error('[book/rebook] updateOpportunity failed (appointment did succeed)',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
+  }
+
+  return json({
+    ok: true,
+    appointmentId,
+    opportunityId: creditOpp.id,
+    isRebook: true,
+  });
+}
+
+/** Read a custom-field value from a fetched opportunity. */
+function readCfFromOpp(opp: { customFields?: Array<{ id: string; key?: string; value?: unknown; field_value?: unknown }> }, key: string): string | null {
+  if (!opp.customFields) return null;
+  for (const f of opp.customFields) {
+    if (f.key === key || f.id === key) {
+      const v = (f.value ?? f.field_value) as unknown;
+      if (v == null) return null;
+      return String(v);
+    }
+  }
+  return null;
 }

@@ -190,6 +190,49 @@ export async function searchOpportunities(args: {
   return data.opportunities ?? [];
 }
 
+/**
+ * Update an opportunity. Supports stage move (within or across pipelines),
+ * status change, name change, and custom field updates in a single call.
+ *
+ * customFields accepts either `{ id }` or `{ key }` to identify the field.
+ * Pass either a value via `field_value` (GHL's preferred name) or `value`.
+ */
+export interface UpdateOpportunityArgs {
+  pipelineId?: string;
+  pipelineStageId?: string;
+  status?: 'open' | 'won' | 'lost' | 'abandoned';
+  name?: string;
+  monetaryValue?: number;
+  customFields?: Array<
+    | { id: string; field_value: string | number | boolean | null }
+    | { key: string; field_value: string | number | boolean | null }
+  >;
+}
+
+export async function updateOpportunity(id: string, patch: UpdateOpportunityArgs): Promise<OpportunityRecord> {
+  const data = (await request(`/opportunities/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  })) as { opportunity?: OpportunityRecord };
+  if (!data.opportunity) {
+    throw new GhlError(500, JSON.stringify(data), `updateOpportunity ${id}: no opportunity in response`);
+  }
+  return data.opportunity;
+}
+
+/** Fetch a contact by ID. Returns null if not found (404). */
+export async function getContact(contactId: string): Promise<ContactRecord | null> {
+  try {
+    const data = (await request(`/contacts/${encodeURIComponent(contactId)}`)) as {
+      contact?: ContactRecord;
+    };
+    return data.contact ?? null;
+  } catch (err) {
+    if (err instanceof GhlError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 // ── Appointments ─────────────────────────────────────────────────────────
 export interface CreateAppointmentArgs {
   calendarId: string;

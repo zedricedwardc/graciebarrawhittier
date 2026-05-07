@@ -481,6 +481,15 @@ export const ENV_VARS: readonly EnvVarDef[] = [
   { key: 'PIPELINE_ID_TRIAL_CONV', required: true, description: 'Discovered at onboard time.' },
   { key: 'PIPELINE_ID_CREDIT_MON', required: true, description: 'Discovered at onboard time.' },
 
+  // Stage IDs needed before the pipelines cache (Phase 1) lands.
+  // Once Phase 1 is built, these become optional fallbacks — handlers will resolve
+  // names → IDs via getStageId('CREDIT_MON', 'ANOTHER TRIAL BOOKED').
+  {
+    key: 'STAGE_ID_CREDIT_ANOTHER_TRIAL_BOOKED',
+    required: true,
+    description: 'Trial Credit Monitoring → "ANOTHER TRIAL BOOKED" stage ID (Phase 3 rebook flow).',
+  },
+
   // Workflow IDs — one per WORKFLOWS entry
   ...WORKFLOWS.map(
     (w): EnvVarDef => ({

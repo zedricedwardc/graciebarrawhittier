@@ -45,6 +45,26 @@ export const BookingRequest = z.object({
 });
 export type BookingRequest = z.infer<typeof BookingRequest>;
 
+/**
+ * Rebook payload sent by /rebook.astro for active-trial customers.
+ * Distinct from BookingRequest because we already have the contact in GHL —
+ * no parent/trainee details needed in the request body. Caller authenticates
+ * via the session token returned from /api/rebook-context or /api/rebook-lookup.
+ */
+export const RebookBookingRequest = z.object({
+  program: ProgramKeyEnum,
+  slotStartISO: z.iso.datetime({ offset: true }),
+  rebook: z.object({
+    contactId: z.string().min(1).max(100),
+    traineeKey: z.string().min(1).max(200),
+    sessionToken: z.string().min(20).max(2000),
+  }),
+  // Anti-spam (kept for parity with BookingRequest)
+  website: z.string().optional(),
+  ts:      z.number().int(),
+});
+export type RebookBookingRequest = z.infer<typeof RebookBookingRequest>;
+
 export type BookingResponse =
-  | { ok: true; appointmentId: string }
-  | { ok: false; code: 'SLOT_TAKEN' | 'GHL_FAILED' | 'INVALID_INPUT' | 'RATE_LIMITED'; message?: string; alternates?: AvailabilitySlot[] };
+  | { ok: true; appointmentId: string; isRebook?: boolean; opportunityId?: string }
+  | { ok: false; code: 'SLOT_TAKEN' | 'GHL_FAILED' | 'INVALID_INPUT' | 'RATE_LIMITED' | 'INVALID_TOKEN' | 'NOT_FOUND'; message?: string; alternates?: AvailabilitySlot[] };
