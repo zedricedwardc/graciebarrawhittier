@@ -13,57 +13,37 @@
  * before this is trusted in production.
  */
 
-const BASE = 'https://services.leadconnectorhq.com';
-const VERSION = '2021-04-15';
+// Auth + transport are owned by ghl-rate-limit. We re-export GhlError so existing
+// callers don't have to change imports, and we provide a thin `request()` shim
+// for code that still uses the old method/body convention.
+import { ghlFetch, GhlError as RateLimitGhlError } from './ghl-rate-limit';
 
-export class GhlError extends Error {
-  name: string = 'GhlError';
-  status: number;
-  bodyText: string;
-  constructor(status: number, bodyText: string, msg: string) {
-    super(msg);
-    this.status = status;
-    this.bodyText = bodyText;
-  }
-}
+export const GhlError = RateLimitGhlError;
+export type GhlError = InstanceType<typeof RateLimitGhlError>;
 
-function readEnv(key: string): string | undefined {
-  // Astro/Vite exposes .env vars via import.meta.env in dev/build;
-  // Vercel injects production env into process.env at runtime.
-  // Read both so a single token works everywhere.
+export function readEnv(key: string): string | undefined {
   const fromVite = (import.meta.env as Record<string, string | undefined>)[key];
   return fromVite ?? process.env[key];
 }
 
-function token(): string {
-  const t = readEnv('GHL_PIT_TOKEN');
-  if (!t) throw new Error('GHL_PIT_TOKEN env var not set');
-  return t;
-}
 function locationId(): string {
   const l = readEnv('GHL_LOCATION_ID');
   if (!l) throw new Error('GHL_LOCATION_ID env var not set');
   return l;
 }
 
-export { readEnv };
-
+/**
+ * Legacy request shim — delegates to ghlFetch. Kept so the existing call sites
+ * in this file work unchanged. New code should call ghlFetch directly.
+ */
 async function request(path: string, init: RequestInit = {}): Promise<unknown> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token()}`,
-      Version: VERSION,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(init.headers ?? {}),
-    },
+  const method = (init.method as 'GET' | 'POST' | 'PUT' | 'DELETE') ?? 'GET';
+  const body = typeof init.body === 'string' ? init.body : undefined;
+  return ghlFetch(path, {
+    method,
+    body,
+    headers: init.headers as Record<string, string> | undefined,
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new GhlError(res.status, text, `GHL ${path} ${res.status}: ${text.slice(0, 200)}`);
-  }
-  return res.json();
 }
 
 // ── Free slots ───────────────────────────────────────────────────────────
@@ -115,7 +95,9 @@ export async function upsertContact(args: UpsertContactArgs): Promise<string> {
     }),
   })) as { contact?: { id?: string }; id?: string };
   const id = data?.contact?.id ?? data?.id;
-  if (!id) throw new GhlError(500, JSON.stringify(data), 'upsertContact: no contact id in response');
+  if (!id) {
+    throw new GhlError(500, JSON.stringify(data), '/contacts/upsert', 'upsertContact: no contact id in response');
+  }
   return id;
 }
 
@@ -215,7 +197,12 @@ export async function updateOpportunity(id: string, patch: UpdateOpportunityArgs
     body: JSON.stringify(patch),
   })) as { opportunity?: OpportunityRecord };
   if (!data.opportunity) {
-    throw new GhlError(500, JSON.stringify(data), `updateOpportunity ${id}: no opportunity in response`);
+    throw new GhlError(
+      500,
+      JSON.stringify(data),
+      `/opportunities/${id}`,
+      `updateOpportunity ${id}: no opportunity in response`,
+    );
   }
   return data.opportunity;
 }
@@ -257,6 +244,13 @@ export async function createAppointment(args: CreateAppointmentArgs): Promise<st
     }),
   })) as { id?: string; appointment?: { id?: string } };
   const id = data?.id ?? data?.appointment?.id;
-  if (!id) throw new GhlError(500, JSON.stringify(data), 'createAppointment: no id in response');
+  if (!id) {
+    throw new GhlError(
+      500,
+      JSON.stringify(data),
+      '/calendars/events/appointments',
+      'createAppointment: no id in response',
+    );
+  }
   return id;
 }
