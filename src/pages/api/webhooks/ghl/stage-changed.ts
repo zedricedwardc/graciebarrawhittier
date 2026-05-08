@@ -60,7 +60,12 @@ export const POST: APIRoute = async ({ request }) => {
       received: payload,
       errors: parsed.error.issues,
     });
-    return ok({ ok: false, code: 'INVALID_INPUT' });
+    return ok({
+      ok: false,
+      code: 'INVALID_INPUT',
+      received: payload,
+      errors: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+    });
   }
   const body = parsed.data;
 
