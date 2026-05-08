@@ -74,21 +74,31 @@ const links = [
 
 <script>
   // Smart-link for any "Get Started" CTA that points to #trial:
-  // if the current page has an #trial element, intercept and scroll to it.
-  // Otherwise let the browser navigate to /#trial (homepage opt-in).
+  // 1. If the current page has an inline #trial section → smooth-scroll to it.
+  // 2. Else if the page has a [data-trial-modal] dialog (e.g. /contact, /reviews) → open the modal.
+  // 3. Otherwise let the browser navigate to /#trial (homepage opt-in fallback).
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement | null;
     const link = target?.closest<HTMLAnchorElement>('a.js-trial-link');
     if (!link) return;
+
     const trial = document.getElementById('trial');
-    if (!trial) return; // no opt-in form on this page → let browser navigate to /#trial
+    const modal = document.querySelector<HTMLDialogElement>('[data-trial-modal]');
+    if (!trial && !modal) return; // fall through to /#trial navigation
+
     e.preventDefault();
-    // Close the mobile drawer if it's open, then scroll on the next frame.
+
+    // Close the mobile drawer if it's open before scrolling/opening modal.
     const drawer = document.querySelector<HTMLDialogElement>('[data-mobile-nav-drawer]');
     if (drawer?.open) drawer.close();
+
     requestAnimationFrame(() => {
-      trial.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      history.replaceState(null, '', '#trial');
+      if (trial) {
+        trial.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', '#trial');
+      } else if (modal) {
+        modal.showModal();
+      }
     });
   });
 </script>

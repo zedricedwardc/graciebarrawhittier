@@ -6,6 +6,7 @@ export const prerender = true;
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
+import OptInModal from '../components/form/OptInModal.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import { reviews } from '../content/reviews';
 
@@ -35,7 +36,7 @@ const breadcrumb = [
           <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
             Real reviews from real families in Whittier, La Habra, La Mirada, and Pico Rivera.
           </p>
-          <CTAButton variant="primary" label="Start My Free Trial" href="/#trial" />
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" class="js-trial-link" />
         </div>
       </div>
     </section>
@@ -93,7 +94,7 @@ const breadcrumb = [
             Try 3 classes free at Gracie Barra Whittier. No risk, no contracts, free uniform rental included.
           </p>
           <div class="mt-7 flex justify-center">
-            <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+            <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" class="js-trial-link" />
           </div>
           <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts</p>
         </div>
@@ -101,5 +102,6 @@ const breadcrumb = [
     </section>
   </div>
 
+  <OptInModal />
   <SchemaBreadcrumb items={breadcrumb} />
 </BaseLayout>
