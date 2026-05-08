@@ -53,8 +53,15 @@ import PhoneInput from '../form/PhoneInput.astro';
         </label>
         <label class="block">
           <span class="text-sm font-medium text-gb-text">Student age *</span>
-          <input name="studentAge" type="number" min="3" max="99"
-            class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
+          <select name="studentAge"
+            class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red bg-white">
+            <option value="">Select age range</option>
+            <option value="3">Ages 3–4</option>
+            <option value="5">Ages 5–6</option>
+            <option value="7">Ages 7–9</option>
+            <option value="10">Ages 10–15</option>
+            <option value="16">Ages 16+</option>
+          </select>
         </label>
       </div>
     </fieldset>
@@ -105,6 +112,18 @@ import PhoneInput from '../form/PhoneInput.astro';
       }
       if (parentFirstLabel) parentFirstLabel.textContent = isSelf ? 'First name *' : 'Parent first name *';
       if (parentLastLabel)  parentLastLabel.textContent  = isSelf ? 'Last name *'  : 'Parent last name *';
+
+      // Pre-select the age segment matching the chosen program.
+      if (form && !isSelf && s.program) {
+        const ageSelect = form.elements.namedItem('studentAge') as HTMLSelectElement | null;
+        if (ageSelect && !ageSelect.value) {
+          const programToAge: Record<string, string> = {
+            tiny: '3', lc1: '5', lc2: '7', juniors: '10', adults: '16',
+          };
+          const preset = programToAge[s.program];
+          if (preset) ageSelect.value = preset;
+        }
+      }
 
       // Pre-fill parent fields from state.
       if (form && s.parent) {
