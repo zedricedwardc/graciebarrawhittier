@@ -185,9 +185,11 @@ export const POST: APIRoute = async ({ request }) => {
     idempotency.set(idemKey, { handled: true }, 24 * 3600);
     return ok({ ok: true });
   } catch (err) {
-    console.error('[webhook stage-changed] failed',
-      err instanceof GhlError ? { status: err.status, body: err.bodyText.slice(0, 200), path: err.path } : { err: String(err) });
-    return ok({ ok: false, code: 'GHL_FAILED' });
+    const detail = err instanceof GhlError
+      ? { status: err.status, body: err.bodyText.slice(0, 400), path: err.path }
+      : { err: String(err).slice(0, 400) };
+    console.error('[webhook stage-changed] failed', detail);
+    return ok({ ok: false, code: 'GHL_FAILED', detail });
   }
 };
 
