@@ -6,34 +6,77 @@
  * Q2 (only if "someone else"): age tier
  *
  * Emits booking:program-selected with { key, name, isSelf } on resolution.
+ *
+ * `heading` / `description` defaults match the trial flow (/kickstart). Other
+ * funnels (e.g. /back-to-the-mats re-enrollment) override them.
  */
 import { programs } from '../../data/programs';
+
+export interface Props {
+  heading?: string;
+  description?: string;
+  /**
+   * Render survey content without its own gold card chrome (border, aura,
+   * START HERE badge, heading, description). For pages that wrap BookingFlow
+   * inside their own gold container — avoids nested gold cards.
+   */
+  bare?: boolean;
+}
+
+const {
+  heading = 'Pick Your First Class',
+  description = "Answer two quick questions and we'll show you the right calendar.",
+  bare = false,
+} = Astro.props;
 ---
 
-<div class="gb-gold-aura relative bg-white border-4 border-gb-gold rounded-2xl p-6 md:p-8 mt-4">
-  <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gb-red text-white text-xs md:text-sm font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-md whitespace-nowrap z-10">Start Here</span>
-  <h2 class="text-2xl md:text-3xl font-bold text-gb-navy mb-2 text-center">Pick Your First Class</h2>
-  <p class="text-center text-gb-text-muted mb-6">Answer two quick questions and we'll show you the right calendar.</p>
+{bare ? (
+  <div class="mt-4">
+    <fieldset class="mb-6">
+      <legend class="text-lg font-semibold text-gb-navy mb-3">1. Who are you booking for?</legend>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" data-survey-q1>
+        <button type="button" data-booking-for="self" class="survey-btn min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy">Myself</button>
+        <button type="button" data-booking-for="other" class="survey-btn min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy">Someone else (e.g. my child)</button>
+      </div>
+    </fieldset>
 
-  <fieldset class="mb-6">
-    <legend class="text-lg font-semibold text-gb-navy mb-3">1. Who are you booking for?</legend>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" data-survey-q1>
-      <button type="button" data-booking-for="self" class="survey-btn min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy">Myself</button>
-      <button type="button" data-booking-for="other" class="survey-btn min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy">Someone else (e.g. my child)</button>
-    </div>
-  </fieldset>
+    <fieldset class="mb-2 hidden" data-survey-q2>
+      <legend class="text-lg font-semibold text-gb-navy mb-3">2. How old is the student?</legend>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {programs.map((p) => (
+          <button type="button" data-program-key={p.key} class="age-btn min-h-[56px] px-2 rounded-full border-2 border-gray-300 font-semibold text-sm transition-colors hover:border-gb-navy">
+            {p.ageRange.replace('Ages ', '')}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  </div>
+) : (
+  <div class="gb-gold-aura relative bg-white border-4 border-gb-gold rounded-2xl p-6 md:p-8 mt-4">
+    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gb-red text-white text-xs md:text-sm font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-md whitespace-nowrap z-10">Start Here</span>
+    <h2 class="text-2xl md:text-3xl font-bold text-gb-navy mb-2 text-center">{heading}</h2>
+    <p class="text-center text-gb-text-muted mb-6">{description}</p>
 
-  <fieldset class="mb-2 hidden" data-survey-q2>
-    <legend class="text-lg font-semibold text-gb-navy mb-3">2. How old is the student?</legend>
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-      {programs.map((p) => (
-        <button type="button" data-program-key={p.key} class="age-btn min-h-[56px] px-2 rounded-full border-2 border-gray-300 font-semibold text-sm transition-colors hover:border-gb-navy">
-          {p.ageRange.replace('Ages ', '')}
-        </button>
-      ))}
-    </div>
-  </fieldset>
-</div>
+    <fieldset class="mb-6">
+      <legend class="text-lg font-semibold text-gb-navy mb-3">1. Who are you booking for?</legend>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" data-survey-q1>
+        <button type="button" data-booking-for="self" class="survey-btn min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy">Myself</button>
+        <button type="button" data-booking-for="other" class="survey-btn min-h-[56px] px-4 rounded-full border-2 border-gray-300 text-gb-text font-semibold transition-colors hover:border-gb-navy">Someone else (e.g. my child)</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="mb-2 hidden" data-survey-q2>
+      <legend class="text-lg font-semibold text-gb-navy mb-3">2. How old is the student?</legend>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {programs.map((p) => (
+          <button type="button" data-program-key={p.key} class="age-btn min-h-[56px] px-2 rounded-full border-2 border-gray-300 font-semibold text-sm transition-colors hover:border-gb-navy">
+            {p.ageRange.replace('Ages ', '')}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  </div>
+)}
 
 <script>
   type ProgramKey = 'tiny'|'lc1'|'lc2'|'juniors'|'adults';

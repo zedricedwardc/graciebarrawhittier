@@ -2,6 +2,10 @@
 /**
  * BookingFlow — the in-place state machine that replaces the GHL iframes.
  * Renders all 6 states pre-rendered in the DOM; controller toggles `hidden`.
+ *
+ * `surveyHeading` / `surveyDescription` are forwarded to ProgramSurvey so
+ * different funnels can label the survey card to fit their context (e.g.
+ * /back-to-the-mats labels it as a re-enrollment step, not a first class).
  */
 import ProgramSurvey from './ProgramSurvey.astro';
 import DatePicker from './DatePicker.astro';
@@ -10,16 +14,32 @@ import TraineeForm from './TraineeForm.astro';
 import BookingSuccess from './BookingSuccess.astro';
 import BookingError from './BookingError.astro';
 
+export interface Props {
+  surveyHeading?: string;
+  surveyDescription?: string;
+  /** When true, ProgramSurvey renders without its own gold card chrome. */
+  bareSurvey?: boolean;
+  /** Tailwind max-width class for the outer section. Defaults to max-w-3xl. */
+  maxWidthClass?: string;
+}
+
+const {
+  surveyHeading,
+  surveyDescription,
+  bareSurvey,
+  maxWidthClass = 'max-w-3xl',
+} = Astro.props;
+
 const renderTs = Date.now();
 ---
 
 <section
   id="booking-flow"
-  class="max-w-3xl mx-auto px-4 md:px-6 pb-10"
+  class:list={[maxWidthClass, 'mx-auto px-4 md:px-6 pb-10']}
   data-render-ts={renderTs}
 >
   <div data-step="survey">
-    <ProgramSurvey />
+    <ProgramSurvey heading={surveyHeading} description={surveyDescription} bare={bareSurvey} />
   </div>
   <div data-step="date" hidden>
     <DatePicker />

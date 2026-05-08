@@ -1,0 +1,461 @@
+---
+/**
+ * /back-to-the-mats — Back to the Mats campaign landing page.
+ * FunnelLayout: NO nav, NO footer, NO AI chat, NO sticky CTA. Always noindex.
+ *
+ * Funnel-only page reached exclusively from the Back to the Mats email/SMS
+ * campaign in GHL. Not linked from site nav or footer; sitemap-excluded.
+ *
+ * Deadline driven by PUBLIC_BACK_TO_MATS_DEADLINE_ISO (e.g. 2026-06-08T23:59:00-07:00).
+ * Update before each campaign run; the countdown timer + deadline labels both
+ * read from this single source.
+ *
+ * NOTE: Backend Pipeline 4 routing + `return-class-booked` tag wiring is out
+ * of scope for this build (see docx Part 1, Section 7). Bookings made from
+ * this page currently flow through /api/book like /kickstart bookings —
+ * which means they create a Lead Acquisition opp and trigger new-lead
+ * campaigns. A follow-up task should add a `source: 'back-to-the-mats'` flag
+ * to /api/book and route those bookings to the re-enrollment pipeline + tag
+ * before the campaign goes live.
+ */
+import FunnelLayout from '../layouts/FunnelLayout.astro';
+import CTAButton from '../components/cta/CTAButton.astro';
+import BookingFlow from '../components/booking/BookingFlow.astro';
+import { nap } from '../content/nap';
+
+const programDirectorName = 'Alex';
+
+const deadlineISO = (import.meta.env.PUBLIC_BACK_TO_MATS_DEADLINE_ISO ?? '').toString().trim();
+const parsedDeadline = deadlineISO ? new Date(deadlineISO) : null;
+const deadlineValid = !!(parsedDeadline && !Number.isNaN(parsedDeadline.getTime()));
+
+const deadlineLabel = deadlineValid
+  ? new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(parsedDeadline!)
+  : 'soon';
+
+const offerBullets = [
+  'Unlimited classes in your program',
+  'Free uniform provided for your first class back',
+  `One-on-one re-enrollment meeting with Program Director ${programDirectorName}`,
+  'Access to GB1, GB2, and GB3 programs based on your belt level',
+  'No long-term contracts — 60-day terms as always',
+];
+
+const benefitBullets = [
+  'Your first 2 months of tuition at $97/month',
+  'Resume training at your current belt level — no starting over',
+  'Unlimited classes in your age and level appropriate program',
+  'Free uniform for your first class back',
+  `One-on-one session with Program Director ${programDirectorName} to get you back on track`,
+  'The same GB curriculum — updated, structured, proven',
+  "A community that remembers you and is glad you're back",
+  'No contracts — 60-day terms, cancel anytime with written notice',
+];
+
+const objections = [
+  {
+    q: 'Do I have to sign a long-term contract?',
+    a: `Never. We do 60-day terms. You can cancel anytime with 60 days written notice to ${nap.email}. That's it.`,
+  },
+  {
+    q: 'What if my skills have gotten rusty?',
+    a: `That's exactly what this is for. Your body remembers more than you think. You'll re-acclimate faster than you expect. Program Director ${programDirectorName} will meet with you at your first session to get you back on track.`,
+  },
+  {
+    q: "What if I'm not sure which program is right for me now?",
+    a: `Book the Adults BJJ class and we'll sort it out when you get here. Program Director ${programDirectorName} will assess your current level and get you into the right class.`,
+  },
+  {
+    q: 'Can I use this offer for my child?',
+    a: `Yes. Select your child's age group from the calendar above and the same offer applies.`,
+  },
+  {
+    q: 'What happens after the 2 months?',
+    a: `Regular monthly tuition begins at month 3. Prices start at $160/month depending on program and frequency. Program Director ${programDirectorName} will walk you through everything at your re-enrollment session.`,
+  },
+];
+---
+
+<FunnelLayout
+  title="Back to the Mats — Your First 2 Months at $97/Month"
+  description="Exclusive returning-student offer at Gracie Barra Whittier. Re-enroll before the deadline and lock in $97/month for your first 2 months back."
+>
+  {/* ─── Section 2: Urgency countdown bar (sticky, full-bleed) ──────────── */}
+  <aside
+    id="btm-countdown-bar"
+    class="sticky top-0 z-40 bg-gb-red text-gb-white border-b border-gb-red-dark shadow-md"
+    data-deadline={deadlineValid ? parsedDeadline!.toISOString() : ''}
+    data-deadline-label={deadlineLabel}
+  >
+    <div class="max-w-6xl mx-auto px-4 md:px-6 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p class="text-xs md:text-sm font-semibold uppercase tracking-wide text-gb-white">
+        This offer expires in:
+      </p>
+      <p
+        data-countdown
+        class="font-mono text-base md:text-lg font-bold tabular-nums text-gb-white"
+        aria-live="polite"
+      >
+        — : — : — : —
+      </p>
+      <p class="text-xs md:text-sm text-gb-white/90">
+        Offer ends {deadlineLabel}
+      </p>
+    </div>
+  </aside>
+
+  <div data-btm-active class="bg-gb-bg-light">
+    {/* ─── Section 3: Hero — brief copy, navy bento with image overlay ── */}
+    <section class="px-4 md:px-6 pt-6 md:pt-8">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+        <img
+          src="/images/adults/adults-community.jpg"
+          alt="Adult students training on the mat at Gracie Barra Whittier"
+          loading="eager"
+          decoding="async"
+          class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
+        />
+        <div class="absolute inset-0 -z-10 bg-gradient-to-r from-gb-navy/95 via-gb-navy/60 to-gb-navy/85"></div>
+        <div class="absolute inset-0 -z-10 bg-gradient-to-t from-gb-navy/90 via-transparent to-transparent md:hidden"></div>
+
+        <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            {nap.name} &middot; Exclusive Offer for Former Students
+          </p>
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+            Your Mat Is Waiting.<br />Come Back for Just $97/Month.
+          </h1>
+          <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+            For the next {deadlineLabel}, former students of {nap.name} can
+            re-enroll at $97/month for their first two months back. No
+            contracts. No catch. Just Jiu-Jitsu.
+          </p>
+          <CTAButton variant="primary" label="Book My Re-Enrollment Session" href="#btm-booking" />
+          <p class="mt-4 text-xs md:text-sm text-gb-white/70">
+            Takes 60 seconds &nbsp;|&nbsp; Free uniform rental included &nbsp;|&nbsp; No contracts
+          </p>
+        </div>
+      </div>
+    </section>
+
+    {/* ─── Welcome Back anchor — big red heading sets emotional frame ──── */}
+    <section class="px-4 md:px-6 pt-12 md:pt-16 pb-2 md:pb-4">
+      <div class="max-w-6xl mx-auto">
+        <h2 class="text-3xl md:text-5xl font-extrabold text-gb-red leading-tight">
+          Welcome Back to the Mat.
+        </h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed max-w-3xl">
+          You started something at {nap.name}. The drills, the sparring, the
+          belt path — none of it disappeared just because life pulled you
+          away. We've put together an offer to make picking up where you
+          left off as easy as possible.
+        </p>
+      </div>
+    </section>
+
+    {/* ─── Booking section — full-width BookingFlow ───────────────────── */}
+    <section id="btm-booking" class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4 scroll-mt-24">
+      <BookingFlow
+        maxWidthClass="max-w-6xl"
+        surveyHeading="Book Your Re-Enrollment Session"
+        surveyDescription={`Lock in $97/month before ${deadlineLabel}. Answer two quick questions and we'll show you the right calendar.`}
+      />
+    </section>
+
+    {/* ─── Section 4: Offer block — split image left, content right ───── */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4">
+      <div class="max-w-6xl mx-auto grid md:grid-cols-5 gap-5 md:gap-6 items-stretch">
+        {/* Left: image card (smaller) */}
+        <div class="md:col-span-2 relative bg-gb-white rounded-2xl overflow-hidden shadow-sm border border-gb-bg-light min-h-[320px] md:min-h-full">
+          <img
+            src="/images/back-to-the-mats/booking-section.jpg"
+            alt="Gracie Barra Whittier student on the mat"
+            class="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+
+        {/* Right: offer content card (larger) */}
+        <div class="md:col-span-3 bg-gb-white rounded-2xl shadow-sm border border-gb-bg-light p-6 md:p-10">
+          <div class="text-center mb-6 md:mb-8">
+            <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">
+              The Back to the Mats Special
+            </h2>
+            <p class="mt-3 text-sm md:text-base text-gb-text-muted leading-relaxed">
+              An exclusive returning-student offer for former students of {nap.name}.
+            </p>
+            <div class="mt-4 flex justify-center">
+              <span class="inline-block bg-gb-gold text-gb-navy text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full shadow-sm">
+                Exclusive Returning Student Offer
+              </span>
+            </div>
+          </div>
+
+          <div class="bg-gb-bg-light rounded-2xl p-5 md:p-6 text-center">
+            <p class="text-2xl md:text-3xl font-extrabold text-gb-navy leading-tight">
+              Your First 2 Months: $97/month
+            </p>
+            <p class="mt-2 text-xs md:text-sm text-gb-text-muted">
+              Regular tuition resumes at month 3
+            </p>
+          </div>
+
+          <ul class="mt-6 md:mt-8 space-y-3">
+            {offerBullets.map((item) => (
+              <li class="flex gap-3 text-sm text-gb-text leading-relaxed">
+                <svg class="shrink-0 w-5 h-5 text-gb-red mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div class="mt-6 md:mt-8 border-2 border-gb-red bg-gb-red/5 rounded-2xl p-4 md:p-5 text-center">
+            <p class="text-xs md:text-sm text-gb-text font-semibold leading-relaxed">
+              This offer is only available until {deadlineLabel}. You must
+              re-enroll before the timer hits zero to lock in this rate.
+            </p>
+          </div>
+
+          <div class="mt-6 md:mt-8">
+            <CTAButton variant="primary" label="Book My Re-Enrollment Session" href="#btm-booking" fullWidth={true} />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* ─── Section 5: Story (emotional core) — no bg, red headline ─── */}
+    <section class="px-4 md:px-6 pt-12 md:pt-16 pb-2 md:pb-4">
+      <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl md:text-5xl font-extrabold text-gb-red tracking-tight leading-[1.1]">
+          You Started Something.<br />The Mat Still Remembers.
+        </h2>
+
+        <div class="mt-7 md:mt-9 space-y-5 text-sm md:text-base leading-relaxed text-gb-text-muted">
+          <p>There's something different about Jiu-Jitsu.</p>
+          <p>
+            Other fitness habits fade and you don't really miss them. But
+            Jiu-Jitsu stays with you. The drills. The submissions you were
+            starting to piece together. The feeling after a good class. The
+            belt you were working toward.
+          </p>
+          <p>
+            You had a vision when you started training. Maybe it was
+            self-defense. Maybe it was fitness. Maybe it was the black belt —
+            that lifetime goal that serious practitioners never stop working
+            toward.
+          </p>
+          <p>
+            That vision doesn't go away just because life pulled you in a
+            different direction for a while.
+          </p>
+          <p>
+            Jiu-Jitsu is a lifelong journey. Not a phase. Not something you
+            complete. Every time you step back on the mat — whether it's been
+            6 months or 6 years — you're picking up exactly where you left off.
+          </p>
+          <p>
+            We want to make coming back as easy as possible. That's why we're
+            running this offer.
+          </p>
+          <p class="text-gb-red font-semibold">
+            Two months back on the mat at $97/month. Re-enroll before {deadlineLabel} and lock it in.
+          </p>
+        </div>
+
+        <div class="mt-9 md:mt-10 flex justify-center">
+          <CTAButton variant="primary" label="Book My Re-Enrollment Session" href="#btm-booking" />
+        </div>
+      </div>
+    </section>
+
+    {/* ─── Section 6: What you get ──────────────────────────────────────── */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-12 md:pb-16">
+      <div class="max-w-6xl mx-auto border-t border-gb-navy/15 pt-10 md:pt-14">
+        <div class="text-center mb-10 md:mb-12">
+          <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">
+            Everything You Need to Pick Up Where You Left Off
+          </h2>
+        </div>
+
+        <ul class="grid sm:grid-cols-2 gap-3 md:gap-4 max-w-4xl mx-auto">
+          {benefitBullets.map((item) => (
+            <li class="flex gap-3 bg-gb-white rounded-xl p-4 md:p-5 text-sm md:text-base text-gb-text leading-relaxed shadow-sm">
+              <svg class="shrink-0 w-5 h-5 text-gb-red mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+
+        <p class="mt-8 text-center text-xs md:text-sm text-gb-text-muted leading-relaxed">
+          $97/month for 2 months &middot; Regular tuition at month 3 &middot; Offer expires {deadlineLabel}
+        </p>
+      </div>
+    </section>
+
+    {/* ─── Objection busters (FAQ — navy bento, homepage pattern) ──── */}
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="btm-faq-heading">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto">
+          <div class="text-center mb-8 md:mb-10">
+            <h2 id="btm-faq-heading" class="text-2xl md:text-4xl font-extrabold">
+              A Few Questions We Usually Get
+            </h2>
+            <p class="mt-3 text-sm md:text-base text-gb-white/80 max-w-xl mx-auto leading-relaxed">
+              Honest answers to what most returning students ask before they book.
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            {objections.map((item) => (
+              <details class="group border-b border-gb-white/15 py-4">
+                <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-white">
+                  <span class="flex items-center gap-3">
+                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                    <span>{item.q}</span>
+                  </span>
+                </summary>
+                <p class="mt-3 ml-7 text-sm text-gb-white/80 leading-relaxed">
+                  {item.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* ─── Section 9: Final CTA — navy bento card with countdown ────────── */}
+    <section class="px-4 md:px-6 pt-2 pb-6 md:pt-4 md:pb-8">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto text-center">
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            Last Call
+          </p>
+          <h2 class="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.1]">
+            The Clock Is Running.<br />
+            Your Offer Expires {deadlineLabel}.
+          </h2>
+          <p class="mt-5 text-sm md:text-base text-gb-white/90 leading-relaxed max-w-2xl mx-auto">
+            You trained before. You know what Jiu-Jitsu does for you. This is
+            your moment to get back on the path — at a price that makes it easy
+            to say yes.
+          </p>
+          <p class="mt-3 text-sm md:text-base text-gb-gold font-semibold">
+            Once this offer expires, it's gone.
+          </p>
+
+          <div class="mt-8 flex justify-center">
+            <CTAButton variant="primary" label="Book My Re-Enrollment Session" href="#btm-booking" />
+          </div>
+
+          <p
+            data-countdown
+            class="mt-8 font-mono text-xl md:text-3xl font-bold tabular-nums text-gb-gold"
+            aria-live="polite"
+          >
+            — : — : — : —
+          </p>
+
+          <p class="mt-4 text-xs text-gb-white/70">
+            Offer valid until {deadlineLabel} only. Available to former students of {nap.name} only.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    {/* ─── Section 10: Disclaimer strip ─────────────────────────────────── */}
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+      <div class="max-w-6xl mx-auto">
+        <p class="text-xs text-gb-text-muted leading-relaxed text-center">
+          $97/month offer applies to first 2 months of re-enrollment only.
+          Regular monthly tuition resumes at month 3 based on program and
+          frequency selected. Offer available to former students of {nap.name} only.
+          Must re-enroll by {deadlineLabel} to qualify. 60-day cancellation
+          terms apply. No long-term contracts.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  {/* Shown only after the deadline passes — replaces all booking content. */}
+  <section data-btm-expired hidden class="bg-gb-bg-light px-4 md:px-6 pt-12 md:pt-16 pb-12 md:pb-16">
+    <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-8 md:p-12 text-center">
+      <p class="text-xs md:text-sm font-semibold uppercase text-gb-red tracking-wide mb-3">
+        Offer Closed
+      </p>
+      <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">
+        This offer has expired.
+      </h2>
+      <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed max-w-xl mx-auto">
+        The Back to the Mats special closed on {deadlineLabel}. The door at
+        {' '}{nap.name} is always open — give us a call and we'll talk through
+        what's possible.
+      </p>
+      <div class="mt-7 flex justify-center">
+        <CTAButton variant="primary" label={`Call ${nap.phone}`} href={`tel:${nap.phoneTel}`} />
+      </div>
+    </div>
+  </section>
+
+  <script is:inline>
+    // Countdown timer — reads ISO deadline from the urgency bar's data-deadline,
+    // ticks every second, and writes "Dd Hh Mm Ss" into every [data-countdown].
+    // When the deadline passes, hide [data-btm-active] and show [data-btm-expired].
+    (function () {
+      var bar = document.getElementById('btm-countdown-bar');
+      if (!bar) return;
+      var iso = bar.getAttribute('data-deadline');
+      if (!iso) return; // No deadline configured — leave placeholders.
+
+      var target = new Date(iso).getTime();
+      if (Number.isNaN(target)) return;
+
+      var displays = document.querySelectorAll('[data-countdown]');
+      var activeEl = document.querySelector('[data-btm-active]');
+      var expiredEl = document.querySelector('[data-btm-expired]');
+
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+      function tick() {
+        var diff = target - Date.now();
+        if (diff <= 0) {
+          for (var i = 0; i < displays.length; i++) {
+            displays[i].textContent = '00d : 00h : 00m : 00s';
+          }
+          if (activeEl) activeEl.hidden = true;
+          if (expiredEl) expiredEl.hidden = false;
+          if (bar) bar.hidden = true;
+          return false;
+        }
+        var s = Math.floor(diff / 1000);
+        var d = Math.floor(s / 86400); s %= 86400;
+        var h = Math.floor(s / 3600);  s %= 3600;
+        var m = Math.floor(s / 60);    s %= 60;
+        var text = pad(d) + 'd : ' + pad(h) + 'h : ' + pad(m) + 'm : ' + pad(s) + 's';
+        for (var j = 0; j < displays.length; j++) {
+          displays[j].textContent = text;
+        }
+        return true;
+      }
+
+      if (tick()) {
+        var iv = setInterval(function () {
+          if (!tick()) clearInterval(iv);
+        }, 1000);
+      }
+    })();
+  </script>
+</FunnelLayout>
