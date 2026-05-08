@@ -165,7 +165,7 @@ export const POST: APIRoute = async ({ request }) => {
       default:
         break;
     }
-    idempotency.set(idemKey, { handled: true }, 24 * 3600);
+    idempotency.set(idemKey, { handled: true }, 60);
     return ok({ ok: true });
   } catch (err) {
     console.error('[webhook credit-stage-changed] failed',

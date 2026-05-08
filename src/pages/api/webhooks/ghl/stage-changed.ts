@@ -112,6 +112,8 @@ export const POST: APIRoute = async ({ request }) => {
   const body = parsed.data;
 
   // Idempotency: prevent double-action on retried deliveries.
+  // Short TTL (60s) — long enough to catch GHL retry-on-failure, short enough
+  // to allow legitimate re-moves during testing or admin corrections.
   const idemKey = `stage-changed|${body.opp_id}|${body.to_stage}|${body.ts ?? ''}`;
   if (idempotency.check(idemKey)) {
     return ok({ ok: true, code: 'IDEMPOTENT_REPLAY' });
@@ -182,7 +184,7 @@ export const POST: APIRoute = async ({ request }) => {
       default:
         break;
     }
-    idempotency.set(idemKey, { handled: true }, 24 * 3600);
+    idempotency.set(idemKey, { handled: true }, 60); // 60s — see comment above
     return ok({ ok: true });
   } catch (err) {
     const detail = err instanceof GhlError
