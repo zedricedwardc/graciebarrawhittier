@@ -1,66 +1,169 @@
 ---
 /**
  * BookingSuccess — STATE 6a.
- * Confirms the just-booked appointment, lists prior bookings (if any),
- * and offers "book another child" or "I'm all set" → /congrats.
+ * Confirms the just-booked appointment and lays out the post-booking
+ * "what to do next" guidance inline (3-step list + studio NAP + trust strip).
  *
- * Emits booking:book-another or booking:done.
+ * Emits booking:book-another. There is no "I'm all set" CTA — the page itself
+ * is the destination.
  */
+import TrustStrip from '../cta/TrustStrip.astro';
+import { nap } from '../../content/nap.ts';
+
+const mapsHref = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+  nap.address,
+)}`;
 ---
 
-<div class="bg-white border border-green-200 rounded-2xl p-6 md:p-8 shadow-sm text-center">
-  <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-green-600 text-white flex items-center justify-center" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7">
-      <polyline points="20 6 9 17 4 12"></polyline>
-    </svg>
-  </div>
-  <h3 class="text-2xl font-extrabold text-gb-navy">Booked!</h3>
-  <p class="mt-2 text-gb-text" data-success-summary></p>
+<div class="space-y-8 md:space-y-10">
+  {/* Confirmation header — gold box */}
+  <div class="bg-white border-2 border-gb-gold rounded-2xl p-6 md:p-8 shadow-lg text-center">
+    <div
+      class="w-16 h-16 mx-auto mb-6 rounded-full bg-gb-red text-white flex items-center justify-center"
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h2 id="success-headline" class="text-2xl md:text-3xl font-extrabold text-gb-navy leading-tight">
+      Booking Confirmed &mdash; See You On The Mat!
+    </h2>
+    <p id="success-intro" class="mt-4 text-sm md:text-base text-gb-text-muted max-w-2xl mx-auto" data-success-summary>
+      Your first class is booked. We've sent the details to your email. Here's what to do next:
+    </p>
 
-  <div data-bookings-block class="mt-6 hidden text-left">
-    <h4 class="text-sm font-semibold text-gb-navy uppercase tracking-wider mb-2">Your bookings so far</h4>
-    <ul class="space-y-1 text-sm" data-bookings-list></ul>
+    {/* Optional book-another CTA — keeps the multi-trainee loop available */}
+    <div class="mt-6 flex justify-center">
+      <button type="button" data-book-another
+        class="min-h-[56px] px-8 rounded-full bg-gb-red text-white font-semibold hover:bg-gb-red/90 transition-colors">
+        Book another child
+      </button>
+    </div>
   </div>
 
-  <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-    <button type="button" data-book-another
-      class="min-h-[56px] px-6 rounded-full border-2 border-gb-navy text-gb-navy font-semibold hover:bg-gb-navy hover:text-white transition-colors">
-      Book another child
-    </button>
-    <button type="button" data-done
-      class="min-h-[56px] px-6 rounded-full bg-gb-red text-white font-semibold hover:bg-red-700 transition-colors">
-      I'm all set
-    </button>
+  {/* Multi-booking list (only shown if user booked more than one class) */}
+  <div data-bookings-block class="hidden text-left max-w-2xl mx-auto bg-gb-bg-light rounded-2xl p-6">
+    <h3 class="text-sm font-semibold text-gb-navy uppercase tracking-wider mb-2">Your bookings so far</h3>
+    <ul class="space-y-1 text-sm text-gb-text" data-bookings-list></ul>
   </div>
+
+  {/* 3-step "what to do next" list */}
+  <ol class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+    <li class="bg-gb-bg-light rounded-2xl p-6 text-center">
+      <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-gb-red text-white font-bold text-lg flex items-center justify-center">
+        1
+      </div>
+      <h3 class="font-semibold text-gb-navy mb-2 text-lg">Arrive 10 minutes early</h3>
+      <p class="text-gb-text-muted text-sm">
+        Gives us time to greet you, hand out your uniform, and get you settled before class begins.
+      </p>
+    </li>
+    <li class="bg-gb-bg-light rounded-2xl p-6 text-center">
+      <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-gb-red text-white font-bold text-lg flex items-center justify-center">
+        2
+      </div>
+      <h3 class="font-semibold text-gb-navy mb-2 text-lg">Wear comfortable workout clothes</h3>
+      <p class="text-gb-text-muted text-sm">
+        We provide the uniform for your trial classes &mdash; just bring yourself.
+      </p>
+    </li>
+    <li class="bg-gb-bg-light rounded-2xl p-6 text-center">
+      <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-gb-red text-white font-bold text-lg flex items-center justify-center">
+        3
+      </div>
+      <h3 class="font-semibold text-gb-navy mb-2 text-lg">Meet our instructors and Alex</h3>
+      <p class="text-gb-text-muted text-sm">
+        You'll meet Professor Phil, Professor Eric, and our Program Director Alex on day one.
+      </p>
+    </li>
+  </ol>
+
+  {/* Studio info block */}
+  <div class="bg-gb-navy text-white rounded-2xl p-6 md:p-8">
+    <h3 class="text-xl md:text-2xl font-bold mb-4">{nap.name}</h3>
+    <dl class="space-y-3 text-base">
+      <div class="flex flex-col sm:flex-row sm:gap-3">
+        <dt class="font-semibold text-gb-white/70 sm:w-24 shrink-0">Address</dt>
+        <dd>
+          <a
+            href={mapsHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline decoration-gb-white/40 underline-offset-4 hover:text-gb-white"
+          >
+            {nap.address}
+          </a>
+        </dd>
+      </div>
+      <div class="flex flex-col sm:flex-row sm:gap-3">
+        <dt class="font-semibold text-gb-white/70 sm:w-24 shrink-0">Phone</dt>
+        <dd>
+          <a
+            href={`tel:${nap.phoneTel}`}
+            class="underline decoration-gb-white/40 underline-offset-4 hover:text-gb-white"
+          >
+            {nap.phone}
+          </a>
+        </dd>
+      </div>
+      <div class="flex flex-col sm:flex-row sm:gap-3">
+        <dt class="font-semibold text-gb-white/70 sm:w-24 shrink-0">Email</dt>
+        <dd>
+          <a
+            href={`mailto:${nap.email}`}
+            class="underline decoration-gb-white/40 underline-offset-4 hover:text-gb-white"
+          >
+            {nap.email}
+          </a>
+        </dd>
+      </div>
+    </dl>
+  </div>
+
+  {/* Trust strip */}
+  <TrustStrip
+    items={[
+      'Free uniform rental included',
+      'No contracts',
+      'No pressure',
+      'World-class Gracie Barra curriculum',
+    ]}
+  />
+
 </div>
 
 <script>
   const root = document.getElementById('booking-flow');
   if (root) {
     const node = root.querySelector('[data-step="success"]') as HTMLElement | null;
-    const summary = node?.querySelector<HTMLElement>('[data-success-summary]');
+    const headline = node?.querySelector<HTMLElement>('#success-headline');
+    const intro = node?.querySelector<HTMLElement>('#success-intro');
     const list = node?.querySelector<HTMLElement>('[data-bookings-list]');
     const block = node?.querySelector<HTMLElement>('[data-bookings-block]');
     const btnAnother = node?.querySelector<HTMLButtonElement>('[data-book-another]');
-    const btnDone = node?.querySelector<HTMLButtonElement>('[data-done]');
 
     btnAnother?.addEventListener('click', () => {
       root.dispatchEvent(new CustomEvent('booking:book-another'));
-    });
-    btnDone?.addEventListener('click', () => {
-      root.dispatchEvent(new CustomEvent('booking:done'));
     });
 
     root.addEventListener('booking:render', (e) => {
       const s = (e as CustomEvent).detail;
       if (s.step !== 'success') return;
+
+      const count = s.bookings?.length ?? 1;
       const last = s.bookings[s.bookings.length - 1];
-      if (summary && last) {
-        summary.textContent = `${last.traineeName} is confirmed for ${last.programName} · ${last.label}`;
+
+      if (count > 1) {
+        if (headline) headline.textContent = `All ${count} Classes Are Booked — See You On The Mat!`;
+        if (intro) intro.textContent = "We've sent confirmation emails for each class. Here's what to do next:";
+      } else if (intro && last) {
+        intro.textContent = `${last.traineeName} is confirmed for ${last.programName} · ${last.label}. We've sent the details to your email — here's what to do next:`;
       }
+
       if (list && block) {
         list.innerHTML = '';
-        if (s.bookings.length > 1) {
+        if (count > 1) {
           for (const b of s.bookings) {
             const li = document.createElement('li');
             li.textContent = `• ${b.traineeName} — ${b.programName} — ${b.label}`;
@@ -71,6 +174,11 @@
           block.classList.add('hidden');
         }
       }
+
+      // Scroll the success view into focus so the user sees the confirmation.
+      window.requestAnimationFrame(() => {
+        node?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   }
 </script>

@@ -9,6 +9,7 @@
  * Wave 1 will swap SMS-consent placeholder text with the brief's exact disclaimer.
  */
 import CTAButton from '../cta/CTAButton.astro';
+import PhoneInput from './PhoneInput.astro';
 
 export interface Props {
   id?: string;
@@ -113,14 +114,9 @@ const split = !isNavy && !!imageSrc;
           </div>
           <div>
             <label for={`${id}-phone`} class="sr-only">Phone</label>
-            <input
+            <PhoneInput
               id={`${id}-phone`}
-              name="phone"
-              type="tel"
-              inputmode="tel"
-              autocomplete="tel-national"
-              required
-              class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+              borderClass="border border-gray-300"
               placeholder="Phone*"
             />
           </div>
@@ -250,14 +246,9 @@ const split = !isNavy && !!imageSrc;
 
       <div class="relative">
         <label for={`${id}-phone`} class="sr-only">Phone</label>
-        <input
+        <PhoneInput
           id={`${id}-phone`}
-          name="phone"
-          type="tel"
-          inputmode="tel"
-          autocomplete="tel-national"
-          required
-          class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+          borderClass="border border-gb-bg-light"
           placeholder="Phone*"
         />
       </div>

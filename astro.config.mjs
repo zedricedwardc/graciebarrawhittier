@@ -14,8 +14,7 @@ export default defineConfig({
   adapter: vercel(),
   integrations: [
     sitemap({
-      filter: (page) =>
-        !page.includes('/kickstart') && !page.includes('/congrats'),
+      filter: (page) => !page.includes('/kickstart'),
     }),
   ],
   vite: {

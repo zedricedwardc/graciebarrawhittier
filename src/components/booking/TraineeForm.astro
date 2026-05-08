@@ -7,6 +7,7 @@
  *
  * Emits booking:form-submit with { parent, trainee, marketingConsent }.
  */
+import PhoneInput from '../form/PhoneInput.astro';
 ---
 
 <div class="bg-white border-2 border-gb-gold rounded-2xl p-6 md:p-8 shadow-lg">
@@ -36,8 +37,9 @@
       </label>
       <label class="block">
         <span class="text-sm font-medium text-gb-text">Phone *</span>
-        <input name="phone" type="tel" required autocomplete="tel-national"
-          class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
+        <div class="mt-1">
+          <PhoneInput borderClass="border border-gray-300" placeholder="" />
+        </div>
       </label>
     </div>
 
@@ -109,7 +111,8 @@
         (form.elements.namedItem('parentFirst') as HTMLInputElement).value = s.parent.firstName ?? '';
         (form.elements.namedItem('parentLast')  as HTMLInputElement).value = s.parent.lastName ?? '';
         (form.elements.namedItem('email')       as HTMLInputElement).value = s.parent.email ?? '';
-        (form.elements.namedItem('phone')       as HTMLInputElement).value = s.parent.phone ?? '';
+        const phoneGroup = form.querySelector<HTMLElement>('[data-phone-group]');
+        phoneGroup?.dispatchEvent(new CustomEvent('phone:setvalue', { detail: { value: s.parent.phone ?? '' } }));
       }
 
       // Reset submit button state.

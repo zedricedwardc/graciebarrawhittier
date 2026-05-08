@@ -7,6 +7,7 @@ export const prerender = true;
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
 import OptInModal from '../components/form/OptInModal.astro';
+import PhoneInput from '../components/form/PhoneInput.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import SchemaLocalBusiness from '../components/seo/SchemaLocalBusiness.astro';
 import { nap } from '../content/nap';
@@ -131,14 +132,9 @@ const hours: HoursRow[] = [
             </div>
             <div>
               <label for="contact-phone" class="block text-sm font-medium text-gb-text mb-1">Phone</label>
-              <input
+              <PhoneInput
                 id="contact-phone"
-                name="phone"
-                type="tel"
-                inputmode="tel"
-                autocomplete="tel-national"
-                required
-                class="w-full h-12 px-4 rounded-lg border border-gb-bg-light bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
+                borderClass="border border-gb-bg-light"
                 placeholder="(555) 123-4567"
               />
             </div>

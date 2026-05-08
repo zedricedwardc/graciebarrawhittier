@@ -202,10 +202,6 @@ const renderTs = Date.now();
       root!.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
-    root.addEventListener('booking:done', () => {
-      window.location.href = `/congrats?count=${state.bookings.length}`;
-    });
-
     root.addEventListener('booking:retry-from-error', () => {
       state.step = 'form';
       render();
