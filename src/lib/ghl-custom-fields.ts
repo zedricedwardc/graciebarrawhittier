@@ -117,14 +117,16 @@ export function cacheOpportunityCustomFields(
 
 /** Get a custom-field ID by object + fieldKey. Throws on miss. */
 export async function getCfId(object: CfObject, fieldKey: string): Promise<string> {
-  const map = object === 'contact' ? cache.contact : cache.opportunity;
+  let map = object === 'contact' ? cache.contact : cache.opportunity;
   let id = map.get(fieldKey);
   if (id) return id;
 
-  // Lazy refresh for contact CFs (auto-discover on first use).
-  if (object === 'contact' && cache.loadedAt === 0) {
+  // Lazy refresh on first use. `?model=all` populates BOTH contact and
+  // opportunity caches in one shot, so we trigger it for either object.
+  if (cache.loadedAt === 0) {
     await refreshContactCustomFields();
-    id = cache.contact.get(fieldKey);
+    map = object === 'contact' ? cache.contact : cache.opportunity;
+    id = map.get(fieldKey);
     if (id) return id;
   }
 

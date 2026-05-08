@@ -186,7 +186,7 @@ export const POST: APIRoute = async ({ request }) => {
     return ok({ ok: true });
   } catch (err) {
     const detail = err instanceof GhlError
-      ? { status: err.status, body: err.bodyText.slice(0, 400), path: err.path }
+      ? { status: err.status, message: err.message.slice(0, 400), body: err.bodyText.slice(0, 400), path: err.path }
       : { err: String(err).slice(0, 400) };
     console.error('[webhook stage-changed] failed', detail);
     return ok({ ok: false, code: 'GHL_FAILED', detail });
