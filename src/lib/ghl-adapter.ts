@@ -211,6 +211,36 @@ function appendIfNew(existing: string, item: string): string {
   return Array.from(items).join(',');
 }
 
+/**
+ * Format an ISO datetime as a human-readable string in America/Los_Angeles.
+ * "2026-05-13T11:00:00-07:00" → "Wed, May 13 at 11:00 AM"
+ * Used in audit notes that admins read in GHL.
+ */
+function formatTrialTime(iso: string | undefined | null): string {
+  if (!iso) return 'unknown time';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso; // fall back to raw if unparseable
+  const date = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(d);
+  const time = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(d);
+  return `${date} at ${time}`;
+}
+
+/** "Eli (5)" or "Sarah" depending on isSelf and whether age is set. */
+function formatTraineeLabel(firstName: string, age: number | undefined, isSelf: boolean): string {
+  if (isSelf) return firstName;
+  if (age && age > 0 && age < 100) return `${firstName} (age ${age})`;
+  return firstName;
+}
+
 // ─── handleBooking ─────────────────────────────────────────────────────────
 
 export interface HandleBookingInput {
@@ -293,9 +323,10 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
       stageName: 'INTRO BOOKED',
       customFields: oppCfs,
     });
+    const traineeLabel = formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf);
     await addContactNote(
       input.contactId,
-      `Re-booked ${input.programName} on ${input.slotStartISO} (opp ${updated.id} → INTRO BOOKED).`,
+      `Re-booked: ${traineeLabel} — ${input.programName}, ${formatTrialTime(input.slotStartISO)}`,
     );
     return { contactId: input.contactId, opportunityId: updated.id, isRebook: true, stage: 'INTRO BOOKED' };
   }
@@ -341,9 +372,10 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
     console.warn('[handleBooking] Lead Acq stage move failed (non-fatal)', err);
   }
 
+  const traineeLabel = formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf);
   await addContactNote(
     input.contactId,
-    `First trial booked: ${input.programName} on ${input.slotStartISO} (opp ${created.id}).`,
+    `First trial booked: ${traineeLabel} — ${input.programName}, ${formatTrialTime(input.slotStartISO)}`,
   );
 
   return { contactId: input.contactId, opportunityId: created.id, isRebook: false, stage: 'INTRO BOOKED' };
@@ -421,7 +453,7 @@ export async function handleAttendance(input: HandleAttendanceInput): Promise<Ha
     });
     await addContactNote(
       input.contactId,
-      `Trial attended ${input.lastTrialDateISO} — credit opp refreshed (credits: ${credits}).`,
+      `Trial attended by ${input.traineeFirstName} on ${formatTrialTime(input.lastTrialDateISO)} — ${credits} credit${credits === 1 ? '' : 's'} remaining.`,
     );
     return {
       creditOppId: existingCredit.id,
@@ -441,7 +473,7 @@ export async function handleAttendance(input: HandleAttendanceInput): Promise<Ha
   });
   await addContactNote(
     input.contactId,
-    `Trial credits activated (${credits}) for ${input.traineeFirstName} after attending on ${input.lastTrialDateISO}.`,
+    `Trial pass activated for ${input.traineeFirstName} — ${credits} class${credits === 1 ? '' : 'es'} available. First class attended ${formatTrialTime(input.lastTrialDateISO)}.`,
   );
   return {
     creditOppId: created.id,
@@ -528,9 +560,15 @@ export async function handleCreditDecrement(input: HandleCreditDecrementInput): 
     customFields: oppCfs,
   });
 
+  // Try to use trainee's first name from the opp; fallback to trainee_key.
+  const traineeName =
+    (getOppCfValue<string>(opp, 'trainee_first_name') as string | undefined) ||
+    input.traineeKey ||
+    'student';
+  const stageLabel = nextStage === 'CREDITS EXHAUSTED' ? 'pass exhausted' : `${after} class${after === 1 ? '' : 'es'} remaining`;
   await addContactNote(
     input.contactId,
-    `Class attended ${input.trialDateISO} (trainee ${input.traineeKey ?? '?'}) — credits ${before} → ${after} (opp moved to ${nextStage}).`,
+    `Class attended by ${traineeName} on ${formatTrialTime(input.trialDateISO)} — ${stageLabel}.`,
   );
 
   return {
@@ -579,9 +617,10 @@ export async function handleCancellation(input: HandleCancellationInput): Promis
     await setOppStatus(matchingOpp.id, 'abandoned');
   }
 
+  const who = input.source === 'customer' ? 'customer' : 'staff';
   await addContactNote(
     input.contactId,
-    `Cancellation by ${input.source}: appointment ${input.appointmentId}${input.reason ? ` — reason: ${input.reason}` : ''}`,
+    `Appointment cancelled by ${who}${input.reason ? ` — reason: ${input.reason}` : '.'}`,
   );
 
   // Optional follow-up workflow
