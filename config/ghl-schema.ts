@@ -303,6 +303,23 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
     defaultValue: '21',
     description: 'How long the credit-reactivation campaign runs before marking lost.',
   },
+
+  // ─── Reproducibility helpers ─────────────────────────────────────────
+  // These let workflow webhook configs reference values via merge tags
+  // ({{ custom_values.X }}) instead of pasting URLs/secrets directly.
+  // Onboarding a new client = update these 2 values once in GHL UI.
+  {
+    fieldKey: 'gbw_webhook_base_url',
+    name: 'Website Webhook Base URL',
+    defaultValue: '',
+    description: 'Base URL of the website webhooks (no trailing slash). E.g. https://YOUR-DOMAIN.com/api/webhooks/ghl. Workflows append /stage-changed, /credit-stage-changed, /appointment-status.',
+  },
+  {
+    fieldKey: 'gbw_webhook_secret',
+    name: 'Website Webhook Secret',
+    defaultValue: '',
+    description: 'Shared secret sent as X-GBW-Secret header on backflow webhooks. Must match GHL_WEBHOOK_SECRET in the website Vercel env.',
+  },
 ] as const;
 
 // ─── Workflows ──────────────────────────────────────────────────────────────
