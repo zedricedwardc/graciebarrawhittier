@@ -309,16 +309,17 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
   // ({{ custom_values.X }}) instead of pasting URLs/secrets directly.
   // Onboarding a new client = update these 2 values once in GHL UI.
   {
-    fieldKey: 'gbw_webhook_base_url',
+    // GHL auto-generates fieldKey from name → custom_values.website_webhook_base_url
+    fieldKey: 'website_webhook_base_url',
     name: 'Website Webhook Base URL',
     defaultValue: '',
-    description: 'Base URL of the website webhooks (no trailing slash). E.g. https://YOUR-DOMAIN.com/api/webhooks/ghl. Workflows append /stage-changed, /credit-stage-changed, /appointment-status.',
+    description: 'Base URL of the website webhooks (no trailing slash). E.g. https://YOUR-DOMAIN.com/api/webhooks/ghl. Workflows append /stage-changed, /credit-stage-changed, /appointment-status. Reference in workflow URL field as: {{custom_values.website_webhook_base_url}}/stage-changed',
   },
   {
-    fieldKey: 'gbw_webhook_secret',
+    fieldKey: 'website_webhook_secret',
     name: 'Website Webhook Secret',
     defaultValue: '',
-    description: 'Shared secret sent as X-GBW-Secret header on backflow webhooks. Must match GHL_WEBHOOK_SECRET in the website Vercel env.',
+    description: 'Shared secret sent as X-GBW-Secret header on backflow webhooks. Must match GHL_WEBHOOK_SECRET in the website Vercel env. Reference in workflow custom-header value as: {{custom_values.website_webhook_secret}}',
   },
 ] as const;
 
