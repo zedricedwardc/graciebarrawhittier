@@ -11,13 +11,13 @@ import {
   upsertContact,
   createAppointment,
   getFreeSlots,
-  searchOpportunities,
-  updateOpportunity,
   getContact,
   GhlError,
   readEnv,
 } from '../../lib/ghl';
 import { handleBooking } from '../../lib/ghl-adapter';
+import { findOpps, findByTraineeKey, moveStage } from '../../lib/ghl-opportunities';
+import { cfPayload } from '../../lib/ghl-custom-fields';
 import { generateSlots } from '../../lib/slot-resolver';
 import { blackouts } from '../../data/blackouts';
 import { verifyRebookToken } from '../../lib/rebook-token';
@@ -293,27 +293,17 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
   }
 
   // Find the matching Trial Credit Monitoring opportunity for this trainee.
-  const creditPipelineId = readEnv('PIPELINE_ID_CREDIT_MON');
-  if (!creditPipelineId) {
-    console.error('[book/rebook] PIPELINE_ID_CREDIT_MON env var not set');
-    return json({ ok: false, code: 'GHL_FAILED', message: 'Pipeline not configured.' });
-  }
-  const anotherTrialBookedStageId = readEnv('STAGE_ID_CREDIT_ANOTHER_TRIAL_BOOKED');
-  if (!anotherTrialBookedStageId) {
-    console.error('[book/rebook] STAGE_ID_CREDIT_ANOTHER_TRIAL_BOOKED env var not set');
-    return json({ ok: false, code: 'GHL_FAILED', message: 'Pipeline stage not configured.' });
-  }
-
+  // Uses schema-resolved IDs via findOpps (no per-stage env vars).
   let creditOpp;
   try {
-    const opps = await searchOpportunities({
+    const opps = await findOpps({
       contactId: body.rebook.contactId,
-      pipelineId: creditPipelineId,
+      pipelineKey: 'CREDIT_MON',
       status: 'open',
     });
-    creditOpp = opps.find((o) => readCfFromOpp(o, 'trainee_key') === body.rebook.traineeKey);
+    creditOpp = findByTraineeKey(opps, body.rebook.traineeKey);
   } catch (err) {
-    console.error('[book/rebook] searchOpportunities failed',
+    console.error('[book/rebook] findOpps failed',
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not find active trial pass.' });
   }
@@ -343,18 +333,20 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
 
   // Update the credit opp: move to ANOTHER TRIAL BOOKED + record appointment.
   try {
-    await updateOpportunity(creditOpp.id, {
-      pipelineId: creditPipelineId,
-      pipelineStageId: anotherTrialBookedStageId,
-      customFields: [
-        { key: 'last_appointment_id', field_value: appointmentId },
-        { key: 'last_appointment_start_iso', field_value: body.slotStartISO },
-      ],
+    const cfs = await cfPayload('opportunity', {
+      last_appointment_id: appointmentId,
+      last_appointment_start_iso: body.slotStartISO,
+    });
+    await moveStage({
+      oppId: creditOpp.id,
+      pipelineKey: 'CREDIT_MON',
+      stageName: 'ANOTHER TRIAL BOOKED',
+      customFields: cfs,
     });
   } catch (err) {
     // Appointment was created — opp update failure is logged but not fatal for the user.
-    // Backflow webhook (Phase 4) will reconcile, OR admin can move manually.
-    console.error('[book/rebook] updateOpportunity failed (appointment did succeed)',
+    // Backflow webhook will reconcile, OR admin can move manually.
+    console.error('[book/rebook] moveStage failed (appointment did succeed)',
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
   }
 
