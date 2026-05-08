@@ -22,6 +22,7 @@ import { z } from 'zod';
 import { verifyGhlWebhook } from '../../../../lib/webhook-secrets';
 import { handleAttendance } from '../../../../lib/ghl-adapter';
 import { findOpps, setOppStatus, moveStage, getOppCfValueByKey } from '../../../../lib/ghl-opportunities';
+import { getOpportunity } from '../../../../lib/ghl';
 import { idempotency } from '../../../../lib/idempotency';
 import { GhlError } from '../../../../lib/ghl-rate-limit';
 
@@ -77,7 +78,11 @@ function normalizeStagePayload(raw: unknown): Record<string, string | number> {
                                   { from: 'top', key: 'pipeline_stage' },
                                 ),
     from_stage:                 pick({ from: 'cd', key: 'from_stage' }),
-    trainee_key:                pick({ from: 'cd', key: 'trainee_key' }, { from: 'top', key: 'Last Trainee Key' }),
+    // Don't fall back to contact-level "Last Trainee Key" — that value is
+    // shared across siblings on a parent contact and silently collides.
+    // If customData.trainee_key is missing, the handler reads it off the
+    // opp directly using opp_id.
+    trainee_key:                pick({ from: 'cd', key: 'trainee_key' }),
     trainee_first_name:         pick({ from: 'cd', key: 'trainee_first_name' }),
     parent_last_name:           pick({ from: 'cd', key: 'parent_last_name' }, { from: 'top', key: 'last_name' }),
     program:                    pick({ from: 'cd', key: 'program' }, { from: 'top', key: 'opportunity_source' }, { from: 'top', key: 'source' }),
@@ -127,16 +132,27 @@ export const POST: APIRoute = async ({ request }) => {
     const stage = body.to_stage.trim().toUpperCase();
     switch (stage) {
       case 'TRIAL ACTIVE NURTURE': {
-        if (!body.trainee_key || !body.trainee_first_name) {
+        // Read trainee data straight off the Trial Conv opp — never trust
+        // webhook customData here, since contact-level fallbacks (e.g.
+        // "Last Trainee Key") collide across siblings on the same parent.
+        const oppRecord = await getOpportunity(body.opp_id);
+        if (!oppRecord) {
+          return ok({ ok: false, code: 'OPP_NOT_FOUND' });
+        }
+        const traineeKey = await getOppCfValueByKey<string>(oppRecord, 'trainee_key');
+        const traineeFirstName = await getOppCfValueByKey<string>(oppRecord, 'trainee_first_name');
+        const program = await getOppCfValueByKey<string>(oppRecord, 'program');
+        const lastTrialDateISO = await getOppCfValueByKey<string>(oppRecord, 'last_appointment_start_iso');
+        if (!traineeKey || !traineeFirstName) {
           return ok({ ok: false, code: 'MISSING_TRAINEE_DATA' });
         }
         await handleAttendance({
           contactId: body.contact_id,
-          traineeKey: body.trainee_key,
-          traineeFirstName: body.trainee_first_name,
+          traineeKey,
+          traineeFirstName,
           parentLastName: body.parent_last_name,
-          program: body.program,
-          lastTrialDateISO: body.last_appointment_start_iso ?? new Date().toISOString(),
+          program: program ?? body.program,
+          lastTrialDateISO: lastTrialDateISO ?? body.last_appointment_start_iso ?? new Date().toISOString(),
         });
         break;
       }

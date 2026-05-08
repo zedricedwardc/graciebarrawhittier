@@ -127,6 +127,25 @@ export interface ContactRecord {
   customFields?: Array<{ id: string; key?: string; value?: unknown; field_value?: unknown }>;
 }
 
+/**
+ * Search for a contact by email only. Returns the first match, or null.
+ * Used by the /rebook lookup flow: parent enters email + trainee's first name,
+ * we resolve the contact by email and disambiguate the trainee via the
+ * Credit Monitoring opp's `trainee_first_name` CF.
+ */
+export async function searchContactByEmail(email: string): Promise<ContactRecord | null> {
+  const body = {
+    locationId: locationId(),
+    pageLimit: 5,
+    filters: [{ field: 'email', operator: 'eq', value: email.toLowerCase() }],
+  };
+  const data = (await request('/contacts/search', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })) as { contacts?: ContactRecord[] };
+  return data.contacts?.[0] ?? null;
+}
+
 export async function searchContactByEmailAndLastName(args: {
   email: string;
   lastName: string;
@@ -168,6 +187,24 @@ export interface OpportunityRecord {
  * Used by the rebook flow to detect existing Trial Conversion / Trial Credit Monitoring
  * opportunities for the contact, so we can update in place rather than create duplicates.
  */
+/**
+ * Fetch a single opportunity by ID. Used by webhook handlers to read the
+ * opp's CFs (trainee_key, program, etc.) directly rather than trusting
+ * workflow merge tags, which can silently fall back to contact-level values
+ * that collide across siblings.
+ */
+export async function getOpportunity(oppId: string): Promise<OpportunityRecord | null> {
+  try {
+    const data = (await request(`/opportunities/${encodeURIComponent(oppId)}`)) as {
+      opportunity?: OpportunityRecord;
+    };
+    return data.opportunity ?? null;
+  } catch (err) {
+    if (err instanceof GhlError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 export async function searchOpportunities(args: {
   contactId: string;
   pipelineId?: string;

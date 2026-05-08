@@ -7,7 +7,7 @@
  *      into rebook reminder SMS/email. Page POSTs token to /api/rebook-context,
  *      receives credit context, jumps straight to date picker.
  *   2. Lookup form — fallback when customer lost the link. Page POSTs
- *      { email, lastName } to /api/rebook-lookup, receives same shape.
+ *      { email, traineeFirstName } to /api/rebook-lookup, receives same shape.
  *
  * Flow: lookup → date → slot → confirm → success → error
  *
@@ -57,7 +57,7 @@ const renderTs = Date.now();
         <div class="bg-gb-white rounded-2xl shadow-lg border-2 border-gb-gold p-6 md:p-10">
           <h2 class="text-xl md:text-2xl font-bold text-gb-navy mb-2">Find your trial pass</h2>
           <p class="text-sm text-gb-text-muted mb-6">
-            Enter the email and last name you used when you signed up. We'll find your remaining classes.
+            Enter your email and the student's first name. We'll find their remaining classes.
           </p>
 
           <form data-rebook-lookup-form class="space-y-4" novalidate>
@@ -75,15 +75,15 @@ const renderTs = Date.now();
               />
             </div>
             <div>
-              <label for="rebook-lastname" class="block text-sm font-medium text-gb-text mb-1">Last Name</label>
+              <label for="rebook-trainee-first" class="block text-sm font-medium text-gb-text mb-1">Student's First Name</label>
               <input
-                id="rebook-lastname"
-                name="lastName"
+                id="rebook-trainee-first"
+                name="traineeFirstName"
                 type="text"
-                autocomplete="family-name"
+                autocomplete="given-name"
                 required
                 class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-gb-white text-gb-text placeholder-gb-text-muted focus:outline-none focus:ring-2 focus:ring-gb-red focus:border-gb-red"
-                placeholder="Smith"
+                placeholder="Eli"
               />
             </div>
 
@@ -96,7 +96,7 @@ const renderTs = Date.now();
             </button>
 
             <p data-lookup-error class="hidden text-sm text-gb-red text-center" role="alert">
-              <span data-lookup-error-msg>We couldn't find an active trial pass for that email + last name. Double-check or
+              <span data-lookup-error-msg>We couldn't find an active trial pass for that email + student's first name. Double-check or
               <a href="/contact" class="underline font-semibold hover:text-gb-red-dark">contact us</a>.</span>
             </p>
           </form>
@@ -332,8 +332,8 @@ const renderTs = Date.now();
 
       const data = new FormData(lookupFormEl);
       const email = String(data.get('email') ?? '').trim();
-      const lastName = String(data.get('lastName') ?? '').trim();
-      if (!email || !lastName) {
+      const traineeFirstName = String(data.get('traineeFirstName') ?? '').trim();
+      if (!email || !traineeFirstName) {
         showLookupError();
         return;
       }
@@ -346,7 +346,7 @@ const renderTs = Date.now();
         const res = await fetch('/api/rebook-lookup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, lastName }),
+          body: JSON.stringify({ email, traineeFirstName }),
         });
         const json = await res.json();
         if (!json.ok) {

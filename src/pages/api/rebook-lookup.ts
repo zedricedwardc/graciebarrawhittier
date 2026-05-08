@@ -2,29 +2,22 @@
  * POST /api/rebook-lookup
  *
  * Fallback path for the /rebook page when a customer doesn't have (or lost) the
- * magic-link reminder. Matches contact by email + lastName, then verifies they
- * have an open Trial Credit Monitoring opportunity. On success, mints a
- * short-lived rebook token (15-min expiry) so the page can proceed identically
- * to the magic-link flow.
+ * magic-link reminder. Matches contact by email, then disambiguates the trainee
+ * by `trainee_first_name` on the Trial Credit Monitoring opp — so a parent with
+ * three kids can pick which child's pass to use.
  *
  * Anti-enumeration:
- *   - Rate-limited to 5 requests / IP / hour
+ *   - Rate-limited to 20 requests / IP / hour
  *   - Generic NOT_FOUND on miss (no email-existence leak)
- *   - Requires email AND lastName (raises cost vs. email-only)
  *
  * Returns: { ok:true, sessionToken, traineeName, creditsRemaining, traineeKey }
  *          | { ok:false, code:'INVALID_INPUT' | 'NOT_FOUND' | 'RATE_LIMITED' | 'GHL_FAILED' }
- *
- * NOTE: this endpoint is functional today but depends on the customer having an
- * open Credit Monitoring opp with `trainee_key` and `credits_remaining_display`
- * custom fields populated — which is delivered by Phase 4. Until then, lookup
- * succeeds for contacts but returns NOT_FOUND if the credit opp doesn't exist yet.
  */
 
 import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import {
-  searchContactByEmailAndLastName,
+  searchContactByEmail,
   searchOpportunities,
   GhlError,
   type ContactRecord,
@@ -44,7 +37,7 @@ const buckets = new Map<string, { count: number; firstSeen: number }>();
 
 const RebookLookupRequest = z.object({
   email: z.email().max(254).transform((s) => s.toLowerCase().trim()),
-  lastName: z.string().min(1).max(100).transform((s) => s.trim()),
+  traineeFirstName: z.string().min(1).max(100).transform((s) => s.trim()),
 });
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
@@ -65,12 +58,12 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (!parsed.success) {
     return json({ ok: false, code: 'INVALID_INPUT' });
   }
-  const { email, lastName } = parsed.data;
+  const { email, traineeFirstName } = parsed.data;
 
-  // Layer 3 — Find the contact in GHL.
+  // Layer 3 — Find the contact in GHL by email.
   let contact: ContactRecord | null;
   try {
-    contact = await searchContactByEmailAndLastName({ email, lastName });
+    contact = await searchContactByEmail(email);
   } catch (err) {
     console.error(
       '[rebook-lookup] searchContact failed',
@@ -107,28 +100,28 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  // Pick the first open opp. If multiple trainees on this contact, the customer
-  // will see whichever was returned first — UI offers a "switch trainee" path
-  // (future enhancement).
-  const activeOpp = opps[0];
-  if (!activeOpp) {
+  // Match the opp by trainee_first_name (case-insensitive). Lets a parent with
+  // multiple kids on one contact pick which child's pass to use.
+  const wantedFirst = traineeFirstName.toLowerCase();
+  let activeOpp: OpportunityRecord | undefined;
+  let traineeKey = '';
+  let traineeName = '';
+  for (const o of opps) {
+    const first = (await getOppCfValueByKey<string>(o, 'trainee_first_name')) ?? '';
+    if (first.trim().toLowerCase() === wantedFirst) {
+      activeOpp = o;
+      traineeName = first.trim();
+      traineeKey = (await getOppCfValueByKey<string>(o, 'trainee_key')) ?? '';
+      break;
+    }
+  }
+  if (!activeOpp || !traineeKey) {
     return json({ ok: false, code: 'NOT_FOUND' });
   }
 
-  const traineeKey = (await getOppCfValueByKey<string>(activeOpp, 'trainee_key')) ?? '';
-  const traineeName =
-    (await getOppCfValueByKey<string>(activeOpp, 'trainee_first_name')) ??
-    contact.firstName ??
-    'there';
   const program = (await getOppCfValueByKey<string>(activeOpp, 'program')) ?? 'adults';
   const creditsRaw = await getOppCfValueByKey<string | number>(activeOpp, 'credits_remaining');
   const creditsRemaining = Number(creditsRaw ?? 0);
-
-  if (!traineeKey) {
-    // Opp exists but trainee_key not populated — likely the Trial Active Nurture
-    // backflow handler hasn't fired yet for this trainee.
-    return json({ ok: false, code: 'NOT_FOUND' });
-  }
 
   // Mint a short-lived session token (15 minutes — just long enough to pick a slot).
   const sessionToken = signRebookToken({
