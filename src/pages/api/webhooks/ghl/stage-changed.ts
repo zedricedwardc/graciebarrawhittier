@@ -41,6 +41,47 @@ const StageChangedPayload = z.object({
   ts: z.union([z.string(), z.number()]).optional(),
 });
 
+/**
+ * Normalize the raw webhook payload to our flat schema shape.
+ *
+ * GHL's webhook fires a layered payload:
+ *   - Top level: auto-populated standard fields (id, contact_id, pipleline_stage*, ...)
+ *   - customData: whatever the user mapped in the workflow webhook action body
+ *
+ * (* yes, GHL natively spells it "pipleline_stage" — keeping the typo for compat.)
+ *
+ * We prefer customData (lets users override) but fall back to top-level so the
+ * integration works even if a user fat-fingers a merge tag.
+ */
+function normalizeStagePayload(raw: unknown): Record<string, string | number> {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const cd = (r.customData && typeof r.customData === 'object' ? r.customData : {}) as Record<string, unknown>;
+  const pick = (...keys: Array<{ from: 'cd' | 'top'; key: string }>): string => {
+    for (const { from, key } of keys) {
+      const v = (from === 'cd' ? cd[key] : r[key]);
+      if (typeof v === 'string' && v.trim()) return v.trim();
+      if (typeof v === 'number') return String(v);
+    }
+    return '';
+  };
+  return {
+    opp_id:                     pick({ from: 'cd', key: 'opp_id' }, { from: 'top', key: 'id' }),
+    contact_id:                 pick({ from: 'cd', key: 'contact_id' }, { from: 'top', key: 'contact_id' }),
+    to_stage:                   pick(
+                                  { from: 'cd', key: 'to_stage' },
+                                  { from: 'top', key: 'pipleline_stage' },  // GHL's typo
+                                  { from: 'top', key: 'pipeline_stage' },
+                                ),
+    from_stage:                 pick({ from: 'cd', key: 'from_stage' }),
+    trainee_key:                pick({ from: 'cd', key: 'trainee_key' }, { from: 'top', key: 'Last Trainee Key' }),
+    trainee_first_name:         pick({ from: 'cd', key: 'trainee_first_name' }),
+    parent_last_name:           pick({ from: 'cd', key: 'parent_last_name' }, { from: 'top', key: 'last_name' }),
+    program:                    pick({ from: 'cd', key: 'program' }, { from: 'top', key: 'opportunity_source' }, { from: 'top', key: 'source' }),
+    last_appointment_start_iso: pick({ from: 'cd', key: 'last_appointment_start_iso' }),
+    ts:                         pick({ from: 'cd', key: 'ts' }, { from: 'top', key: 'date_created' }),
+  };
+}
+
 export const POST: APIRoute = async ({ request }) => {
   if (!verifyGhlWebhook(request)) {
     return new Response(JSON.stringify({ ok: false, code: 'INVALID_SECRET' }), {
@@ -49,21 +90,22 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
-  let payload: unknown;
-  try { payload = await request.json(); } catch {
+  let raw: unknown;
+  try { raw = await request.json(); } catch {
     console.error('[stage-changed] body not JSON');
     return ok({ ok: false, code: 'INVALID_INPUT' });
   }
-  const parsed = StageChangedPayload.safeParse(payload);
+  const normalized = normalizeStagePayload(raw);
+  const parsed = StageChangedPayload.safeParse(normalized);
   if (!parsed.success) {
     console.error('[stage-changed] validation failed', {
-      received: payload,
+      normalized,
       errors: parsed.error.issues,
     });
     return ok({
       ok: false,
       code: 'INVALID_INPUT',
-      received: payload,
+      normalized,
       errors: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
     });
   }

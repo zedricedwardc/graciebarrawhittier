@@ -33,6 +33,30 @@ const AppointmentStatusPayload = z.object({
   ts: z.union([z.string(), z.number()]).optional(),
 });
 
+/** See stage-changed.ts for rationale — robust against GHL payload quirks. */
+function normalizeAppointmentPayload(raw: unknown): Record<string, string | number> {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const cd = (r.customData && typeof r.customData === 'object' ? r.customData : {}) as Record<string, unknown>;
+  const a = (r.appointment && typeof r.appointment === 'object' ? r.appointment : {}) as Record<string, unknown>;
+  const pick = (...specs: Array<{ from: 'cd' | 'top' | 'a'; key: string }>): string => {
+    for (const { from, key } of specs) {
+      const src = from === 'cd' ? cd : from === 'a' ? a : r;
+      const v = src[key];
+      if (typeof v === 'string' && v.trim()) return v.trim();
+      if (typeof v === 'number') return String(v);
+    }
+    return '';
+  };
+  return {
+    appointment_id: pick({ from: 'cd', key: 'appointment_id' }, { from: 'top', key: 'appointment_id' }, { from: 'a', key: 'id' }),
+    contact_id:     pick({ from: 'cd', key: 'contact_id' }, { from: 'top', key: 'contact_id' }),
+    status:         pick({ from: 'cd', key: 'status' }, { from: 'top', key: 'appointment_status' }, { from: 'a', key: 'status' }),
+    prev_status:    pick({ from: 'cd', key: 'prev_status' }, { from: 'top', key: 'previous_status' }, { from: 'a', key: 'previous_status' }),
+    reason:         pick({ from: 'cd', key: 'reason' }),
+    ts:             pick({ from: 'cd', key: 'ts' }, { from: 'top', key: 'date_created' }),
+  };
+}
+
 export const POST: APIRoute = async ({ request }) => {
   if (!verifyGhlWebhook(request)) {
     return new Response(JSON.stringify({ ok: false, code: 'INVALID_SECRET' }), {
@@ -41,10 +65,18 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
-  let payload: unknown;
-  try { payload = await request.json(); } catch { return ok({ ok: false, code: 'INVALID_INPUT' }); }
-  const parsed = AppointmentStatusPayload.safeParse(payload);
-  if (!parsed.success) return ok({ ok: false, code: 'INVALID_INPUT' });
+  let raw: unknown;
+  try { raw = await request.json(); } catch { return ok({ ok: false, code: 'INVALID_INPUT' }); }
+  const normalized = normalizeAppointmentPayload(raw);
+  const parsed = AppointmentStatusPayload.safeParse(normalized);
+  if (!parsed.success) {
+    return ok({
+      ok: false,
+      code: 'INVALID_INPUT',
+      normalized,
+      errors: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+    });
+  }
   const body = parsed.data;
 
   const status = body.status.trim().toLowerCase();

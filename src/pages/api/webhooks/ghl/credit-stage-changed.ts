@@ -45,6 +45,33 @@ const CreditStagePayload = z.object({
   ts: z.union([z.string(), z.number()]).optional(),
 });
 
+/** See stage-changed.ts for rationale — robust against GHL payload quirks. */
+function normalizeCreditPayload(raw: unknown): Record<string, string | number> {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const cd = (r.customData && typeof r.customData === 'object' ? r.customData : {}) as Record<string, unknown>;
+  const pick = (...keys: Array<{ from: 'cd' | 'top'; key: string }>): string => {
+    for (const { from, key } of keys) {
+      const v = (from === 'cd' ? cd[key] : r[key]);
+      if (typeof v === 'string' && v.trim()) return v.trim();
+      if (typeof v === 'number') return String(v);
+    }
+    return '';
+  };
+  return {
+    opp_id:                     pick({ from: 'cd', key: 'opp_id' }, { from: 'top', key: 'id' }),
+    contact_id:                 pick({ from: 'cd', key: 'contact_id' }, { from: 'top', key: 'contact_id' }),
+    to_stage:                   pick(
+                                  { from: 'cd', key: 'to_stage' },
+                                  { from: 'top', key: 'pipleline_stage' },
+                                  { from: 'top', key: 'pipeline_stage' },
+                                ),
+    from_stage:                 pick({ from: 'cd', key: 'from_stage' }),
+    trainee_key:                pick({ from: 'cd', key: 'trainee_key' }),
+    last_appointment_start_iso: pick({ from: 'cd', key: 'last_appointment_start_iso' }),
+    ts:                         pick({ from: 'cd', key: 'ts' }, { from: 'top', key: 'date_created' }),
+  };
+}
+
 export const POST: APIRoute = async ({ request }) => {
   if (!verifyGhlWebhook(request)) {
     return new Response(JSON.stringify({ ok: false, code: 'INVALID_SECRET' }), {
@@ -53,10 +80,18 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
-  let payload: unknown;
-  try { payload = await request.json(); } catch { return ok({ ok: false, code: 'INVALID_INPUT' }); }
-  const parsed = CreditStagePayload.safeParse(payload);
-  if (!parsed.success) return ok({ ok: false, code: 'INVALID_INPUT' });
+  let raw: unknown;
+  try { raw = await request.json(); } catch { return ok({ ok: false, code: 'INVALID_INPUT' }); }
+  const normalized = normalizeCreditPayload(raw);
+  const parsed = CreditStagePayload.safeParse(normalized);
+  if (!parsed.success) {
+    return ok({
+      ok: false,
+      code: 'INVALID_INPUT',
+      normalized,
+      errors: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+    });
+  }
   const body = parsed.data;
 
   const idemKey = `credit-stage|${body.opp_id}|${body.to_stage}|${body.ts ?? ''}`;
