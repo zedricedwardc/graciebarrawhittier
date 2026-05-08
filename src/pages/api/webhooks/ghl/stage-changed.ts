@@ -50,9 +50,18 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   let payload: unknown;
-  try { payload = await request.json(); } catch { return ok({ ok: false, code: 'INVALID_INPUT' }); }
+  try { payload = await request.json(); } catch {
+    console.error('[stage-changed] body not JSON');
+    return ok({ ok: false, code: 'INVALID_INPUT' });
+  }
   const parsed = StageChangedPayload.safeParse(payload);
-  if (!parsed.success) return ok({ ok: false, code: 'INVALID_INPUT' });
+  if (!parsed.success) {
+    console.error('[stage-changed] validation failed', {
+      received: payload,
+      errors: parsed.error.issues,
+    });
+    return ok({ ok: false, code: 'INVALID_INPUT' });
+  }
   const body = parsed.data;
 
   // Idempotency: prevent double-action on retried deliveries.
