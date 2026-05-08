@@ -28,7 +28,7 @@ import {
   moveStage,
   getOppCfValue,
 } from '../../../../lib/ghl-opportunities';
-import { updateContact } from '../../../../lib/ghl';
+import { updateOpportunity } from '../../../../lib/ghl';
 import { cfPayload } from '../../../../lib/ghl-custom-fields';
 import { idempotency } from '../../../../lib/idempotency';
 import { GhlError } from '../../../../lib/ghl-rate-limit';
@@ -80,10 +80,9 @@ export const POST: APIRoute = async ({ request }) => {
         break;
       }
       case 'LOST': {
-        await setOppStatus(body.opp_id, 'lost');
-        // Zero out credits
-        const cfs = await cfPayload('contact', { credits_remaining: 0 });
-        await updateContact(body.contact_id, { customFields: cfs });
+        // Set credit opp credits to 0 + status lost (single update for atomicity)
+        const cfs = await cfPayload('opportunity', { credits_remaining: 0 });
+        await updateOpportunity(body.opp_id, { status: 'lost', customFields: cfs });
         // Cross-pipeline-move Lead Acq back to NURTURE CAMPAIGN
         const leadOpps = await findOpps({
           contactId: body.contact_id,

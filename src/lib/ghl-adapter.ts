@@ -95,12 +95,11 @@ export async function handleOptIn(input: HandleOptInInput): Promise<HandleOptInR
     phone: input.phone,
   });
 
-  // We need to know whether to initialize credits_remaining. Fetch existing
-  // contact to read current state — single round-trip; small price for correctness.
+  // Read existing contact to detect whether household_trainee_keys needs an append.
   const existing = await getContact(contactId);
-  const isNewContact = !existing || readCfNumber(existing, 'credits_remaining') === undefined;
+  const isNewContact = !existing;
 
-  // 2. Build CF patch
+  // 2. Build CF patch (credits now live on Trial Credit Monitoring opp, not contact)
   const cfMap: Record<string, string | number | boolean | null> = {
     lead_source: input.source,
     last_page: input.page,
@@ -111,10 +110,6 @@ export async function handleOptIn(input: HandleOptInInput): Promise<HandleOptInR
       readCfString(existing, 'household_trainee_keys') ?? '',
       traineeKey,
     );
-  }
-  if (isNewContact) {
-    const defaultCredits = Number(readEnv('TRIAL_CREDITS_DEFAULT') ?? '3');
-    cfMap.credits_remaining = Number.isFinite(defaultCredits) ? defaultCredits : 3;
   }
 
   const customFields = await cfPayload('contact', cfMap);
@@ -381,16 +376,6 @@ export interface HandleAttendanceResult {
 }
 
 export async function handleAttendance(input: HandleAttendanceInput): Promise<HandleAttendanceResult> {
-  // Initialize credits if contact doesn't have any yet (defensive).
-  const contact = await getContact(input.contactId);
-  let credits = readCfNumber(contact, 'credits_remaining');
-  if (credits === undefined || credits <= 0) {
-    const defaultCredits = Number(readEnv('TRIAL_CREDITS_DEFAULT') ?? '3');
-    credits = Number.isFinite(defaultCredits) ? defaultCredits : 3;
-    const contactCfs = await cfPayload('contact', { credits_remaining: credits });
-    await updateContact(input.contactId, { customFields: contactCfs });
-  }
-
   // Find existing Credit Monitoring opp matching trainee_key
   const existing = await findOpps({
     contactId: input.contactId,
@@ -399,6 +384,13 @@ export async function handleAttendance(input: HandleAttendanceInput): Promise<Ha
     limit: 20,
   });
   const existingCredit = findByTraineeKey(existing, input.traineeKey);
+
+  // Read credits from existing opp (if any). New opp inits to TRIAL_CREDITS_DEFAULT.
+  let credits = existingCredit ? Number(getOppCfValue(existingCredit, 'credits_remaining') ?? 0) : 0;
+  if (!Number.isFinite(credits) || credits <= 0) {
+    const defaultCredits = Number(readEnv('TRIAL_CREDITS_DEFAULT') ?? '3');
+    credits = Number.isFinite(defaultCredits) ? defaultCredits : 3;
+  }
 
   // Mint a magic-link rebook token (90 day expiry)
   const rebookLinkToken = signRebookToken({
@@ -414,7 +406,7 @@ export async function handleAttendance(input: HandleAttendanceInput): Promise<Ha
     trainee_key: input.traineeKey,
     trainee_first_name: input.traineeFirstName,
     program: input.program ?? '',
-    credits_remaining_display: credits,
+    credits_remaining: credits,
     last_attendance_iso: input.lastTrialDateISO,
     rebook_link_token: rebookLinkToken,
   });
@@ -487,35 +479,46 @@ export interface HandleCreditDecrementResult {
 }
 
 export async function handleCreditDecrement(input: HandleCreditDecrementInput): Promise<HandleCreditDecrementResult> {
-  const contact = await getContact(input.contactId);
-  const lastDecrement = readCfString(contact, 'last_decrement_trial_date');
-
-  // Idempotency guard — same trial date already decremented? No-op.
-  if (lastDecrement && lastDecrement === input.trialDateISO) {
-    const credits = readCfNumber(contact, 'credits_remaining') ?? 0;
+  // Read credit state directly from the opportunity (per-trainee, not per-contact).
+  const opps = await findOpps({
+    contactId: input.contactId,
+    pipelineKey: 'CREDIT_MON',
+    status: 'open',
+    limit: 20,
+  });
+  const opp = opps.find((o) => o.id === input.oppId);
+  if (!opp) {
+    // Opp closed or not found — silent no-op (webhook may have been delayed).
     return {
       contactId: input.contactId,
       oppId: input.oppId,
-      creditsRemaining: credits,
+      creditsRemaining: 0,
       endStage: 'ATTENDED APPOINTMENT',
       wasDecremented: false,
     };
   }
 
-  const before = readCfNumber(contact, 'credits_remaining') ?? 0;
-  const after = Math.max(0, before - 1);
+  const lastDecrement = getOppCfValue<string>(opp, 'last_decrement_trial_date');
+  const before = Number(getOppCfValue<number | string>(opp, 'credits_remaining') ?? 0) || 0;
 
-  // Persist new credit count + idempotency marker
-  const contactCfs = await cfPayload('contact', {
+  // Idempotency guard — same trial date already decremented on this opp? No-op.
+  if (lastDecrement && lastDecrement === input.trialDateISO) {
+    return {
+      contactId: input.contactId,
+      oppId: input.oppId,
+      creditsRemaining: before,
+      endStage: 'ATTENDED APPOINTMENT',
+      wasDecremented: false,
+    };
+  }
+
+  const after = Math.max(0, before - 1);
+  const nextStage = after > 0 ? 'CREDIT ACTIVE' : 'CREDITS EXHAUSTED';
+
+  // Persist new credit count + idempotency marker on the opp itself.
+  const oppCfs = await cfPayload('opportunity', {
     credits_remaining: after,
     last_decrement_trial_date: input.trialDateISO,
-  });
-  await updateContact(input.contactId, { customFields: contactCfs });
-
-  // Mirror to opp display + decide next stage
-  const nextStage = after > 0 ? 'CREDIT ACTIVE' : 'CREDITS EXHAUSTED';
-  const oppCfs = await cfPayload('opportunity', {
-    credits_remaining_display: after,
     last_attendance_iso: input.trialDateISO,
   });
   await moveStage({
@@ -527,7 +530,7 @@ export async function handleCreditDecrement(input: HandleCreditDecrementInput): 
 
   await addContactNote(
     input.contactId,
-    `Class attended ${input.trialDateISO} — credits ${before} → ${after} (opp moved to ${nextStage}).`,
+    `Class attended ${input.trialDateISO} (trainee ${input.traineeKey ?? '?'}) — credits ${before} → ${after} (opp moved to ${nextStage}).`,
   );
 
   return {

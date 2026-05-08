@@ -148,20 +148,6 @@ export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     setBy: 'webhook',
   },
   {
-    fieldKey: 'credits_remaining',
-    label: 'Credits Remaining',
-    type: 'NUMBER',
-    description: 'Source of truth for the active trial pass count. Decremented by webhook handler.',
-    setBy: 'webhook',
-  },
-  {
-    fieldKey: 'last_decrement_trial_date',
-    label: 'Last Decrement Trial Date',
-    type: 'DATE',
-    description: 'Idempotency guard — last trial_date_iso for which credits were decremented.',
-    setBy: 'webhook',
-  },
-  {
     fieldKey: 'last_idempotency_key',
     label: 'Last Idempotency Key',
     type: 'TEXT',
@@ -169,6 +155,9 @@ export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     setBy: 'webhook',
   },
 ] as const;
+// Note: credits_remaining + last_decrement_trial_date moved to OPPORTUNITY_CUSTOM_FIELDS
+// because each trainee has an independent trial pass. Putting them on Contact would mean
+// siblings share one credit count.
 
 export const OPPORTUNITY_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
   {
@@ -221,10 +210,17 @@ export const OPPORTUNITY_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     setBy: 'webhook',
   },
   {
-    fieldKey: 'credits_remaining_display',
-    label: 'Credits Remaining (display)',
+    fieldKey: 'credits_remaining',
+    label: 'Credits Remaining',
     type: 'NUMBER',
-    description: 'Mirror of contact.credits_remaining for kanban visibility. Read-only — do not edit manually.',
+    description: 'Source of truth for this trainee\'s trial pass count. Per-opp so siblings have independent counts. Decremented by webhook handler.',
+    setBy: 'workflow',
+  },
+  {
+    fieldKey: 'last_decrement_trial_date',
+    label: 'Last Decrement Trial Date',
+    type: 'DATE',
+    description: 'Idempotency guard — last trial_date_iso for which credits were decremented on this opp.',
     setBy: 'workflow',
   },
   {
