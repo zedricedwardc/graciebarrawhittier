@@ -97,9 +97,16 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
 } as const;
 
 // ─── Custom Fields ──────────────────────────────────────────────────────────
-// Note: GHL does not expose a public API to CREATE Contact or Opportunity custom fields.
-// These must be created manually in GHL UI per client; the onboard script generates a
-// click-by-click checklist with these exact fieldKey values.
+// GHL DOES expose a public API to create Contact + Opportunity custom fields:
+//   POST /locations/{locationId}/customFields  (scope: locations/customFields.write)
+// The onboard script's `provision` mode creates them automatically. Folders for
+// these fields are still UI-only.
+//
+// fieldKey naming: GHL auto-generates `<model>.<snake_case_of_label>` from the
+// label, e.g. label "Trainee Key" + model "contact" → fieldKey
+// "contact.trainee_key". Our schema's fieldKey is the unprefixed bare name; the
+// runtime resolver in src/lib/ghl-custom-fields.ts strips the model. prefix
+// when matching.
 
 export type CustomFieldType = 'TEXT' | 'NUMBER' | 'DATE' | 'TEXTAREA' | 'DROPDOWN_SINGLE';
 
@@ -113,7 +120,7 @@ export interface CustomFieldDef {
 
 export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
   {
-    fieldKey: 'trainee_key',
+    fieldKey: 'last_trainee_key',
     label: 'Last Trainee Key',
     type: 'TEXT',
     description: 'Slug of the most recent trainee booked from this contact (e.g. eli-20210315).',
@@ -180,7 +187,7 @@ export const OPPORTUNITY_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
   },
   {
     fieldKey: 'trainee_dob',
-    label: 'Trainee Date of Birth',
+    label: 'Trainee DOB',
     type: 'DATE',
     description: 'Used for age-based program assignment.',
     setBy: 'webhook',
@@ -201,7 +208,7 @@ export const OPPORTUNITY_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
   },
   {
     fieldKey: 'last_appointment_start_iso',
-    label: 'Last Appointment Start',
+    label: 'Last Appointment Start ISO',
     type: 'DATE',
     description: 'ISO datetime of the most recent appointment.',
     setBy: 'webhook',
@@ -222,7 +229,7 @@ export const OPPORTUNITY_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
   },
   {
     fieldKey: 'last_attendance_iso',
-    label: 'Last Attendance',
+    label: 'Last Attendance ISO',
     type: 'DATE',
     description: 'When this trainee last attended a class. Used for idle-timeout triggers.',
     setBy: 'workflow',

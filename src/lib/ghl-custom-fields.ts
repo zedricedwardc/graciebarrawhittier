@@ -30,6 +30,7 @@ interface RawContactField {
   fieldKey?: string;
   name?: string;
   dataType?: string;
+  model?: string;
 }
 
 interface CfCache {
@@ -53,31 +54,43 @@ function locationId(): string {
 }
 
 /**
- * Refresh the contact custom-field cache from GHL.
- * Opportunity CFs aren't refreshable via a list endpoint — they accumulate
- * in the cache as opportunities flow through `cacheOpportunityCustomFields`.
+ * Refresh both Contact and Opportunity custom-field caches from GHL.
+ * `?model=all` returns both in one response.
  */
 export async function refreshContactCustomFields(): Promise<{
   resolved: string[];
   missing: string[];
 }> {
   const data = await ghlFetch<{ customFields: RawContactField[] }>(
-    `/locations/${encodeURIComponent(locationId())}/customFields`,
+    `/locations/${encodeURIComponent(locationId())}/customFields?model=all`,
     { version: '2021-07-28' },
   );
   const live = data.customFields ?? [];
-  const byKey = new Map<string, string>();
+  const contactMap = new Map<string, string>();
+  const oppMap = new Map<string, string>();
+
+  // GHL stores fieldKey as `<model>.<bare_key>` (e.g. "contact.trainee_key").
+  // Schema uses the bare key. Index both forms so lookups by either match.
   for (const f of live) {
-    if (f.fieldKey) byKey.set(f.fieldKey, f.id);
-    else if (f.name) byKey.set(f.name, f.id); // fallback
+    if (!f.fieldKey) {
+      if (f.name && f.model === 'contact') contactMap.set(f.name, f.id);
+      else if (f.name && f.model === 'opportunity') oppMap.set(f.name, f.id);
+      continue;
+    }
+    const dot = f.fieldKey.indexOf('.');
+    const prefix = dot > 0 ? f.fieldKey.slice(0, dot) : f.model;
+    const bare = dot > 0 ? f.fieldKey.slice(dot + 1) : f.fieldKey;
+    const target = prefix === 'opportunity' ? oppMap : contactMap;
+    target.set(f.fieldKey, f.id);
+    target.set(bare, f.id);
   }
 
-  cache = { ...cache, contact: byKey, loadedAt: Date.now() };
+  cache = { contact: contactMap, opportunity: oppMap, loadedAt: Date.now() };
 
   const resolved: string[] = [];
   const missing: string[] = [];
   for (const def of CONTACT_CUSTOM_FIELDS) {
-    if (byKey.has(def.fieldKey)) resolved.push(def.fieldKey);
+    if (contactMap.has(def.fieldKey)) resolved.push(def.fieldKey);
     else missing.push(def.fieldKey);
   }
   return { resolved, missing };
@@ -94,7 +107,11 @@ export function cacheOpportunityCustomFields(
   for (const f of fields) {
     const id = f.id;
     const key = f.fieldKey ?? f.key;
-    if (id && key) cache.opportunity.set(key, id);
+    if (!id || !key) continue;
+    cache.opportunity.set(key, id);
+    // Index bare-key form (without `opportunity.` prefix) for schema-name lookups.
+    const dot = key.indexOf('.');
+    if (dot > 0) cache.opportunity.set(key.slice(dot + 1), id);
   }
 }
 

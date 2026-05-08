@@ -259,11 +259,11 @@ async function runDiscover(): Promise<void> {
 
   // ─── 2. Contact custom fields ────────────────────────────────────────────
   subheader('2. Contact custom fields');
-  type RawCf = { id: string; fieldKey?: string; name?: string };
+  type RawCf = { id: string; fieldKey?: string; name?: string; model?: string };
   let liveContactCfs: RawCf[] = [];
   try {
     const r = await ghl<{ customFields: RawCf[] }>(
-      `/locations/${encodeURIComponent(locationId())}/customFields`,
+      `/locations/${encodeURIComponent(locationId())}/customFields?model=all`,
     );
     liveContactCfs = r.customFields ?? [];
   } catch (err) {
@@ -272,7 +272,12 @@ async function runDiscover(): Promise<void> {
   }
   const cfByKey = new Map<string, RawCf>();
   for (const f of liveContactCfs) {
-    if (f.fieldKey) cfByKey.set(f.fieldKey, f);
+    if (!f.fieldKey) continue;
+    cfByKey.set(f.fieldKey, f);
+    // GHL stores `<model>.<bare>` (e.g. "contact.trainee_key").
+    // Index the bare-key form so schema lookups match.
+    const dot = f.fieldKey.indexOf('.');
+    if (dot > 0) cfByKey.set(f.fieldKey.slice(dot + 1), f);
   }
   for (const def of CONTACT_CUSTOM_FIELDS) {
     const live = cfByKey.get(def.fieldKey);
@@ -379,9 +384,12 @@ async function runProvision(): Promise<void> {
     console.error(`     Aborting — fix the API access first.`);
     process.exit(1);
   }
-  const existingByKey = new Map<string, RawCv>();
+  // GHL stores Custom Value fieldKey as a Mustache template
+  // (e.g. "{{ custom_values.trial_credits_default }}") and the `key` field is null.
+  // Match by name (1:1 with schema.name) instead.
+  const existingByName = new Map<string, RawCv>();
   for (const cv of existing) {
-    if (cv.fieldKey) existingByKey.set(cv.fieldKey, cv);
+    if (cv.name) existingByName.set(cv.name.trim().toLowerCase(), cv);
   }
 
   let created = 0;
@@ -389,7 +397,7 @@ async function runProvision(): Promise<void> {
   let failed = 0;
 
   for (const def of CUSTOM_VALUES) {
-    const live = existingByKey.get(def.fieldKey);
+    const live = existingByName.get(def.name.trim().toLowerCase());
     if (live) {
       console.log(`  ⏭️  ${def.fieldKey} already exists (${live.id}) — skipping`);
       skipped++;
@@ -408,9 +416,94 @@ async function runProvision(): Promise<void> {
     }
   }
 
+  // ─── Custom Fields (Contact + Opportunity) ──────────────────────────────
+  subheader('Custom Fields (creating idempotently)');
+
+  // Fetch existing contact + opportunity CFs (model=all returns both)
+  type RawCf = { id: string; name?: string; fieldKey?: string; model?: string; dataType?: string };
+  let existingCfs: RawCf[] = [];
+  try {
+    const r = await ghl<{ customFields: RawCf[] }>(
+      `/locations/${encodeURIComponent(locationId())}/customFields?model=all`,
+    );
+    existingCfs = r.customFields ?? [];
+  } catch (err) {
+    console.error(`  ❌ Could not list existing custom fields: ${(err as Error).message}`);
+    console.error(`     Aborting field provisioning — fix the API access first.`);
+    process.exit(1);
+  }
+
+  // Index by `model.bareKey`. Derive model from the fieldKey prefix because
+  // the LIST endpoint doesn't always include a `model` field on the record.
+  const cfByKey = new Map<string, RawCf>();
+  for (const f of existingCfs) {
+    if (!f.fieldKey) continue;
+    const dot = f.fieldKey.indexOf('.');
+    if (dot > 0) {
+      // Already prefixed (e.g. "opportunity.trainee_key") — use as-is.
+      cfByKey.set(f.fieldKey, f);
+    } else {
+      // Bare — fall back to whatever model the record claims, default contact.
+      cfByKey.set(`${f.model ?? 'contact'}.${f.fieldKey}`, f);
+    }
+  }
+
+  // Map our schema CustomFieldType → GHL dataType
+  const TYPE_MAP: Record<string, string> = {
+    TEXT: 'TEXT',
+    TEXTAREA: 'LARGE_TEXT',
+    NUMBER: 'NUMERICAL',
+    DATE: 'DATE',
+    DROPDOWN_SINGLE: 'SINGLE_OPTIONS',
+  };
+
+  async function provisionCfBatch(
+    defs: readonly { fieldKey: string; label: string; type: string }[],
+    model: 'contact' | 'opportunity',
+  ): Promise<{ created: number; skipped: number; failed: number }> {
+    let c = 0, s = 0, fc = 0;
+    for (const def of defs) {
+      const lookupKey = `${model}.${def.fieldKey}`;
+      if (cfByKey.has(lookupKey)) {
+        console.log(`  ⏭️  [${model}] ${def.fieldKey} already exists — skipping`);
+        s++;
+        continue;
+      }
+      const dataType = TYPE_MAP[def.type];
+      if (!dataType) {
+        console.error(`  ❌ [${model}] ${def.fieldKey}: unknown schema type "${def.type}"`);
+        fc++;
+        continue;
+      }
+      try {
+        await ghl(`/locations/${encodeURIComponent(locationId())}/customFields`, {
+          method: 'POST',
+          body: { name: def.label, dataType, model },
+        });
+        console.log(`  ✅ [${model}] created ${def.fieldKey} (${dataType})`);
+        c++;
+      } catch (err) {
+        console.error(`  ❌ [${model}] failed ${def.fieldKey}: ${(err as Error).message}`);
+        fc++;
+      }
+    }
+    return { created: c, skipped: s, failed: fc };
+  }
+
+  console.log(`\n  Contact custom fields (${CONTACT_CUSTOM_FIELDS.length}):`);
+  const contactRes = await provisionCfBatch(CONTACT_CUSTOM_FIELDS, 'contact');
+  console.log(`\n  Opportunity custom fields (${OPPORTUNITY_CUSTOM_FIELDS.length}):`);
+  const oppRes = await provisionCfBatch(OPPORTUNITY_CUSTOM_FIELDS, 'opportunity');
+
+  const cfCreated = contactRes.created + oppRes.created;
+  const cfSkipped = contactRes.skipped + oppRes.skipped;
+  const cfFailed = contactRes.failed + oppRes.failed;
+
   // ─── Summary ────────────────────────────────────────────────────────────
-  header(`Provision complete: ${created} created, ${skipped} skipped, ${failed} failed`);
-  if (failed > 0) {
+  header(`Provision complete`);
+  console.log(`  Custom Values:  ${created} created, ${skipped} skipped, ${failed} failed`);
+  console.log(`  Custom Fields:  ${cfCreated} created, ${cfSkipped} skipped, ${cfFailed} failed`);
+  if (failed > 0 || cfFailed > 0) {
     console.log(`\n  ⚠️  Some failures — re-run after fixing, or create manually in GHL UI.`);
     process.exit(1);
   }
