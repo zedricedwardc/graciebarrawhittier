@@ -16,7 +16,7 @@ import {
   readEnv,
 } from '../../lib/ghl';
 import { handleBooking } from '../../lib/ghl-adapter';
-import { findOpps, findByTraineeKey, moveStage } from '../../lib/ghl-opportunities';
+import { findOpps, findByTraineeKey, moveStage, getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { cfPayload } from '../../lib/ghl-custom-fields';
 import { generateSlots } from '../../lib/slot-resolver';
 import { blackouts } from '../../data/blackouts';
@@ -301,7 +301,7 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
       pipelineKey: 'CREDIT_MON',
       status: 'open',
     });
-    creditOpp = findByTraineeKey(opps, body.rebook.traineeKey);
+    creditOpp = await findByTraineeKey(opps, body.rebook.traineeKey);
   } catch (err) {
     console.error('[book/rebook] findOpps failed',
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
@@ -312,7 +312,10 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
   }
 
   // Create the appointment. Title carries the trainee name from the credit opp.
-  const traineeName = readCfFromOpp(creditOpp, 'trainee_first_name') ?? contact.firstName ?? 'Trainee';
+  const traineeName =
+    (await getOppCfValueByKey<string>(creditOpp, 'trainee_first_name')) ??
+    contact.firstName ??
+    'Trainee';
   const endISO = computeEndISO(body.slotStartISO, body.program);
   const title = `${getProgram(body.program).name} (rebook) — ${traineeName}`;
 

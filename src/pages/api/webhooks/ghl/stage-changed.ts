@@ -21,7 +21,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { verifyGhlWebhook } from '../../../../lib/webhook-secrets';
 import { handleAttendance } from '../../../../lib/ghl-adapter';
-import { findOpps, setOppStatus, moveStage, getOppCfValue } from '../../../../lib/ghl-opportunities';
+import { findOpps, setOppStatus, moveStage, getOppCfValueByKey } from '../../../../lib/ghl-opportunities';
 import { idempotency } from '../../../../lib/idempotency';
 import { GhlError } from '../../../../lib/ghl-rate-limit';
 
@@ -59,8 +59,12 @@ function normalizeStagePayload(raw: unknown): Record<string, string | number> {
   const pick = (...keys: Array<{ from: 'cd' | 'top'; key: string }>): string => {
     for (const { from, key } of keys) {
       const v = (from === 'cd' ? cd[key] : r[key]);
-      if (typeof v === 'string' && v.trim()) return v.trim();
-      if (typeof v === 'number') return String(v);
+      if (typeof v === 'string') {
+        const t = v.trim();
+        if (t && !t.includes('{{')) return t;
+      } else if (typeof v === 'number') {
+        return String(v);
+      }
     }
     return '';
   };
@@ -165,10 +169,12 @@ export const POST: APIRoute = async ({ request }) => {
             status: 'open',
             limit: 20,
           });
-          const matchingCredit = creditOpps.find(
-            (o) => getOppCfValue<string>(o, 'trainee_key')?.toLowerCase() ===
-                   body.trainee_key!.toLowerCase(),
-          );
+          let matchingCredit: typeof creditOpps[number] | undefined;
+          const wantedKey = body.trainee_key.toLowerCase();
+          for (const o of creditOpps) {
+            const k = await getOppCfValueByKey<string>(o, 'trainee_key');
+            if (k?.toLowerCase() === wantedKey) { matchingCredit = o; break; }
+          }
           if (matchingCredit) {
             await moveStage({
               oppId: matchingCredit.id,

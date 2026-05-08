@@ -96,8 +96,8 @@ const renderTs = Date.now();
             </button>
 
             <p data-lookup-error class="hidden text-sm text-gb-red text-center" role="alert">
-              We couldn't find an active trial pass for that email + last name. Double-check or
-              <a href="/contact" class="underline font-semibold hover:text-gb-red-dark">contact us</a>.
+              <span data-lookup-error-msg>We couldn't find an active trial pass for that email + last name. Double-check or
+              <a href="/contact" class="underline font-semibold hover:text-gb-red-dark">contact us</a>.</span>
             </p>
           </form>
         </div>
@@ -240,6 +240,13 @@ const renderTs = Date.now();
     const lookupFormEl = root.querySelector<HTMLFormElement>('[data-rebook-lookup-form]');
     const lookupSubmit = root.querySelector<HTMLButtonElement>('[data-lookup-submit]');
     const lookupError = root.querySelector<HTMLElement>('[data-lookup-error]');
+    const lookupErrorMsg = root.querySelector<HTMLElement>('[data-lookup-error-msg]');
+    const LOOKUP_ERROR_DEFAULT = lookupErrorMsg?.innerHTML ?? '';
+    function showLookupError(html?: string) {
+      if (lookupErrorMsg && html) lookupErrorMsg.innerHTML = html;
+      else if (lookupErrorMsg) lookupErrorMsg.innerHTML = LOOKUP_ERROR_DEFAULT;
+      lookupError?.classList.remove('hidden');
+    }
 
     const confirmSummary = root.querySelector<HTMLElement>('[data-confirm-summary]');
     const confirmBack = root.querySelector<HTMLButtonElement>('[data-confirm-back]');
@@ -327,7 +334,7 @@ const renderTs = Date.now();
       const email = String(data.get('email') ?? '').trim();
       const lastName = String(data.get('lastName') ?? '').trim();
       if (!email || !lastName) {
-        lookupError?.classList.remove('hidden');
+        showLookupError();
         return;
       }
       if (lookupSubmit) {
@@ -343,12 +350,18 @@ const renderTs = Date.now();
         });
         const json = await res.json();
         if (!json.ok) {
-          lookupError?.classList.remove('hidden');
+          if (json.code === 'RATE_LIMITED') {
+            showLookupError('Too many attempts. Please wait a few minutes and try again, or <a href="/contact" class="underline font-semibold hover:text-gb-red-dark">contact us</a>.');
+          } else if (json.code === 'GHL_FAILED') {
+            showLookupError('We hit a snag finding your pass. Please try again in a moment or <a href="/contact" class="underline font-semibold hover:text-gb-red-dark">contact us</a>.');
+          } else {
+            showLookupError();
+          }
           return;
         }
         applyAuthContext(json);
       } catch {
-        lookupError?.classList.remove('hidden');
+        showLookupError();
       } finally {
         if (lookupSubmit) {
           lookupSubmit.disabled = false;

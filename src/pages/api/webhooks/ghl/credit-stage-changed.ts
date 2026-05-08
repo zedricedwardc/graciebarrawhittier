@@ -26,7 +26,7 @@ import {
   findOpps,
   setOppStatus,
   moveStage,
-  getOppCfValue,
+  getOppCfValueByKey,
 } from '../../../../lib/ghl-opportunities';
 import { updateOpportunity } from '../../../../lib/ghl';
 import { cfPayload } from '../../../../lib/ghl-custom-fields';
@@ -52,8 +52,14 @@ function normalizeCreditPayload(raw: unknown): Record<string, string | number> {
   const pick = (...keys: Array<{ from: 'cd' | 'top'; key: string }>): string => {
     for (const { from, key } of keys) {
       const v = (from === 'cd' ? cd[key] : r[key]);
-      if (typeof v === 'string' && v.trim()) return v.trim();
-      if (typeof v === 'number') return String(v);
+      if (typeof v === 'string') {
+        const t = v.trim();
+        // Skip unresolved GHL merge tags. Tolerant of typos like "{{opportunity.id}"
+        // (missing closing brace) — any value containing "{{" is suspect.
+        if (t && !t.includes('{{')) return t;
+      } else if (typeof v === 'number') {
+        return String(v);
+      }
     }
     return '';
   };
@@ -103,13 +109,15 @@ export const POST: APIRoute = async ({ request }) => {
     const stage = body.to_stage.trim().toUpperCase();
     switch (stage) {
       case 'ATTENDED APPOINTMENT': {
-        if (!body.last_appointment_start_iso) {
-          return ok({ ok: false, code: 'MISSING_TRIAL_DATE' });
-        }
+        // Admin drag-drops in GHL UI won't carry last_appointment_start_iso —
+        // the merge tag resolves empty when the CF wasn't set by a /api/book flow.
+        // Fall back to "now" so the credit decrement still happens. The audit
+        // note will read the current date instead of the (unknown) trial date.
+        const trialDateISO = body.last_appointment_start_iso || new Date().toISOString();
         await handleCreditDecrement({
           contactId: body.contact_id,
           oppId: body.opp_id,
-          trialDateISO: body.last_appointment_start_iso,
+          trialDateISO,
           traineeKey: body.trainee_key,
         });
         break;
@@ -145,10 +153,12 @@ export const POST: APIRoute = async ({ request }) => {
             status: 'open',
             limit: 20,
           });
-          const matching = trialOpps.find(
-            (o) => getOppCfValue<string>(o, 'trainee_key')?.toLowerCase() ===
-                   body.trainee_key!.toLowerCase(),
-          );
+          let matching: typeof trialOpps[number] | undefined;
+          const wantedKey = body.trainee_key.toLowerCase();
+          for (const o of trialOpps) {
+            const k = await getOppCfValueByKey<string>(o, 'trainee_key');
+            if (k?.toLowerCase() === wantedKey) { matching = o; break; }
+          }
           if (matching) {
             await moveStage({
               oppId: matching.id,

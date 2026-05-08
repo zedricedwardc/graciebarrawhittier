@@ -42,8 +42,12 @@ function normalizeAppointmentPayload(raw: unknown): Record<string, string | numb
     for (const { from, key } of specs) {
       const src = from === 'cd' ? cd : from === 'a' ? a : r;
       const v = src[key];
-      if (typeof v === 'string' && v.trim()) return v.trim();
-      if (typeof v === 'number') return String(v);
+      if (typeof v === 'string') {
+        const t = v.trim();
+        if (t && !t.includes('{{')) return t;
+      } else if (typeof v === 'number') {
+        return String(v);
+      }
     }
     return '';
   };

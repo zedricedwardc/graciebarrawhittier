@@ -131,20 +131,25 @@ export async function searchContactByEmailAndLastName(args: {
   email: string;
   lastName: string;
 }): Promise<ContactRecord | null> {
+  // GHL's `/contacts/search` with `lastName eq` returns 0 results in practice;
+  // `contains` works. Exact-match client-side to keep the contract tight.
   const body = {
     locationId: locationId(),
-    pageLimit: 5,
+    pageLimit: 20,
     filters: [
       { field: 'email', operator: 'eq', value: args.email.toLowerCase() },
-      { field: 'lastName', operator: 'eq', value: args.lastName },
+      { field: 'lastName', operator: 'contains', value: args.lastName },
     ],
   };
   const data = (await request('/contacts/search', {
     method: 'POST',
     body: JSON.stringify(body),
   })) as { contacts?: ContactRecord[] };
-  const contact = data.contacts?.[0];
-  return contact ?? null;
+  const wanted = args.lastName.trim().toLowerCase();
+  const match = (data.contacts ?? []).find(
+    (c) => (c.lastName ?? '').trim().toLowerCase() === wanted,
+  );
+  return match ?? null;
 }
 
 // ── Opportunities ────────────────────────────────────────────────────────

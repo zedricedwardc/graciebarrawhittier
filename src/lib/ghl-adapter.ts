@@ -29,6 +29,7 @@ import {
   findByTraineeKey,
   setOppStatus,
   getOppCfValue,
+  getOppCfValueByKey,
 } from './ghl-opportunities';
 import { cfPayload } from './ghl-custom-fields';
 import { deriveTraineeKey } from './trainee-key';
@@ -302,7 +303,7 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
     status: 'open',
     limit: 20,
   });
-  const existingOpp = findByTraineeKey(existingOpps, traineeKey);
+  const existingOpp = await findByTraineeKey(existingOpps, traineeKey);
 
   const oppName = input.trainee.isSelf
     ? `${input.parent.firstName} ${input.parent.lastName}`
@@ -415,10 +416,10 @@ export async function handleAttendance(input: HandleAttendanceInput): Promise<Ha
     status: 'open',
     limit: 20,
   });
-  const existingCredit = findByTraineeKey(existing, input.traineeKey);
+  const existingCredit = await findByTraineeKey(existing, input.traineeKey);
 
   // Read credits from existing opp (if any). New opp inits to TRIAL_CREDITS_DEFAULT.
-  let credits = existingCredit ? Number(getOppCfValue(existingCredit, 'credits_remaining') ?? 0) : 0;
+  let credits = existingCredit ? Number((await getOppCfValueByKey(existingCredit, 'credits_remaining')) ?? 0) : 0;
   if (!Number.isFinite(credits) || credits <= 0) {
     const defaultCredits = Number(readEnv('TRIAL_CREDITS_DEFAULT') ?? '3');
     credits = Number.isFinite(defaultCredits) ? defaultCredits : 3;
@@ -530,8 +531,8 @@ export async function handleCreditDecrement(input: HandleCreditDecrementInput): 
     };
   }
 
-  const lastDecrement = getOppCfValue<string>(opp, 'last_decrement_trial_date');
-  const before = Number(getOppCfValue<number | string>(opp, 'credits_remaining') ?? 0) || 0;
+  const lastDecrement = await getOppCfValueByKey<string>(opp, 'last_decrement_trial_date');
+  const before = Number((await getOppCfValueByKey<number | string>(opp, 'credits_remaining')) ?? 0) || 0;
 
   // Idempotency guard — same trial date already decremented on this opp? No-op.
   if (lastDecrement && lastDecrement === input.trialDateISO) {
@@ -562,7 +563,7 @@ export async function handleCreditDecrement(input: HandleCreditDecrementInput): 
 
   // Try to use trainee's first name from the opp; fallback to trainee_key.
   const traineeName =
-    (getOppCfValue<string>(opp, 'trainee_first_name') as string | undefined) ||
+    (await getOppCfValueByKey<string>(opp, 'trainee_first_name')) ||
     input.traineeKey ||
     'student';
   const stageLabel = nextStage === 'CREDITS EXHAUSTED' ? 'pass exhausted' : `${after} class${after === 1 ? '' : 'es'} remaining`;
@@ -608,10 +609,11 @@ export async function handleCancellation(input: HandleCancellationInput): Promis
     status: 'open',
     limit: 20,
   });
-  const matchingOpp = opps.find((o) => {
-    const apptId = getOppCfValue<string>(o, 'last_appointment_id');
-    return apptId === input.appointmentId;
-  });
+  let matchingOpp: typeof opps[number] | undefined;
+  for (const o of opps) {
+    const apptId = await getOppCfValueByKey<string>(o, 'last_appointment_id');
+    if (apptId === input.appointmentId) { matchingOpp = o; break; }
+  }
 
   if (matchingOpp) {
     await setOppStatus(matchingOpp.id, 'abandoned');

@@ -46,16 +46,15 @@ export async function findOpps(args: {
  *
  * GHL's /opportunities/search doesn't support filtering by custom field
  * server-side, so we fetch by contact + pipeline first and filter client-side.
+ *
+ * Async because /opportunities/search responses strip key/fieldKey — we have to
+ * resolve the field id via the CF cache to match.
  */
-export function findByTraineeKey(opps: OpportunityRecord[], traineeKey: string): OpportunityRecord | null {
+export async function findByTraineeKey(opps: OpportunityRecord[], traineeKey: string): Promise<OpportunityRecord | null> {
+  const wanted = traineeKey.toLowerCase();
   for (const opp of opps) {
-    const cfs = opp.customFields ?? [];
-    for (const cf of cfs) {
-      if (cf.key === 'trainee_key' || (cf as { fieldKey?: string }).fieldKey === 'trainee_key') {
-        const v = (cf.field_value ?? cf.value) as string | undefined;
-        if (typeof v === 'string' && v.toLowerCase() === traineeKey.toLowerCase()) return opp;
-      }
-    }
+    const v = await getOppCfValueByKey<string>(opp, 'trainee_key');
+    if (typeof v === 'string' && v.toLowerCase() === wanted) return opp;
   }
   return null;
 }
@@ -65,18 +64,36 @@ export function findByTraineeKey(opps: OpportunityRecord[], traineeKey: string):
  *
  * Works only for response shapes that include `key`/`fieldKey` on each CF —
  * mostly POST/PUT request responses. For GET / search responses (which only
- * include `id` + `fieldValue`), use {@link getOppCfValueByKey} which looks
+ * include `id` + `fieldValue*`), use {@link getOppCfValueByKey} which looks
  * up the field ID via the CF cache.
  */
 export function getOppCfValue<T = unknown>(opp: OpportunityRecord, fieldKey: string): T | undefined {
   for (const cf of opp.customFields ?? []) {
     if (cf.key === fieldKey || (cf as { fieldKey?: string }).fieldKey === fieldKey) {
-      return ((cf as { field_value?: unknown }).field_value
-        ?? (cf as { fieldValue?: unknown }).fieldValue
-        ?? cf.value) as T;
+      return readCfValue<T>(cf);
     }
   }
   return undefined;
+}
+
+/**
+ * Pick the populated value off a CF entry, regardless of the GHL response
+ * shape variant. GHL has at least four shapes in the wild:
+ *   - POST/PUT response:        { key, field_value }
+ *   - GET /opportunities/:id:   { id, fieldValue }
+ *   - GET /opportunities/search:{ id, type, fieldValueString | fieldValueNumber | fieldValueDate | fieldValueArray }
+ *   - older contact CF:         { id, value }
+ */
+function readCfValue<T>(cf: Record<string, unknown>): T | undefined {
+  const v =
+    cf.field_value ??
+    cf.fieldValue ??
+    cf.fieldValueString ??
+    cf.fieldValueNumber ??
+    cf.fieldValueDate ??
+    cf.fieldValueArray ??
+    cf.value;
+  return v as T | undefined;
 }
 
 /**
@@ -103,9 +120,7 @@ export async function getOppCfValueByKey<T = unknown>(
   }
   for (const cf of opp.customFields ?? []) {
     if (cf.id === id) {
-      return ((cf as { field_value?: unknown }).field_value
-        ?? (cf as { fieldValue?: unknown }).fieldValue
-        ?? cf.value) as T;
+      return readCfValue<T>(cf as unknown as Record<string, unknown>);
     }
   }
   return undefined;

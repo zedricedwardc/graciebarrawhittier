@@ -20,10 +20,10 @@ import { z } from 'astro/zod';
 import {
   searchOpportunities,
   GhlError,
-  readEnv,
   type OpportunityRecord,
 } from '../../lib/ghl';
 import { getOppCfValueByKey } from '../../lib/ghl-opportunities';
+import { getPipelineId } from '../../lib/ghl-pipelines';
 import { signRebookToken, verifyRebookToken } from '../../lib/rebook-token';
 
 export const prerender = false;
@@ -50,9 +50,11 @@ export const POST: APIRoute = async ({ request }) => {
   }
   const { contactId, traineeKey } = verified.payload;
 
-  const creditPipelineId = readEnv('PIPELINE_ID_CREDIT_MON');
-  if (!creditPipelineId) {
-    console.error('[rebook-context] PIPELINE_ID_CREDIT_MON env var not set');
+  let creditPipelineId: string;
+  try {
+    creditPipelineId = await getPipelineId('CREDIT_MON');
+  } catch (err) {
+    console.error('[rebook-context] could not resolve Credit Mon pipeline', err);
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 

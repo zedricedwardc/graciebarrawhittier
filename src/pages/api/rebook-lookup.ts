@@ -27,17 +27,17 @@ import {
   searchContactByEmailAndLastName,
   searchOpportunities,
   GhlError,
-  readEnv,
   type ContactRecord,
   type OpportunityRecord,
 } from '../../lib/ghl';
 import { getOppCfValueByKey } from '../../lib/ghl-opportunities';
+import { getPipelineId } from '../../lib/ghl-pipelines';
 import { signRebookToken } from '../../lib/rebook-token';
 
 export const prerender = false;
 
 const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const RATE_MAX_PER_WINDOW = 5;
+const RATE_MAX_PER_WINDOW = 20;
 
 // Module-scoped — survives across requests on a warm Fluid Compute instance.
 const buckets = new Map<string, { count: number; firstSeen: number }>();
@@ -84,9 +84,11 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 
   // Layer 4 — Find an open Trial Credit Monitoring opp for this contact.
-  const creditPipelineId = readEnv('PIPELINE_ID_CREDIT_MON');
-  if (!creditPipelineId) {
-    console.error('[rebook-lookup] PIPELINE_ID_CREDIT_MON env var not set');
+  let creditPipelineId: string;
+  try {
+    creditPipelineId = await getPipelineId('CREDIT_MON');
+  } catch (err) {
+    console.error('[rebook-lookup] could not resolve Credit Mon pipeline', err);
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
