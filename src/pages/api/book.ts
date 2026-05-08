@@ -17,6 +17,7 @@ import {
   GhlError,
   readEnv,
 } from '../../lib/ghl';
+import { handleBooking } from '../../lib/ghl-adapter';
 import { generateSlots } from '../../lib/slot-resolver';
 import { blackouts } from '../../data/blackouts';
 import { verifyRebookToken } from '../../lib/rebook-token';
@@ -129,27 +130,36 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not create appointment.' });
   }
 
-  const appointmentHook = readEnv('GHL_APPOINTMENT_WEBHOOK_URL');
-  if (appointmentHook) {
-    void fetch(appointmentHook, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        appointmentId,
-        contactId,
-        program: body.program,
-        programName: getProgram(body.program).name,
-        calendarId,
-        startISO: body.slotStartISO,
-        endISO,
-        title,
-        parent: body.parent,
-        trainee: body.trainee,
-      }),
-    }).catch((err) => console.error('[book] appointment webhook failed', err));
+  // Phase 3: dispatch to ghl-adapter for opportunity orchestration
+  // (replaces the legacy fire-and-forget GHL_APPOINTMENT_WEBHOOK_URL).
+  let opportunityId: string | undefined;
+  let isRebook = false;
+  try {
+    const result = await handleBooking({
+      contactId,
+      appointmentId,
+      parent: body.parent,
+      trainee: {
+        firstName: body.trainee.firstName,
+        age: body.trainee.age,
+        isSelf: body.trainee.isSelf,
+      },
+      program: body.program,
+      programName: getProgram(body.program).name,
+      slotStartISO: body.slotStartISO,
+      slotEndISO: endISO,
+    });
+    opportunityId = result.opportunityId;
+    isRebook = result.isRebook;
+  } catch (err) {
+    // Appointment was created; opp orchestration failed. Log and return success
+    // so the user sees the booking confirmation. Backflow webhooks (Phase 4)
+    // can reconcile, OR admin can verify manually.
+    console.error('[book] handleBooking failed (appointment did succeed)',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText, path: err.path } : err);
   }
 
-  return json({ ok: true, appointmentId });
+  return json({ ok: true, appointmentId, opportunityId, isRebook });
 };
 
 function checkRate(ip: string): boolean {
