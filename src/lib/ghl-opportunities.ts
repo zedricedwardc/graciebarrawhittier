@@ -15,7 +15,7 @@ import {
   type UpdateOpportunityArgs,
 } from './ghl';
 import { getPipelineId, getStageId } from './ghl-pipelines';
-import { cacheOpportunityCustomFields } from './ghl-custom-fields';
+import { cacheOpportunityCustomFields, getCfId } from './ghl-custom-fields';
 import type { PipelineKey } from '../../config/ghl-schema';
 
 /**
@@ -60,11 +60,52 @@ export function findByTraineeKey(opps: OpportunityRecord[], traineeKey: string):
   return null;
 }
 
-/** Read a single custom-field value off an opportunity record. */
+/**
+ * Read a single custom-field value off an opportunity record (sync, no cache).
+ *
+ * Works only for response shapes that include `key`/`fieldKey` on each CF —
+ * mostly POST/PUT request responses. For GET / search responses (which only
+ * include `id` + `fieldValue`), use {@link getOppCfValueByKey} which looks
+ * up the field ID via the CF cache.
+ */
 export function getOppCfValue<T = unknown>(opp: OpportunityRecord, fieldKey: string): T | undefined {
   for (const cf of opp.customFields ?? []) {
     if (cf.key === fieldKey || (cf as { fieldKey?: string }).fieldKey === fieldKey) {
-      return (cf.field_value ?? cf.value) as T;
+      return ((cf as { field_value?: unknown }).field_value
+        ?? (cf as { fieldValue?: unknown }).fieldValue
+        ?? cf.value) as T;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Async, cache-backed CF reader. Resolves the field's ID via the CF cache
+ * (loading it if needed) then matches by `id` in the opp's customFields.
+ *
+ * Use this when reading from GET /opportunities/:id or /opportunities/search
+ * responses, which strip key/fieldKey and only include id + fieldValue.
+ */
+export async function getOppCfValueByKey<T = unknown>(
+  opp: OpportunityRecord,
+  fieldKey: string,
+): Promise<T | undefined> {
+  // Try the sync path first — covers write-response shapes.
+  const sync = getOppCfValue<T>(opp, fieldKey);
+  if (sync !== undefined) return sync;
+
+  // Fall back to ID-based lookup via the CF cache.
+  let id: string;
+  try {
+    id = await getCfId('opportunity', fieldKey);
+  } catch {
+    return undefined;
+  }
+  for (const cf of opp.customFields ?? []) {
+    if (cf.id === id) {
+      return ((cf as { field_value?: unknown }).field_value
+        ?? (cf as { fieldValue?: unknown }).fieldValue
+        ?? cf.value) as T;
     }
   }
   return undefined;

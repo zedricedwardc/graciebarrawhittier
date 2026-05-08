@@ -23,6 +23,7 @@ import {
   readEnv,
   type OpportunityRecord,
 } from '../../lib/ghl';
+import { getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { signRebookToken, verifyRebookToken } from '../../lib/rebook-token';
 
 export const prerender = false;
@@ -70,18 +71,22 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  // Find the opp matching the trainee_key from the token.
-  const matchOpp = opps.find((o) => readCfValue(o.customFields, 'trainee_key') === traineeKey);
+  // Find the opp matching the trainee_key from the token. Iterate opps and use
+  // async getOppCfValueByKey (since GET responses strip key/fieldKey).
+  let matchOpp: OpportunityRecord | undefined;
+  for (const o of opps) {
+    const k = await getOppCfValueByKey<string>(o, 'trainee_key');
+    if (k === traineeKey) { matchOpp = o; break; }
+  }
   if (!matchOpp) {
     return json({ ok: false, code: 'NOT_FOUND' });
   }
 
   const traineeName =
-    readCfValue(matchOpp.customFields, 'trainee_first_name') ?? 'there';
-  const program = readCfValue(matchOpp.customFields, 'program') ?? 'adults';
-  const creditsDisplay = Number(
-    readCfValue(matchOpp.customFields, 'credits_remaining_display') ?? '0',
-  );
+    (await getOppCfValueByKey<string>(matchOpp, 'trainee_first_name')) ?? 'there';
+  const program = (await getOppCfValueByKey<string>(matchOpp, 'program')) ?? 'adults';
+  const creditsRaw = await getOppCfValueByKey<string | number>(matchOpp, 'credits_remaining');
+  const creditsRemaining = Number(creditsRaw ?? 0);
 
   // Mint a short-lived session token (15 min) so subsequent calls don't pass the
   // long-lived magic-link token around.
@@ -98,24 +103,9 @@ export const POST: APIRoute = async ({ request }) => {
     traineeName,
     traineeKey,
     program,
-    creditsRemaining: Number.isFinite(creditsDisplay) ? creditsDisplay : 0,
+    creditsRemaining: Number.isFinite(creditsRemaining) ? creditsRemaining : 0,
   });
 };
-
-function readCfValue(
-  fields: OpportunityRecord['customFields'],
-  key: string,
-): string | null {
-  if (!fields) return null;
-  for (const f of fields) {
-    if (f.key === key || f.id === key) {
-      const v = (f.value ?? f.field_value) as unknown;
-      if (v == null) return null;
-      return String(v);
-    }
-  }
-  return null;
-}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

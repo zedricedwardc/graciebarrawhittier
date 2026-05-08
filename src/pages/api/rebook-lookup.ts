@@ -31,6 +31,7 @@ import {
   type ContactRecord,
   type OpportunityRecord,
 } from '../../lib/ghl';
+import { getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { signRebookToken } from '../../lib/rebook-token';
 
 export const prerender = false;
@@ -112,18 +113,18 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'NOT_FOUND' });
   }
 
-  const traineeKey = readCfValue(activeOpp.customFields, 'trainee_key') ?? '';
+  const traineeKey = (await getOppCfValueByKey<string>(activeOpp, 'trainee_key')) ?? '';
   const traineeName =
-    readCfValue(activeOpp.customFields, 'trainee_first_name') ??
+    (await getOppCfValueByKey<string>(activeOpp, 'trainee_first_name')) ??
     contact.firstName ??
     'there';
-  const program = readCfValue(activeOpp.customFields, 'program') ?? 'adults';
-  const creditsDisplay = Number(
-    readCfValue(activeOpp.customFields, 'credits_remaining_display') ?? '0',
-  );
+  const program = (await getOppCfValueByKey<string>(activeOpp, 'program')) ?? 'adults';
+  const creditsRaw = await getOppCfValueByKey<string | number>(activeOpp, 'credits_remaining');
+  const creditsRemaining = Number(creditsRaw ?? 0);
 
   if (!traineeKey) {
-    // Opp exists but trainee_key not populated — Phase 4 hasn't run yet.
+    // Opp exists but trainee_key not populated — likely the Trial Active Nurture
+    // backflow handler hasn't fired yet for this trainee.
     return json({ ok: false, code: 'NOT_FOUND' });
   }
 
@@ -141,24 +142,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     traineeName,
     traineeKey,
     program,
-    creditsRemaining: Number.isFinite(creditsDisplay) ? creditsDisplay : 0,
+    creditsRemaining: Number.isFinite(creditsRemaining) ? creditsRemaining : 0,
   });
 };
-
-function readCfValue(
-  fields: ContactRecord['customFields'],
-  key: string,
-): string | null {
-  if (!fields) return null;
-  for (const f of fields) {
-    if (f.key === key || f.id === key) {
-      const v = (f.value ?? f.field_value) as unknown;
-      if (v == null) return null;
-      return String(v);
-    }
-  }
-  return null;
-}
 
 function checkRate(ip: string): boolean {
   const now = Date.now();
