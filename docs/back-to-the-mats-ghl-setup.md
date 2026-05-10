@@ -221,7 +221,9 @@ GHL_CAL_BTM_LC2=…
 GHL_CAL_BTM_JUNIORS=…
 GHL_CAL_BTM_ADULTS=…
 
-PUBLIC_BACK_TO_MATS_DEADLINE_ISO=2026-06-08T23:59:00-07:00   # update per run
+# Note: deadline is NO LONGER a Vercel env var.
+# It lives in the GHL custom value `back_to_mats_deadline` and the page
+# fetches it at request time. Update it in GHL UI per campaign run.
 ```
 
 Trigger a redeploy after saving (or push any commit).
@@ -287,7 +289,7 @@ The 30-Day Campaign will fire automatically on each new opp. Monitor delivery + 
 
 ## Operational notes
 
-- **Update the deadline before every campaign run.** Set both `PUBLIC_BACK_TO_MATS_DEADLINE_ISO` (Vercel env, controls the website countdown) and `back_to_mats_deadline` (GHL custom value, controls the email/SMS body merge).
+- **Update the deadline before every campaign run.** Set the `back_to_mats_deadline` GHL custom value (Settings → Custom Values) — the website fetches it at request time and parses it for the countdown timer + display label. Format: ISO 8601 with offset, e.g. `2026-06-08T23:59:00-07:00`. The change propagates to the live page within ~5 minutes (cache TTL).
 - **Re-running CSV import:** GHL will create duplicate opps even for contacts already in BTM. Filter your CSV to exclude contacts where `back_to_mats_imported_at` was set within the last 60 days.
 - **Multi-trainee bookings:** A parent who books multiple kids in one session sees their BTM opp move to RE ENROLLMENT CLASS BOOKED on the first booking. Subsequent bookings in the same session are no-ops on BTM (logged but don't move stage). Per-trainee tracking happens in TRIAL_CONV opps.
 - **NO-SHOW classification:** Admin manually moves opps from `APPOINTMENT TODAY` → `NO-SHOW` or `RE ENROLLED`. The 14-day re-booking workflow fires automatically on NO-SHOW. Auto-move to OFFER EXPIRED happens 14 days later if they don't re-book.

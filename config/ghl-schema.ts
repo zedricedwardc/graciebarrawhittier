@@ -609,8 +609,10 @@ export const ENV_VARS: readonly EnvVarDef[] = [
   { key: 'GHL_CAL_BTM_JUNIORS', required: false, description: 'Calendar ID for Juniors BJJ program (BTM flow).' },
   { key: 'GHL_CAL_BTM_ADULTS', required: false, description: 'Calendar ID for Adults BJJ program (BTM flow).' },
 
-  // Public-facing BTM env (read at build time by /back-to-the-mats page)
-  { key: 'PUBLIC_BACK_TO_MATS_DEADLINE_ISO', required: false, description: 'Campaign deadline as ISO 8601 with offset (e.g. 2026-06-08T23:59:00-07:00). Drives the page countdown + every "offer ends" label. Empty leaves placeholders + falls back to "soon".' },
+  // NOTE: BTM campaign deadline lives in the `back_to_mats_deadline` GHL
+  // custom value (read at request time via src/lib/ghl-custom-values.ts) so
+  // the studio admin can update it via Settings → Custom Values in GHL —
+  // no env var, no redeploy required.
 
   { key: 'IDEMPOTENCY_BACKEND', required: false, description: 'memory (default) | upstash. Use upstash for cold-start durability.' },
   { key: 'KV_REST_API_URL', required: false, description: 'Upstash REST URL when IDEMPOTENCY_BACKEND=upstash.' },

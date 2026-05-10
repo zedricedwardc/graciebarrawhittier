@@ -6,14 +6,22 @@
  * Funnel-only page reached exclusively from the Back to the Mats email/SMS
  * campaign in GHL. Not linked from site nav or footer; sitemap-excluded.
  *
- * Deadline driven by PUBLIC_BACK_TO_MATS_DEADLINE_ISO (e.g. 2026-06-08T23:59:00-07:00).
- * Update before each campaign run; the countdown timer + deadline labels both
- * read from this single source.
+ * Deadline is read from the GHL custom value `back_to_mats_deadline` at
+ * request time (cached 5 min). Studio admin updates the deadline via
+ * GHL Settings → Custom Values without needing a developer or redeploy.
+ *
+ * Expected GHL value format: ISO 8601 with timezone offset, e.g.
+ * `2026-06-08T23:59:00-07:00`. The page parses the ISO for the countdown
+ * timer and formats the human-readable label automatically.
+ *
+ * If the value is missing, empty, or unparseable, the page falls back to
+ * "soon" placeholders and the countdown shows dashes — same graceful
+ * degradation as before.
  *
  * Bookings here use `flow="btm"` which (server-side):
  *   - Picks the GHL_CAL_BTM_* calendar set (separate from /kickstart calendars)
  *   - Promotes the parent's BACK_TO_MATS opp from FORMER STUDENT →
- *     RE-ENROLLMENT CLASS BOOKED (idempotent for multi-trainee bookings)
+ *     RE ENROLLMENT CLASS BOOKED (idempotent for multi-trainee bookings)
  *   - Adds the `return-class-booked` tag (exits the BTM 30-day workflow)
  *   - Skips the LEAD_ACQ pipeline entirely (former students aren't new leads)
  *   - Still creates per-trainee TRIAL_CONV opps via the existing flow
@@ -26,10 +34,11 @@ import FunnelLayout from '../layouts/FunnelLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
 import BookingFlow from '../components/booking/BookingFlow.astro';
 import { nap } from '../content/nap';
+import { getCustomValue } from '../lib/ghl-custom-values';
 
 const programDirectorName = 'Alex';
 
-const deadlineISO = (import.meta.env.PUBLIC_BACK_TO_MATS_DEADLINE_ISO ?? '').toString().trim();
+const deadlineISO = (await getCustomValue('back_to_mats_deadline'))?.trim() ?? '';
 const parsedDeadline = deadlineISO ? new Date(deadlineISO) : null;
 const deadlineValid = !!(parsedDeadline && !Number.isNaN(parsedDeadline.getTime()));
 
