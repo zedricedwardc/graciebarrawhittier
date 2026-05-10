@@ -136,6 +136,14 @@ import PhoneInput from '../form/PhoneInput.astro';
         phoneGroup?.dispatchEvent(new CustomEvent('phone:setvalue', { detail: { value: s.parent.phone ?? '' } }));
       }
 
+      // Sync student fields from state explicitly. Chrome ignores autocomplete="off"
+      // and re-fills from history when navigating between bookings, so we always
+      // reset to whatever state has (which is '' for a fresh booking).
+      if (form && !isSelf) {
+        const studentFirst = form.elements.namedItem('studentFirst') as HTMLInputElement | null;
+        if (studentFirst) studentFirst.value = s.trainee?.firstName ?? '';
+      }
+
       // Reset submit button state.
       if (submitBtn) {
         submitBtn.disabled = !!s.submitting;
