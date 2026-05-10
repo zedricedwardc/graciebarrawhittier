@@ -144,6 +144,36 @@ import PhoneInput from '../form/PhoneInput.astro';
       errorEl?.classList.add('hidden');
     });
 
+    const INVALID_BORDER = '!border-gb-red';
+    const INVALID_WIDTH  = 'border-2';
+
+    function fieldEl(name: string): HTMLElement | null {
+      if (!form) return null;
+      // Phone is a custom group keyed by data-phone-group; everything else is a named input/select.
+      if (name === 'phone') return form.querySelector<HTMLElement>('[data-phone-group]');
+      return (form.elements.namedItem(name) as HTMLElement | null) ?? null;
+    }
+
+    function markInvalid(name: string, invalid: boolean) {
+      const el = fieldEl(name);
+      if (!el) return;
+      el.classList.toggle(INVALID_BORDER, invalid);
+      el.classList.toggle(INVALID_WIDTH, invalid);
+    }
+
+    function clearInvalidOnInput() {
+      if (!form) return;
+      const names = ['parentFirst', 'parentLast', 'email', 'phone', 'studentFirst', 'studentAge'];
+      for (const name of names) {
+        const el = fieldEl(name);
+        if (!el) continue;
+        const handler = () => markInvalid(name, false);
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
+      }
+    }
+    clearInvalidOnInput();
+
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
       if (submitBtn?.disabled) return;
@@ -156,8 +186,27 @@ import PhoneInput from '../form/PhoneInput.astro';
       const studentAgeStr = String(fd.get('studentAge') ?? '').trim();
       const consent = fd.get('consent') === 'on';
 
-      if (!parentFirst || !parentLast || !email || !phone) return showErr('Please fill in all required fields.');
-      if (!isSelf && (!studentFirst || !studentAgeStr)) return showErr("Please add the student's name and age.");
+      // Reset prior invalid state, then mark each field that's still missing.
+      ['parentFirst', 'parentLast', 'email', 'phone', 'studentFirst', 'studentAge'].forEach((n) => markInvalid(n, false));
+
+      const missing: string[] = [];
+      markInvalid('parentFirst', !parentFirst); if (!parentFirst) missing.push('parentFirst');
+      markInvalid('parentLast',  !parentLast);  if (!parentLast)  missing.push('parentLast');
+      markInvalid('email',       !email);       if (!email)       missing.push('email');
+      markInvalid('phone',       !phone);       if (!phone)       missing.push('phone');
+      if (!isSelf) {
+        markInvalid('studentFirst', !studentFirst); if (!studentFirst) missing.push('studentFirst');
+        markInvalid('studentAge',   !studentAgeStr); if (!studentAgeStr) missing.push('studentAge');
+      }
+
+      if (missing.length) {
+        const firstName = missing[0]!;
+        const firstMissing = fieldEl(firstName);
+        firstMissing?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const focusable = firstMissing?.querySelector<HTMLElement>('input, select') ?? firstMissing;
+        focusable?.focus?.();
+        return showErr('Please fill in the highlighted fields.');
+      }
 
       const trainee = isSelf
         ? { firstName: parentFirst, age: 30, isSelf: true }
