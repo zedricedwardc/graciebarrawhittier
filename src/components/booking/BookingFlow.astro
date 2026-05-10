@@ -21,6 +21,13 @@ export interface Props {
   bareSurvey?: boolean;
   /** Tailwind max-width class for the outer section. Defaults to max-w-3xl. */
   maxWidthClass?: string;
+  /**
+   * Booking flow context. 'trial' = /kickstart free-trial bookings. 'btm' =
+   * /back-to-the-mats re-enrollment bookings. Forwarded to /api/availability
+   * + /api/book so the server picks the right calendar set and applies BTM
+   * pipeline routing when applicable. Default 'trial' preserves /kickstart.
+   */
+  flow?: 'trial' | 'btm';
 }
 
 const {
@@ -28,6 +35,7 @@ const {
   surveyDescription,
   bareSurvey,
   maxWidthClass = 'max-w-3xl',
+  flow = 'trial',
 } = Astro.props;
 
 const renderTs = Date.now();
@@ -37,6 +45,7 @@ const renderTs = Date.now();
   id="booking-flow"
   class:list={[maxWidthClass, 'mx-auto px-4 md:px-6 pb-10']}
   data-render-ts={renderTs}
+  data-flow={flow}
 >
   <div data-step="survey">
     <ProgramSurvey heading={surveyHeading} description={surveyDescription} bare={bareSurvey} />
@@ -63,6 +72,7 @@ const renderTs = Date.now();
 
   // ─── State ─────────────────────────────────────────────────────────────
   type ProgramKey = 'tiny'|'lc1'|'lc2'|'juniors'|'adults';
+  type BookingFlow = 'trial'|'btm';
   type Step = 'survey'|'date'|'slot'|'form'|'success'|'error';
 
   interface Slot { startISO: string; endISO: string; label: string; }
@@ -75,6 +85,8 @@ const renderTs = Date.now();
   let bookingInitiatedFired = false;
 
   if (root) {
+    const flow = ((root.dataset.flow ?? 'trial') === 'btm' ? 'btm' : 'trial') as BookingFlow;
+
     let state = {
       step: 'survey' as Step,
       program: null as ProgramKey | null,
@@ -243,7 +255,7 @@ const renderTs = Date.now();
       state.monthLoading = true;
       render();
       try {
-        const r = await fetch(`/api/availability?program=${program}&from=${from}&to=${to}&t=${Date.now()}`);
+        const r = await fetch(`/api/availability?program=${program}&flow=${flow}&from=${from}&to=${to}&t=${Date.now()}`);
         const data = await r.json();
         if (!data.ok) throw new Error(data.code ?? 'unknown');
         // Bail if the user has navigated away from this program.
@@ -294,6 +306,7 @@ const renderTs = Date.now();
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             program: state.program,
+            flow,
             slotStartISO: state.selectedSlot.startISO,
             parent: state.parent,
             trainee: state.trainee,

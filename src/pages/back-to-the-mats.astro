@@ -10,13 +10,17 @@
  * Update before each campaign run; the countdown timer + deadline labels both
  * read from this single source.
  *
- * NOTE: Backend Pipeline 4 routing + `return-class-booked` tag wiring is out
- * of scope for this build (see docx Part 1, Section 7). Bookings made from
- * this page currently flow through /api/book like /kickstart bookings —
- * which means they create a Lead Acquisition opp and trigger new-lead
- * campaigns. A follow-up task should add a `source: 'back-to-the-mats'` flag
- * to /api/book and route those bookings to the re-enrollment pipeline + tag
- * before the campaign goes live.
+ * Bookings here use `flow="btm"` which (server-side):
+ *   - Picks the GHL_CAL_BTM_* calendar set (separate from /kickstart calendars)
+ *   - Promotes the parent's BACK_TO_MATS opp from FORMER STUDENT →
+ *     RE-ENROLLMENT CLASS BOOKED (idempotent for multi-trainee bookings)
+ *   - Adds the `return-class-booked` tag (exits the BTM 30-day workflow)
+ *   - Skips the LEAD_ACQ pipeline entirely (former students aren't new leads)
+ *   - Still creates per-trainee TRIAL_CONV opps via the existing flow
+ *
+ * Until PIPELINE_ID_BACK_TO_MATS is set, the BTM detection block in
+ * ghl-adapter.handleBooking gracefully no-ops, so this page can deploy
+ * before the GHL pipeline exists.
  */
 import FunnelLayout from '../layouts/FunnelLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
@@ -162,6 +166,7 @@ const objections = [
     {/* ─── Booking section — full-width BookingFlow ───────────────────── */}
     <section id="btm-booking" class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4 scroll-mt-24">
       <BookingFlow
+        flow="btm"
         maxWidthClass="max-w-6xl"
         surveyHeading="Book Your Re-Enrollment Session"
         surveyDescription={`Lock in $97/month before ${deadlineLabel}. Answer two quick questions and we'll show you the right calendar.`}

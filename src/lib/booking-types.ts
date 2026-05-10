@@ -7,8 +7,17 @@ import { z } from 'zod';
 export const ProgramKeyEnum = z.enum(['tiny', 'lc1', 'lc2', 'juniors', 'adults']);
 export type ProgramKey = z.infer<typeof ProgramKeyEnum>;
 
+/**
+ * Booking flow context. 'trial' = /kickstart free 3-class pass. 'btm' =
+ * /back-to-the-mats re-enrollment. Picks the right GHL calendar set per
+ * program and gates BTM-pipeline routing in /api/book. Default 'trial'.
+ */
+export const BookingFlowEnum = z.enum(['trial', 'btm']);
+export type BookingFlow = z.infer<typeof BookingFlowEnum>;
+
 export const AvailabilityRequest = z.object({
   program: ProgramKeyEnum,
+  flow: BookingFlowEnum.default('trial'),
   from: z.iso.date(),
   to: z.iso.date(),
 });
@@ -26,6 +35,7 @@ export type AvailabilityResponse =
 
 export const BookingRequest = z.object({
   program: ProgramKeyEnum,
+  flow: BookingFlowEnum.default('trial'),
   slotStartISO: z.iso.datetime({ offset: true }),
   parent: z.object({
     firstName: z.string().min(1).max(50),

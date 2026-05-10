@@ -33,8 +33,17 @@ import {
 } from './ghl-opportunities';
 import { cfPayload } from './ghl-custom-fields';
 import { deriveTraineeKey } from './trainee-key';
-import { readEnv } from './ghl';
+import { readEnv, type OpportunityRecord } from './ghl';
+import { getStageId } from './ghl-pipelines';
 import { signRebookToken } from './rebook-token';
+import type { PipelineKey } from '../../config/ghl-schema';
+
+/** Resolve `stageName` to its GHL ID and compare against the opp's current stage. */
+async function isAtStage(opp: OpportunityRecord, pipelineKey: PipelineKey, stageName: string): Promise<boolean> {
+  if (!opp.pipelineStageId) return false;
+  const stageId = await getStageId(pipelineKey, stageName);
+  return opp.pipelineStageId === stageId;
+}
 
 export type OptInSource = 'homepage-optin' | 'kids-optin' | 'adults-optin' | 'contact-form';
 
@@ -253,6 +262,12 @@ export interface HandleBookingInput {
   programName: string;
   slotStartISO: string;
   slotEndISO: string;
+  /**
+   * Booking flow context. 'trial' = /kickstart (default — touches LEAD_ACQ +
+   * TRIAL_CONV). 'btm' = /back-to-the-mats (skips LEAD_ACQ; promotes parent's
+   * BTM opp from FORMER STUDENT → RE-ENROLLMENT CLASS BOOKED if present).
+   */
+  flow?: 'trial' | 'btm';
 }
 
 export interface HandleBookingResult {
@@ -295,6 +310,63 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
     household_trainee_keys: appendIfNew(householdRaw, traineeKey),
   });
   await updateContact(input.contactId, { customFields: contactCfs });
+
+  // ─── BTM detection (only when flow === 'btm') ────────────────────────
+  // For Back to the Mats bookings, promote the parent's BTM opp from
+  // FORMER STUDENT → RE-ENROLLMENT CLASS BOOKED on the first booking from
+  // this contact. Subsequent multi-trainee bookings are no-ops on BTM (the
+  // parent's funnel state doesn't move twice). The `return-class-booked`
+  // tag exits the BTM 30-day workflow.
+  //
+  // Gracefully skips when PIPELINE_ID_BACK_TO_MATS is unset (allows code
+  // to deploy before the pipeline exists in GHL).
+  const isBtm = input.flow === 'btm';
+  if (isBtm && readEnv('PIPELINE_ID_BACK_TO_MATS')) {
+    try {
+      const btmOpps = await findOpps({
+        contactId: input.contactId,
+        pipelineKey: 'BACK_TO_MATS',
+        status: 'open',
+        limit: 5,
+      });
+      const btmOpp = btmOpps[0];
+      if (btmOpp) {
+        // Look up current stage by reading the opp's pipelineStageId — if it's
+        // already RE-ENROLLMENT CLASS BOOKED we skip the move (multi-trainee booking).
+        // moveStage is idempotent on stage match in GHL, but the audit note + tag
+        // would double-fire if we didn't guard.
+        const alreadyBooked = await isAtStage(btmOpp, 'BACK_TO_MATS', 'RE-ENROLLMENT CLASS BOOKED');
+        if (!alreadyBooked) {
+          await moveStage({
+            oppId: btmOpp.id,
+            pipelineKey: 'BACK_TO_MATS',
+            stageName: 'RE-ENROLLMENT CLASS BOOKED',
+          });
+          await addContactTags(input.contactId, ['return-class-booked']);
+          await addContactNote(
+            input.contactId,
+            `BTM: Re-enrollment class booked — ${formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf)} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
+          );
+        } else {
+          // Multi-trainee booking from same parent — log only.
+          await addContactNote(
+            input.contactId,
+            `BTM: Additional re-enrollment class booked — ${formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf)} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
+          );
+        }
+      } else {
+        // No BTM opp for this contact — they reached the page without prior CSV import.
+        // Could be a shared link, a returning student we missed importing, or a friend.
+        // Log a warning; the appointment + TRIAL_CONV opp still get created downstream.
+        console.warn('[handleBooking] BTM booking from contact without prior BTM opp', {
+          contactId: input.contactId,
+        });
+      }
+    } catch (err) {
+      // Don't fail the booking if BTM stage move fails — appointment still happens.
+      console.warn('[handleBooking] BTM stage move failed (non-fatal)', err);
+    }
+  }
 
   // Pre-POST rebook detection: search Trial Conversion opps for this contact
   const existingOpps = await findOpps({
@@ -353,24 +425,28 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
 
   // Move Lead Acquisition opp → INTRO BOOKED (WON). Best-effort: missing opp is
   // a recoverable state (walk-in book without prior opt-in), not an error.
-  try {
-    const leadOpps = await findOpps({
-      contactId: input.contactId,
-      pipelineKey: 'LEAD_ACQ',
-      status: 'open',
-      limit: 5,
-    });
-    const leadOpp = leadOpps[0];
-    if (leadOpp) {
-      await moveStage({
-        oppId: leadOpp.id,
+  // Skipped for BTM bookings — former students aren't new leads, and we don't
+  // want to mark a stale Lead Acq opp won via a re-enrollment booking.
+  if (!isBtm) {
+    try {
+      const leadOpps = await findOpps({
+        contactId: input.contactId,
         pipelineKey: 'LEAD_ACQ',
-        stageName: 'INTRO BOOKED (WON)',
+        status: 'open',
+        limit: 5,
       });
+      const leadOpp = leadOpps[0];
+      if (leadOpp) {
+        await moveStage({
+          oppId: leadOpp.id,
+          pipelineKey: 'LEAD_ACQ',
+          stageName: 'INTRO BOOKED (WON)',
+        });
+      }
+    } catch (err) {
+      // Don't fail the booking if Lead Acq move fails — opp creation succeeded.
+      console.warn('[handleBooking] Lead Acq stage move failed (non-fatal)', err);
     }
-  } catch (err) {
-    // Don't fail the booking if Lead Acq move fails — opp creation succeeded.
-    console.warn('[handleBooking] Lead Acq stage move failed (non-fatal)', err);
   }
 
   const traineeLabel = formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf);

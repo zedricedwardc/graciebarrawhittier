@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { AvailabilityRequest, type AvailabilitySlot } from '../../lib/booking-types';
 import { generateSlots } from '../../lib/slot-resolver';
-import { getProgram } from '../../data/programs';
+import { getCalendarIdEnvVar } from '../../data/programs';
 import { blackouts } from '../../data/blackouts';
 import { getFreeSlots, GhlError, readEnv } from '../../lib/ghl';
 
@@ -13,12 +13,13 @@ const MIN_LEAD_MINUTES = 60;
 export const GET: APIRoute = async ({ url }) => {
   const parsed = AvailabilityRequest.safeParse({
     program: url.searchParams.get('program'),
+    flow:    url.searchParams.get('flow') ?? undefined,
     from:    url.searchParams.get('from'),
     to:      url.searchParams.get('to'),
   });
   if (!parsed.success) return json({ ok: false, code: 'INVALID_RANGE' });
 
-  const { program, from, to } = parsed.data;
+  const { program, flow, from, to } = parsed.data;
   const fromMs = Date.parse(`${from}T00:00:00Z`);
   const toMs   = Date.parse(`${to}T23:59:59Z`);
   if (Number.isNaN(fromMs) || Number.isNaN(toMs) || toMs <= fromMs ||
@@ -26,9 +27,10 @@ export const GET: APIRoute = async ({ url }) => {
     return json({ ok: false, code: 'INVALID_RANGE' });
   }
 
-  const calendarId = readEnv(getProgram(program).calendarIdEnvVar);
+  const calendarEnvVar = getCalendarIdEnvVar(program, flow);
+  const calendarId = readEnv(calendarEnvVar);
   if (!calendarId) {
-    console.error('[availability] missing calendar env var', getProgram(program).calendarIdEnvVar);
+    console.error('[availability] missing calendar env var', calendarEnvVar);
     return json({ ok: false, code: 'GHL_UNAVAILABLE' });
   }
 

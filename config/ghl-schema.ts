@@ -28,7 +28,7 @@
 
 // ─── Pipelines ──────────────────────────────────────────────────────────────
 
-export type PipelineKey = 'LEAD_ACQ' | 'TRIAL_CONV' | 'CREDIT_MON';
+export type PipelineKey = 'LEAD_ACQ' | 'TRIAL_CONV' | 'CREDIT_MON' | 'BACK_TO_MATS';
 
 export interface PipelineDef {
   key: PipelineKey;
@@ -94,6 +94,22 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
     wonStage: 'WON ENROLLED',
     lostStages: ['LOST'] as const,
   },
+  BACK_TO_MATS: {
+    key: 'BACK_TO_MATS',
+    name: 'Back to the Mats',
+    description:
+      'Tracks former students through the 30-day re-enrollment campaign. One opp per parent contact (multi-trainee bookings happen at booking time and are tracked downstream in TRIAL_CONV).',
+    stages: [
+      'FORMER STUDENT',
+      'RE-ENROLLMENT CLASS BOOKED',
+      'APPOINTMENT TODAY',
+      'NO-SHOW',
+      'RE-ENROLLED',
+      'OFFER EXPIRED',
+    ] as const,
+    wonStage: 'RE-ENROLLED',
+    lostStages: ['OFFER EXPIRED'] as const,
+  },
 } as const;
 
 // ─── Custom Fields ──────────────────────────────────────────────────────────
@@ -153,6 +169,13 @@ export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     type: 'TEXT',
     description: 'Last webhook idempotency key processed for this contact (24h dedupe).',
     setBy: 'webhook',
+  },
+  {
+    fieldKey: 'back_to_mats_imported_at',
+    label: 'Back to the Mats Imported At',
+    type: 'DATE',
+    description: 'Datetime the contact was bulk-imported into the Back to the Mats campaign. Used for dedupe (skip re-import if recent) and audit.',
+    setBy: 'admin',
   },
 ] as const;
 // Note: credits_remaining + last_decrement_trial_date moved to OPPORTUNITY_CUSTOM_FIELDS
@@ -321,6 +344,38 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
     defaultValue: '',
     description: 'Shared secret sent as X-GBW-Secret header on backflow webhooks. Must match GHL_WEBHOOK_SECRET in the website Vercel env. Reference in workflow custom-header value as: {{custom_values.website_webhook_secret}}',
   },
+
+  // ─── Back to the Mats campaign ───────────────────────────────────────
+  {
+    fieldKey: 'back_to_mats_deadline',
+    name: 'Back to the Mats Deadline',
+    defaultValue: '',
+    description: 'Human-readable deadline label rendered in BTM email/SMS bodies (e.g. "Friday, June 8, 2026"). Update before every campaign run. Must align with PUBLIC_BACK_TO_MATS_DEADLINE_ISO in the website Vercel env (the website auto-formats from the ISO; this value is for GHL message merge).',
+  },
+  {
+    fieldKey: 'back_to_mats_page_url',
+    name: 'Back to the Mats Page URL',
+    defaultValue: 'https://gbwhittier.com/back-to-the-mats',
+    description: 'Landing-page URL referenced in every BTM email/SMS. Hardcoded in the page; this value is for GHL message merge.',
+  },
+  {
+    fieldKey: 'back_to_mats_offer_name',
+    name: 'Back to the Mats Offer Name',
+    defaultValue: 'Back to the Mats Special',
+    description: 'Display name of the offer used in subject lines / body copy.',
+  },
+  {
+    fieldKey: 'back_to_mats_30day_to_expired_days',
+    name: 'BTM FORMER STUDENT → OFFER EXPIRED timeout (days)',
+    defaultValue: '30',
+    description: 'How long an opp sits in FORMER STUDENT before auto-moving to OFFER EXPIRED.',
+  },
+  {
+    fieldKey: 'back_to_mats_rebooking_to_expired_days',
+    name: 'BTM NO-SHOW → OFFER EXPIRED timeout (days)',
+    defaultValue: '14',
+    description: 'How long the BTM re-booking campaign runs before marking the opp OFFER EXPIRED.',
+  },
 ] as const;
 
 // ─── Workflows ──────────────────────────────────────────────────────────────
@@ -461,6 +516,29 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
     callsWebsiteWebhook: { path: '/api/webhooks/ghl/appointment-status' },
   },
 
+  // ─── Back to the Mats campaigns ─────────────────────────────────────
+  {
+    envVarKey: 'WORKFLOW_ID_BTM_30DAY',
+    name: 'BTM 30-Day Campaign',
+    description: '30-day re-enrollment campaign for former students. 9 emails + 3 SMS per docx Part 2. Exit on tag `return-class-booked`. Auto-move to OFFER EXPIRED after 30 days if no booking.',
+    trigger: { type: 'opp_stage_changed', pipelineKey: 'BACK_TO_MATS', enterStage: 'FORMER STUDENT' },
+    callsWebsiteWebhook: false,
+  },
+  {
+    envVarKey: 'WORKFLOW_ID_BTM_CONFIRMATION',
+    name: 'BTM Appointment Confirmation',
+    description: '3 emails + 2 SMS confirming a booked re-enrollment session. Per docx Part 3. Triggers on opp moving to RE-ENROLLMENT CLASS BOOKED.',
+    trigger: { type: 'opp_stage_changed', pipelineKey: 'BACK_TO_MATS', enterStage: 'RE-ENROLLMENT CLASS BOOKED' },
+    callsWebsiteWebhook: false,
+  },
+  {
+    envVarKey: 'WORKFLOW_ID_BTM_REBOOKING',
+    name: 'BTM Re-Booking Campaign (no-show)',
+    description: '14-day re-booking nudge campaign for no-shows. 4 emails + 1 SMS per docx Part 4. Exit on tag `return-class-booked` (re-book). Auto-move to OFFER EXPIRED after 14 days if no re-book.',
+    trigger: { type: 'opp_stage_changed', pipelineKey: 'BACK_TO_MATS', enterStage: 'NO-SHOW' },
+    callsWebsiteWebhook: false,
+  },
+
   // Note: Stage auto-progression timers (NEW LEAD → TRIAL NURTURE, etc.) are NOT separate
   // workflows. They're declared natively in STAGE_TRANSITIONS via `auto_move_after` actions
   // and implemented inside the campaign workflows themselves (Wait + Update Opp Stage step).
@@ -477,6 +555,8 @@ export const TAGS: readonly { name: string; description: string }[] = [
   { name: 'source-adults-optin', description: 'Opted in via /adults-jiu-jitsu.' },
   { name: 'source-contact-form', description: 'Submitted the /contact form (not an opt-in but tagged for source attribution).' },
   { name: 'quarterly-reactivation', description: 'LOST/COLD lead — picked up by quarterly winback campaign.' },
+  { name: 'back-to-the-mats-import', description: 'Bulk-imported via CSV into the Back to the Mats campaign. Source attribution.' },
+  { name: 'return-class-booked', description: 'Set when a former student books their re-enrollment class. Workflow exit signal for the BTM 30-Day and Re-Booking campaigns.' },
 ] as const;
 
 // ─── Env var manifest ───────────────────────────────────────────────────────
@@ -501,6 +581,7 @@ export const ENV_VARS: readonly EnvVarDef[] = [
   { key: 'PIPELINE_ID_LEAD_ACQ', required: true, description: 'Discovered at onboard time.' },
   { key: 'PIPELINE_ID_TRIAL_CONV', required: true, description: 'Discovered at onboard time.' },
   { key: 'PIPELINE_ID_CREDIT_MON', required: true, description: 'Discovered at onboard time.' },
+  { key: 'PIPELINE_ID_BACK_TO_MATS', required: false, description: 'Discovered at BTM-campaign onboard time. Optional — when empty, /api/book skips the BTM detection path entirely (graceful degradation while pipeline is being set up).' },
 
   // Workflow IDs — one per WORKFLOWS entry
   ...WORKFLOWS.map(
@@ -512,11 +593,21 @@ export const ENV_VARS: readonly EnvVarDef[] = [
   ),
 
   // Calendar IDs (already exist in current .env)
-  { key: 'GHL_CAL_TINY', required: true, description: 'Calendar ID for Tiny Champs program.' },
-  { key: 'GHL_CAL_LC1', required: true, description: 'Calendar ID for Little Champs 1 program.' },
-  { key: 'GHL_CAL_LC2', required: true, description: 'Calendar ID for Little Champs 2 program.' },
-  { key: 'GHL_CAL_JUNIORS', required: true, description: 'Calendar ID for Juniors BJJ program.' },
-  { key: 'GHL_CAL_ADULTS', required: true, description: 'Calendar ID for Adults BJJ program.' },
+  { key: 'GHL_CAL_TINY', required: true, description: 'Calendar ID for Tiny Champs program (trial flow).' },
+  { key: 'GHL_CAL_LC1', required: true, description: 'Calendar ID for Little Champs 1 program (trial flow).' },
+  { key: 'GHL_CAL_LC2', required: true, description: 'Calendar ID for Little Champs 2 program (trial flow).' },
+  { key: 'GHL_CAL_JUNIORS', required: true, description: 'Calendar ID for Juniors BJJ program (trial flow).' },
+  { key: 'GHL_CAL_ADULTS', required: true, description: 'Calendar ID for Adults BJJ program (trial flow).' },
+
+  // BTM-flow calendar IDs (separate from trial calendars so admin sees BTM bookings independently)
+  { key: 'GHL_CAL_BTM_TINY', required: false, description: 'Calendar ID for Tiny Champs program (Back to the Mats flow). Optional until BTM campaign launches.' },
+  { key: 'GHL_CAL_BTM_LC1', required: false, description: 'Calendar ID for Little Champs 1 program (BTM flow).' },
+  { key: 'GHL_CAL_BTM_LC2', required: false, description: 'Calendar ID for Little Champs 2 program (BTM flow).' },
+  { key: 'GHL_CAL_BTM_JUNIORS', required: false, description: 'Calendar ID for Juniors BJJ program (BTM flow).' },
+  { key: 'GHL_CAL_BTM_ADULTS', required: false, description: 'Calendar ID for Adults BJJ program (BTM flow).' },
+
+  // Public-facing BTM env (read at build time by /back-to-the-mats page)
+  { key: 'PUBLIC_BACK_TO_MATS_DEADLINE_ISO', required: false, description: 'Campaign deadline as ISO 8601 with offset (e.g. 2026-06-08T23:59:00-07:00). Drives the page countdown + every "offer ends" label. Empty leaves placeholders + falls back to "soon".' },
 
   { key: 'IDEMPOTENCY_BACKEND', required: false, description: 'memory (default) | upstash. Use upstash for cold-start durability.' },
   { key: 'KV_REST_API_URL', required: false, description: 'Upstash REST URL when IDEMPOTENCY_BACKEND=upstash.' },
@@ -755,6 +846,49 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
       { type: 'set_status', status: 'lost' },
       { type: 'set_credits', value: 0 },
       { type: 'cross_pipeline_move', targetPipeline: 'LEAD_ACQ', targetStage: 'NURTURE CAMPAIGN' },
+    ],
+  },
+
+  // ─── Back to the Mats ─────────────────────────────────────────────────
+  {
+    pipelineKey: 'BACK_TO_MATS',
+    enterStage: 'FORMER STUDENT',
+    actions: [
+      { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_BTM_30DAY' },
+      { type: 'auto_move_after', targetStage: 'OFFER EXPIRED', afterCustomValueKey: 'back_to_mats_30day_to_expired_days' },
+    ],
+  },
+  {
+    pipelineKey: 'BACK_TO_MATS',
+    enterStage: 'RE-ENROLLMENT CLASS BOOKED',
+    actions: [
+      { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_BTM_CONFIRMATION' },
+      // Mirrors TRIAL_CONV pattern — daily classify list at appointment-day morning.
+      { type: 'auto_move_on_appointment_day', targetStage: 'APPOINTMENT TODAY' },
+    ],
+  },
+  // APPOINTMENT TODAY = admin-driven (NO-SHOW or RE-ENROLLED). No auto-action.
+  {
+    pipelineKey: 'BACK_TO_MATS',
+    enterStage: 'NO-SHOW',
+    actions: [
+      { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_BTM_REBOOKING' },
+      { type: 'auto_move_after', targetStage: 'OFFER EXPIRED', afterCustomValueKey: 'back_to_mats_rebooking_to_expired_days' },
+    ],
+  },
+  {
+    pipelineKey: 'BACK_TO_MATS',
+    enterStage: 'RE-ENROLLED',
+    actions: [
+      { type: 'set_status', status: 'won' },
+      { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_90_DAY_REVIEW' },
+    ],
+  },
+  {
+    pipelineKey: 'BACK_TO_MATS',
+    enterStage: 'OFFER EXPIRED',
+    actions: [
+      { type: 'set_status', status: 'lost' },
     ],
   },
 ] as const;

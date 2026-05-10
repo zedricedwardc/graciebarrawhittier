@@ -6,7 +6,7 @@ import {
   type BookingResponse,
   type AvailabilitySlot,
 } from '../../lib/booking-types';
-import { getProgram, type ProgramKey } from '../../data/programs';
+import { getProgram, getCalendarIdEnvVar, type ProgramKey } from '../../data/programs';
 import {
   upsertContact,
   createAppointment,
@@ -74,9 +74,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'RATE_LIMITED' });
   }
 
-  const calendarId = readEnv(getProgram(body.program).calendarIdEnvVar);
+  const calendarEnvVar = getCalendarIdEnvVar(body.program, body.flow);
+  const calendarId = readEnv(calendarEnvVar);
   if (!calendarId) {
-    console.error('[book] missing calendar env var', getProgram(body.program).calendarIdEnvVar);
+    console.error('[book] missing calendar env var', calendarEnvVar);
     return json({ ok: false, code: 'GHL_FAILED', message: 'Calendar not configured.' });
   }
 
@@ -114,7 +115,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   const endISO = computeEndISO(body.slotStartISO, body.program);
   const traineeName = body.trainee.isSelf ? body.parent.firstName : body.trainee.firstName;
-  const title = `${getProgram(body.program).name} trial — ${traineeName} (${body.trainee.age})`;
+  const titleVerb = body.flow === 'btm' ? 're-enroll' : 'trial';
+  const title = `${getProgram(body.program).name} ${titleVerb} — ${traineeName} (${body.trainee.age})`;
 
   let appointmentId: string;
   try {
@@ -148,6 +150,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       programName: getProgram(body.program).name,
       slotStartISO: body.slotStartISO,
       slotEndISO: endISO,
+      flow: body.flow,
     });
     opportunityId = result.opportunityId;
     isRebook = result.isRebook;
