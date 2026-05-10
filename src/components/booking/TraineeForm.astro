@@ -49,11 +49,13 @@ import PhoneInput from '../form/PhoneInput.astro';
         <label class="block">
           <span class="text-sm font-medium text-gb-text">Student first name *</span>
           <input name="studentFirst" minlength="1" maxlength="50"
+            autocomplete="off"
             class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
         </label>
         <label class="block">
           <span class="text-sm font-medium text-gb-text">Student age *</span>
           <select name="studentAge"
+            autocomplete="off"
             class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red bg-white">
             <option value="">Select age range</option>
             <option value="3">Ages 3–4</option>
