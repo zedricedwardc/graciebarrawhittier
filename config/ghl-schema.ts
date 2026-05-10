@@ -171,7 +171,10 @@ export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     setBy: 'webhook',
   },
   {
-    fieldKey: 'back_to_mats_imported_at',
+    // GHL auto-generates the fieldKey from the label by snake-casing it,
+    // so "Back to the Mats Imported At" becomes "back_to_the_mats_…" with
+    // "the" preserved. The schema fieldKey must match GHL's actual key.
+    fieldKey: 'back_to_the_mats_imported_at',
     label: 'Back to the Mats Imported At',
     type: 'DATE',
     description: 'Datetime the contact was bulk-imported into the Back to the Mats campaign. Used for dedupe (skip re-import if recent) and audit.',
