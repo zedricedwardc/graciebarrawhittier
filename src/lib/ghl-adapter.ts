@@ -335,12 +335,12 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
         // already RE-ENROLLMENT CLASS BOOKED we skip the move (multi-trainee booking).
         // moveStage is idempotent on stage match in GHL, but the audit note + tag
         // would double-fire if we didn't guard.
-        const alreadyBooked = await isAtStage(btmOpp, 'BACK_TO_MATS', 'RE-ENROLLMENT CLASS BOOKED');
+        const alreadyBooked = await isAtStage(btmOpp, 'BACK_TO_MATS', 'RE ENROLLMENT CLASS BOOKED');
         if (!alreadyBooked) {
           await moveStage({
             oppId: btmOpp.id,
             pipelineKey: 'BACK_TO_MATS',
-            stageName: 'RE-ENROLLMENT CLASS BOOKED',
+            stageName: 'RE ENROLLMENT CLASS BOOKED',
           });
           await addContactTags(input.contactId, ['return-class-booked']);
           await addContactNote(

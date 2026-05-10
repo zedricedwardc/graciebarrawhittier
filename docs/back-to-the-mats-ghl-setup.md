@@ -25,7 +25,7 @@ Sequence: **Stages → Workflows → Calendars → Provision Script → Discover
 
 ## Step 1 — Add the missing pipeline stage
 
-`Pipeline 4 — Back to the Mats` already has these stages: `FORMER STUDENT`, `RE-ENROLLMENT CLASS BOOKED`, `APPOINTMENT TODAY`, `NO-SHOW`, `RE-ENROLLED`. **Add one more:**
+`Pipeline 4 — Back to the Mats` already has these stages: `FORMER STUDENT`, `RE ENROLLMENT CLASS BOOKED`, `APPOINTMENT TODAY`, `NO-SHOW`, `RE ENROLLED`. **Add one more:**
 
 1. GHL → **Settings → Pipelines** → click `Back to the Mats`
 2. Click **+ Add Stage**
@@ -34,10 +34,10 @@ Sequence: **Stages → Workflows → Calendars → Provision Script → Discover
 
 Stage order should now read top-to-bottom:
 1. FORMER STUDENT
-2. RE-ENROLLMENT CLASS BOOKED
+2. RE ENROLLMENT CLASS BOOKED
 3. APPOINTMENT TODAY
 4. NO-SHOW
-5. RE-ENROLLED
+5. RE ENROLLED
 6. OFFER EXPIRED
 
 ---
@@ -83,7 +83,7 @@ GHL → **Automation → Workflows** → `+ Create Workflow` (start from blank).
 | Field | Value |
 |---|---|
 | **Name** (exact) | `BTM Appointment Confirmation` |
-| **Trigger** | Pipeline Stage Changed → Pipeline: `Back to the Mats`, Stage: `RE-ENROLLMENT CLASS BOOKED` |
+| **Trigger** | Pipeline Stage Changed → Pipeline: `Back to the Mats`, Stage: `RE ENROLLMENT CLASS BOOKED` |
 
 **Body — 3 emails + 2 SMS** per docx Part 3:
 
@@ -237,7 +237,7 @@ Trigger a redeploy after saving (or push any commit).
 3. Wait ~30 seconds — you should receive Email 1 of the 30-Day Campaign
 4. Visit `https://gbwhittier.com/back-to-the-mats` and book a class using your contact's email
 5. Verify in GHL:
-   - Your BTM opp moved to `RE-ENROLLMENT CLASS BOOKED` ✓
+   - Your BTM opp moved to `RE ENROLLMENT CLASS BOOKED` ✓
    - The `return-class-booked` tag was added to your contact ✓
    - Email 1 of the BTM Confirmation Campaign arrived ✓
    - **No new opp was created in `Lead Acquisition`** ✓ (the BTM detection should have skipped it)
@@ -289,5 +289,5 @@ The 30-Day Campaign will fire automatically on each new opp. Monitor delivery + 
 
 - **Update the deadline before every campaign run.** Set both `PUBLIC_BACK_TO_MATS_DEADLINE_ISO` (Vercel env, controls the website countdown) and `back_to_mats_deadline` (GHL custom value, controls the email/SMS body merge).
 - **Re-running CSV import:** GHL will create duplicate opps even for contacts already in BTM. Filter your CSV to exclude contacts where `back_to_mats_imported_at` was set within the last 60 days.
-- **Multi-trainee bookings:** A parent who books multiple kids in one session sees their BTM opp move to RE-ENROLLMENT CLASS BOOKED on the first booking. Subsequent bookings in the same session are no-ops on BTM (logged but don't move stage). Per-trainee tracking happens in TRIAL_CONV opps.
-- **NO-SHOW classification:** Admin manually moves opps from `APPOINTMENT TODAY` → `NO-SHOW` or `RE-ENROLLED`. The 14-day re-booking workflow fires automatically on NO-SHOW. Auto-move to OFFER EXPIRED happens 14 days later if they don't re-book.
+- **Multi-trainee bookings:** A parent who books multiple kids in one session sees their BTM opp move to RE ENROLLMENT CLASS BOOKED on the first booking. Subsequent bookings in the same session are no-ops on BTM (logged but don't move stage). Per-trainee tracking happens in TRIAL_CONV opps.
+- **NO-SHOW classification:** Admin manually moves opps from `APPOINTMENT TODAY` → `NO-SHOW` or `RE ENROLLED`. The 14-day re-booking workflow fires automatically on NO-SHOW. Auto-move to OFFER EXPIRED happens 14 days later if they don't re-book.

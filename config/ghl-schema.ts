@@ -98,16 +98,16 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
     key: 'BACK_TO_MATS',
     name: 'Back to the Mats',
     description:
-      'Tracks former students through the 30-day re-enrollment campaign. One opp per parent contact (multi-trainee bookings happen at booking time and are tracked downstream in TRIAL_CONV).',
+      'Tracks former students through the 30-day re-enrollment campaign. One opp per parent contact (multi-trainee bookings happen at booking time and are tracked downstream in TRIAL_CONV). Stage names match the live GHL pipeline (spaces, not hyphens, in two-word stages).',
     stages: [
       'FORMER STUDENT',
-      'RE-ENROLLMENT CLASS BOOKED',
+      'RE ENROLLMENT CLASS BOOKED',
       'APPOINTMENT TODAY',
       'NO-SHOW',
-      'RE-ENROLLED',
+      'RE ENROLLED',
       'OFFER EXPIRED',
     ] as const,
-    wonStage: 'RE-ENROLLED',
+    wonStage: 'RE ENROLLED',
     lostStages: ['OFFER EXPIRED'] as const,
   },
 } as const;
@@ -860,14 +860,14 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
   },
   {
     pipelineKey: 'BACK_TO_MATS',
-    enterStage: 'RE-ENROLLMENT CLASS BOOKED',
+    enterStage: 'RE ENROLLMENT CLASS BOOKED',
     actions: [
       { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_BTM_CONFIRMATION' },
       // Mirrors TRIAL_CONV pattern — daily classify list at appointment-day morning.
       { type: 'auto_move_on_appointment_day', targetStage: 'APPOINTMENT TODAY' },
     ],
   },
-  // APPOINTMENT TODAY = admin-driven (NO-SHOW or RE-ENROLLED). No auto-action.
+  // APPOINTMENT TODAY = admin-driven (NO-SHOW or RE ENROLLED). No auto-action.
   {
     pipelineKey: 'BACK_TO_MATS',
     enterStage: 'NO-SHOW',
@@ -878,7 +878,7 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
   },
   {
     pipelineKey: 'BACK_TO_MATS',
-    enterStage: 'RE-ENROLLED',
+    enterStage: 'RE ENROLLED',
     actions: [
       { type: 'set_status', status: 'won' },
       { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_90_DAY_REVIEW' },
