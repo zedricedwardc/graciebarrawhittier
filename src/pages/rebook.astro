@@ -119,17 +119,16 @@ const renderTs = Date.now();
       - Soften the gold calendar border to neutral gray (the gold trainee
         card already provides the focal point; nested gold-on-gold is too loud)
     */}
-    <style>
-      section[data-flow="rebook"] [data-change-program] { display: none; }
+    <style is:global>
       /*
-        Soften the calendar's gold border to neutral gray when nested
-        inside the (already-gold) active trainee card. Only targets the
-        DatePicker calendar wrapper inside #booking-flow — the active
-        trainee card's own gold border (added at the article level) is
-        unaffected because it's outside this section's descendants.
+        is:global so these rules reach into the shared DatePicker/SlotPicker
+        components (Astro scopes <style> by default — the DatePicker's
+        markup lives in a different .astro file and wouldn't get the
+        scope hash applied).
       */
+      section[data-flow="rebook"] [data-change-program] { display: none; }
       section[data-flow="rebook"] .border-gb-gold {
-        border-color: var(--color-gb-bg-light, #e5e7eb);
+        border-color: var(--color-gb-bg-light, #e5e7eb) !important;
       }
     </style>
 
