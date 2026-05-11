@@ -263,9 +263,11 @@ export interface HandleBookingInput {
   slotStartISO: string;
   slotEndISO: string;
   /**
-   * Booking flow context. 'trial' = /kickstart (default — touches LEAD_ACQ +
-   * TRIAL_CONV). 'btm' = /back-to-the-mats (skips LEAD_ACQ; promotes parent's
-   * BTM opp from FORMER STUDENT → RE-ENROLLMENT CLASS BOOKED if present).
+   * Booking flow context — selects which pipeline pathway runs. Strict
+   * separation: each value picks ONE handler that touches ONE pipeline
+   * family, with no cross-contamination.
+   *   - 'trial' (default, /kickstart) → handleTrialBooking → LEAD_ACQ + TRIAL_CONV
+   *   - 'btm' (/back-to-the-mats) → handleBtmBooking → BACK_TO_MATS only
    */
   flow?: 'trial' | 'btm';
 }
@@ -279,16 +281,19 @@ export interface HandleBookingResult {
 }
 
 /**
- * Handle a successful initial-trial booking. Called from /api/book after the
- * contact is upserted and the appointment is created.
+ * Handle a successful booking. Dispatches to one of two completely
+ * independent paths based on the flow:
  *
- * Two paths:
- *   1. INITIAL TRIAL: no existing Trial Conversion opp matches trainee_key
- *        → create Trial Conv opp at INTRO BOOKED
- *        → move Lead Acquisition opp to INTRO BOOKED (WON)
- *   2. REBOOK (after no-show / inactive): existing Trial Conv opp found
- *        → update existing opp, move stage back to INTRO BOOKED
- *        → don't touch Lead Acq (already won, or skip if missing)
+ *   - flow="trial" (default, /kickstart) → handleTrialBooking()
+ *       Touches LEAD_ACQ + TRIAL_CONV. Existing trial-funnel behavior.
+ *
+ *   - flow="btm" (/back-to-the-mats) → handleBtmBooking()
+ *       Touches BACK_TO_MATS only. Never creates LEAD_ACQ or TRIAL_CONV
+ *       opps. Re-enrollment campaign is its own funnel — separate
+ *       reporting, separate workflows, no cross-contamination.
+ *
+ * Both paths share only the upstream side effects in /api/book (contact
+ * upsert, appointment creation) and the contact-level CF update below.
  *
  * Active-trial rebooks (Credit Monitoring pipeline) are handled separately
  * by the handleRebook function in /api/book — that path uses a magic-link
@@ -302,7 +307,7 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
     dob: input.trainee.dob,
   });
 
-  // Update contact CFs to reflect this booking (last_trainee_key + household)
+  // Universal contact-CF update — both flows want this for trainee tracking.
   const contact = await getContact(input.contactId);
   const householdRaw = readCfString(contact, 'household_trainee_keys') ?? '';
   const contactCfs = await cfPayload('contact', {
@@ -311,64 +316,133 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
   });
   await updateContact(input.contactId, { customFields: contactCfs });
 
-  // ─── BTM detection (only when flow === 'btm') ────────────────────────
-  // For Back to the Mats bookings, promote the parent's BTM opp from
-  // FORMER STUDENT → RE-ENROLLMENT CLASS BOOKED on the first booking from
-  // this contact. Subsequent multi-trainee bookings are no-ops on BTM (the
-  // parent's funnel state doesn't move twice). The `return-class-booked`
-  // tag exits the BTM 30-day workflow.
-  //
-  // Gracefully skips when PIPELINE_ID_BACK_TO_MATS is unset (allows code
-  // to deploy before the pipeline exists in GHL).
-  const isBtm = input.flow === 'btm';
-  if (isBtm && readEnv('PIPELINE_ID_BACK_TO_MATS')) {
-    try {
-      const btmOpps = await findOpps({
-        contactId: input.contactId,
-        pipelineKey: 'BACK_TO_MATS',
-        status: 'open',
-        limit: 5,
-      });
-      const btmOpp = btmOpps[0];
-      if (btmOpp) {
-        // Look up current stage by reading the opp's pipelineStageId — if it's
-        // already RE-ENROLLMENT CLASS BOOKED we skip the move (multi-trainee booking).
-        // moveStage is idempotent on stage match in GHL, but the audit note + tag
-        // would double-fire if we didn't guard.
-        const alreadyBooked = await isAtStage(btmOpp, 'BACK_TO_MATS', 'RE ENROLLMENT CLASS BOOKED');
-        if (!alreadyBooked) {
-          await moveStage({
-            oppId: btmOpp.id,
-            pipelineKey: 'BACK_TO_MATS',
-            stageName: 'RE ENROLLMENT CLASS BOOKED',
-          });
-          await addContactTags(input.contactId, ['return-class-booked']);
-          await addContactNote(
-            input.contactId,
-            `BTM: Re-enrollment class booked — ${formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf)} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
-          );
-        } else {
-          // Multi-trainee booking from same parent — log only.
-          await addContactNote(
-            input.contactId,
-            `BTM: Additional re-enrollment class booked — ${formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf)} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
-          );
-        }
-      } else {
-        // No BTM opp for this contact — they reached the page without prior CSV import.
-        // Could be a shared link, a returning student we missed importing, or a friend.
-        // Log a warning; the appointment + TRIAL_CONV opp still get created downstream.
-        console.warn('[handleBooking] BTM booking from contact without prior BTM opp', {
-          contactId: input.contactId,
-        });
-      }
-    } catch (err) {
-      // Don't fail the booking if BTM stage move fails — appointment still happens.
-      console.warn('[handleBooking] BTM stage move failed (non-fatal)', err);
-    }
+  // Dispatch on flow — strict separation, no shared opp logic past this point.
+  if (input.flow === 'btm') {
+    return handleBtmBooking(input, traineeKey);
+  }
+  return handleTrialBooking(input, traineeKey);
+}
+
+// ─── BTM booking path ──────────────────────────────────────────────────────
+/**
+ * Back to the Mats booking handler. Touches ONLY the BACK_TO_MATS pipeline.
+ *
+ * Three sub-paths:
+ *   1. Parent has open BTM opp at FORMER STUDENT
+ *        → moveStage to RE ENROLLMENT CLASS BOOKED
+ *        → addContactTag(return-class-booked)  [exits the 30-day workflow]
+ *        → add audit note
+ *   2. Parent has open BTM opp at RE ENROLLMENT CLASS BOOKED already
+ *        (multi-trainee subsequent booking from same session)
+ *        → no stage move, no tag-toggle (already added)
+ *        → just add a "additional booking" audit note
+ *   3. Parent has NO open BTM opp
+ *        → createOpp at RE ENROLLMENT CLASS BOOKED directly
+ *        → addContactTag(return-class-booked)
+ *        → add audit note
+ *
+ * Result: every BTM booking produces exactly one BTM opp at
+ * RE ENROLLMENT CLASS BOOKED. Never creates anything in LEAD_ACQ or
+ * TRIAL_CONV — those are the trial funnel's responsibility, not BTM's.
+ */
+async function handleBtmBooking(
+  input: HandleBookingInput,
+  _traineeKey: string,
+): Promise<HandleBookingResult> {
+  // Soft-fail when the BTM pipeline isn't provisioned yet — keep the booking
+  // succeeding so the user gets confirmation, but skip BTM ops.
+  if (!readEnv('PIPELINE_ID_BACK_TO_MATS')) {
+    console.warn('[handleBtmBooking] PIPELINE_ID_BACK_TO_MATS unset — skipping BTM ops');
+    return { contactId: input.contactId, opportunityId: '', isRebook: false, stage: 'NO_PIPELINE' };
   }
 
-  // Pre-POST rebook detection: search Trial Conversion opps for this contact
+  const traineeLabel = formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf);
+  const oppName = input.trainee.isSelf
+    ? `${input.parent.firstName} ${input.parent.lastName}`
+    : `${input.parent.firstName} ${input.parent.lastName}`; // BTM is parent-level — name uses parent
+
+  let btmOpps;
+  try {
+    btmOpps = await findOpps({
+      contactId: input.contactId,
+      pipelineKey: 'BACK_TO_MATS',
+      status: 'open',
+      limit: 5,
+    });
+  } catch (err) {
+    console.warn('[handleBtmBooking] findOpps failed (non-fatal)', err);
+    return { contactId: input.contactId, opportunityId: '', isRebook: false, stage: 'BTM_LOOKUP_FAILED' };
+  }
+
+  const btmOpp = btmOpps[0];
+
+  // ─── Sub-path 1 & 2: existing BTM opp ─────────────────────────────────
+  if (btmOpp) {
+    const alreadyBooked = await isAtStage(btmOpp, 'BACK_TO_MATS', 'RE ENROLLMENT CLASS BOOKED');
+    if (!alreadyBooked) {
+      // Sub-path 1: first booking — promote stage + add exit tag
+      try {
+        await moveStage({
+          oppId: btmOpp.id,
+          pipelineKey: 'BACK_TO_MATS',
+          stageName: 'RE ENROLLMENT CLASS BOOKED',
+        });
+        await addContactTags(input.contactId, ['return-class-booked']);
+        await addContactNote(
+          input.contactId,
+          `BTM: Re-enrollment class booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
+        );
+      } catch (err) {
+        console.warn('[handleBtmBooking] stage move failed (non-fatal)', err);
+      }
+    } else {
+      // Sub-path 2: multi-trainee booking — note only
+      await addContactNote(
+        input.contactId,
+        `BTM: Additional re-enrollment class booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
+      );
+    }
+    return { contactId: input.contactId, opportunityId: btmOpp.id, isRebook: false, stage: 'RE ENROLLMENT CLASS BOOKED' };
+  }
+
+  // ─── Sub-path 3: no existing BTM opp — create directly at RE ENROLLMENT CLASS BOOKED ─
+  // Anyone reaching the BTM page is a former student by definition (page is
+  // sent only via campaign emails). Treat them as one even if not pre-imported.
+  try {
+    const created = await createOpp({
+      pipelineKey: 'BACK_TO_MATS',
+      stageName: 'RE ENROLLMENT CLASS BOOKED',
+      contactId: input.contactId,
+      name: oppName,
+      source: 'back-to-the-mats',
+    });
+    await addContactTags(input.contactId, ['return-class-booked']);
+    await addContactNote(
+      input.contactId,
+      `BTM: Re-enrollment class booked (new BTM opp created) — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
+    );
+    return { contactId: input.contactId, opportunityId: created.id, isRebook: false, stage: 'RE ENROLLMENT CLASS BOOKED' };
+  } catch (err) {
+    console.warn('[handleBtmBooking] createOpp failed (non-fatal)', err);
+    return { contactId: input.contactId, opportunityId: '', isRebook: false, stage: 'BTM_CREATE_FAILED' };
+  }
+}
+
+// ─── Trial booking path ────────────────────────────────────────────────────
+/**
+ * Trial-flow booking handler (/kickstart). Touches LEAD_ACQ + TRIAL_CONV.
+ * This is the original handleBooking behavior, extracted into its own
+ * function so the BTM path can be entirely independent.
+ */
+async function handleTrialBooking(
+  input: HandleBookingInput,
+  traineeKey: string,
+): Promise<HandleBookingResult> {
+  const oppName = input.trainee.isSelf
+    ? `${input.parent.firstName} ${input.parent.lastName}`
+    : `${input.trainee.firstName} ${input.parent.lastName}`;
+
+  // Pre-POST rebook detection: existing TRIAL_CONV opp matching this trainee?
   const existingOpps = await findOpps({
     contactId: input.contactId,
     pipelineKey: 'TRIAL_CONV',
@@ -376,10 +450,6 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
     limit: 20,
   });
   const existingOpp = await findByTraineeKey(existingOpps, traineeKey);
-
-  const oppName = input.trainee.isSelf
-    ? `${input.parent.firstName} ${input.parent.lastName}`
-    : `${input.trainee.firstName} ${input.parent.lastName}`;
 
   // ─── Branch A: rebook (existing Trial Conv opp found) ────────────────
   if (existingOpp) {
@@ -423,30 +493,25 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
     customFields: oppCfs,
   });
 
-  // Move Lead Acquisition opp → INTRO BOOKED (WON). Best-effort: missing opp is
-  // a recoverable state (walk-in book without prior opt-in), not an error.
-  // Skipped for BTM bookings — former students aren't new leads, and we don't
-  // want to mark a stale Lead Acq opp won via a re-enrollment booking.
-  if (!isBtm) {
-    try {
-      const leadOpps = await findOpps({
-        contactId: input.contactId,
+  // Move Lead Acquisition opp → INTRO BOOKED (WON). Best-effort: missing opp
+  // is a recoverable state (walk-in book without prior opt-in), not an error.
+  try {
+    const leadOpps = await findOpps({
+      contactId: input.contactId,
+      pipelineKey: 'LEAD_ACQ',
+      status: 'open',
+      limit: 5,
+    });
+    const leadOpp = leadOpps[0];
+    if (leadOpp) {
+      await moveStage({
+        oppId: leadOpp.id,
         pipelineKey: 'LEAD_ACQ',
-        status: 'open',
-        limit: 5,
+        stageName: 'INTRO BOOKED (WON)',
       });
-      const leadOpp = leadOpps[0];
-      if (leadOpp) {
-        await moveStage({
-          oppId: leadOpp.id,
-          pipelineKey: 'LEAD_ACQ',
-          stageName: 'INTRO BOOKED (WON)',
-        });
-      }
-    } catch (err) {
-      // Don't fail the booking if Lead Acq move fails — opp creation succeeded.
-      console.warn('[handleBooking] Lead Acq stage move failed (non-fatal)', err);
     }
+  } catch (err) {
+    console.warn('[handleTrialBooking] Lead Acq stage move failed (non-fatal)', err);
   }
 
   const traineeLabel = formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf);
