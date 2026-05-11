@@ -114,11 +114,23 @@ const renderTs = Date.now();
     </div>
 
     {/*
-      "Change program" link in DatePicker is a no-op in the rebook flow
-      (program is fixed per trainee card). Hide it via scoped CSS.
+      Rebook-flow scoped overrides for shared DatePicker/SlotPicker components:
+      - Hide the "Change program" link (no-op in this flow)
+      - Soften the gold calendar border to neutral gray (the gold trainee
+        card already provides the focal point; nested gold-on-gold is too loud)
     */}
     <style>
       section[data-flow="rebook"] [data-change-program] { display: none; }
+      /*
+        Soften the calendar's gold border to neutral gray when nested
+        inside the (already-gold) active trainee card. Only targets the
+        DatePicker calendar wrapper inside #booking-flow — the active
+        trainee card's own gold border (added at the article level) is
+        unaffected because it's outside this section's descendants.
+      */
+      section[data-flow="rebook"] .border-gb-gold {
+        border-color: var(--color-gb-bg-light, #e5e7eb);
+      }
     </style>
 
     {/*
