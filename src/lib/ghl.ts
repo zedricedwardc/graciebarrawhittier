@@ -338,6 +338,19 @@ export async function addContactNote(contactId: string, body: string): Promise<v
   });
 }
 
+/**
+ * Permanently delete an opportunity. Used by handleBtmBooking() to remove
+ * the parent's FORMER STUDENT opp once a per-trainee booking happens
+ * (trainee opp replaces it). Cannot be undone via API — caller should be sure.
+ *
+ * Returns void on success. Logs (non-fatal) on 404 — the opp is already gone.
+ */
+export async function deleteOpportunity(opportunityId: string): Promise<void> {
+  await request(`/opportunities/${encodeURIComponent(opportunityId)}`, {
+    method: 'DELETE',
+  });
+}
+
 // ── Opportunity create ───────────────────────────────────────────────────
 
 export interface CreateOpportunityArgs {

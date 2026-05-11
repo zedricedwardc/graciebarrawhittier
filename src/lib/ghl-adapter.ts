@@ -19,6 +19,7 @@ import {
   addContactToWorkflow,
   addContactNote,
   getContact,
+  deleteOpportunity,
   type ContactRecord,
 } from './ghl';
 import {
@@ -327,30 +328,33 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
 /**
  * Back to the Mats booking handler. Touches ONLY the BACK_TO_MATS pipeline.
  *
- * Three sub-paths:
- *   1. Parent has open BTM opp at FORMER STUDENT
- *        → moveStage to RE ENROLLMENT CLASS BOOKED
- *        → addContactTag(return-class-booked)  [exits the 30-day workflow]
- *        → add audit note
- *   2. Parent has open BTM opp at RE ENROLLMENT CLASS BOOKED already
- *        (multi-trainee subsequent booking from same session)
- *        → no stage move, no tag-toggle (already added)
- *        → just add a "additional booking" audit note
- *   3. Parent has NO open BTM opp
- *        → createOpp at RE ENROLLMENT CLASS BOOKED directly
- *        → addContactTag(return-class-booked)
- *        → add audit note
+ * Per-trainee model: each booking creates its own BTM opp keyed by
+ * trainee_key. The first booking from a parent contact also DELETES that
+ * contact's FORMER STUDENT opp (the one created at CSV import) so the
+ * pipeline view doesn't show both an unconverted parent + their trainee
+ * opps simultaneously.
  *
- * Result: every BTM booking produces exactly one BTM opp at
- * RE ENROLLMENT CLASS BOOKED. Never creates anything in LEAD_ACQ or
- * TRIAL_CONV — those are the trial funnel's responsibility, not BTM's.
+ * Branches:
+ *   A. This trainee already has a BTM opp (matched by trainee_key)
+ *        → move it to RE ENROLLMENT CLASS BOOKED (rebook of same trainee)
+ *        → does NOT touch the parent's FORMER STUDENT opp — it was already
+ *          consumed by the first booking
+ *   B. This is a new trainee for the contact
+ *        → DELETE the contact's FORMER STUDENT opp (if it exists)
+ *        → CREATE a new per-trainee BTM opp at RE ENROLLMENT CLASS BOOKED,
+ *          with trainee_key/trainee_first_name/program/last_appointment_id CFs
+ *
+ * Both branches add the `return-class-booked` tag (which exits the 30-day
+ * workflow at the contact level) and an audit note.
+ *
+ * Never creates anything in LEAD_ACQ or TRIAL_CONV — those are the trial
+ * funnel's responsibility, not BTM's.
  */
 async function handleBtmBooking(
   input: HandleBookingInput,
-  _traineeKey: string,
+  traineeKey: string,
 ): Promise<HandleBookingResult> {
-  // Soft-fail when the BTM pipeline isn't provisioned yet — keep the booking
-  // succeeding so the user gets confirmation, but skip BTM ops.
+  // Soft-fail when the BTM pipeline isn't provisioned yet.
   if (!readEnv('PIPELINE_ID_BACK_TO_MATS')) {
     console.warn('[handleBtmBooking] PIPELINE_ID_BACK_TO_MATS unset — skipping BTM ops');
     return { contactId: input.contactId, opportunityId: '', isRebook: false, stage: 'NO_PIPELINE' };
@@ -359,67 +363,89 @@ async function handleBtmBooking(
   const traineeLabel = formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf);
   const oppName = input.trainee.isSelf
     ? `${input.parent.firstName} ${input.parent.lastName}`
-    : `${input.parent.firstName} ${input.parent.lastName}`; // BTM is parent-level — name uses parent
+    : `${input.trainee.firstName} ${input.parent.lastName}`;
 
+  // Read all open BTM opps for this contact in one round-trip.
   let btmOpps;
   try {
     btmOpps = await findOpps({
       contactId: input.contactId,
       pipelineKey: 'BACK_TO_MATS',
       status: 'open',
-      limit: 5,
+      limit: 20,
     });
   } catch (err) {
     console.warn('[handleBtmBooking] findOpps failed (non-fatal)', err);
     return { contactId: input.contactId, opportunityId: '', isRebook: false, stage: 'BTM_LOOKUP_FAILED' };
   }
 
-  const btmOpp = btmOpps[0];
-
-  // ─── Sub-path 1 & 2: existing BTM opp ─────────────────────────────────
-  if (btmOpp) {
-    const alreadyBooked = await isAtStage(btmOpp, 'BACK_TO_MATS', 'RE ENROLLMENT CLASS BOOKED');
-    if (!alreadyBooked) {
-      // Sub-path 1: first booking — promote stage + add exit tag
-      try {
-        await moveStage({
-          oppId: btmOpp.id,
-          pipelineKey: 'BACK_TO_MATS',
-          stageName: 'RE ENROLLMENT CLASS BOOKED',
-        });
-        await addContactTags(input.contactId, ['return-class-booked']);
-        await addContactNote(
-          input.contactId,
-          `BTM: Re-enrollment class booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
-        );
-      } catch (err) {
-        console.warn('[handleBtmBooking] stage move failed (non-fatal)', err);
-      }
-    } else {
-      // Sub-path 2: multi-trainee booking — note only
+  // ─── Branch A: rebook of an existing trainee ────────────────────────
+  // Opps for this trainee_key get moved back to RE ENROLLMENT CLASS BOOKED
+  // (e.g. they no-showed and now re-booked).
+  const existingTraineeOpp = await findByTraineeKey(btmOpps, traineeKey);
+  if (existingTraineeOpp) {
+    try {
+      const oppCfs = await cfPayload('opportunity', {
+        trainee_key: traineeKey,
+        trainee_first_name: input.trainee.firstName,
+        program: input.program,
+        last_appointment_id: input.appointmentId,
+        last_appointment_start_iso: input.slotStartISO,
+      });
+      await moveStage({
+        oppId: existingTraineeOpp.id,
+        pipelineKey: 'BACK_TO_MATS',
+        stageName: 'RE ENROLLMENT CLASS BOOKED',
+        customFields: oppCfs,
+      });
+      await addContactTags(input.contactId, ['return-class-booked']);
       await addContactNote(
         input.contactId,
-        `BTM: Additional re-enrollment class booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
+        `BTM: Re-booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
       );
+    } catch (err) {
+      console.warn('[handleBtmBooking] rebook stage move failed (non-fatal)', err);
     }
-    return { contactId: input.contactId, opportunityId: btmOpp.id, isRebook: false, stage: 'RE ENROLLMENT CLASS BOOKED' };
+    return { contactId: input.contactId, opportunityId: existingTraineeOpp.id, isRebook: true, stage: 'RE ENROLLMENT CLASS BOOKED' };
   }
 
-  // ─── Sub-path 3: no existing BTM opp — create directly at RE ENROLLMENT CLASS BOOKED ─
-  // Anyone reaching the BTM page is a former student by definition (page is
-  // sent only via campaign emails). Treat them as one even if not pre-imported.
+  // ─── Branch B: new trainee — delete FORMER STUDENT opp + create trainee opp ─
+  // The parent's FORMER STUDENT opp (if any) gets removed on the first
+  // trainee booking. Subsequent trainee bookings find no FORMER STUDENT opp
+  // (already gone) and just create their own opp.
+  for (const opp of btmOpps) {
+    try {
+      if (await isAtStage(opp, 'BACK_TO_MATS', 'FORMER STUDENT')) {
+        await deleteOpportunity(opp.id);
+        break;
+      }
+    } catch (err) {
+      console.warn('[handleBtmBooking] FORMER STUDENT delete failed (non-fatal)', err);
+    }
+  }
+
   try {
+    const oppCfs = await cfPayload('opportunity', {
+      trainee_key: traineeKey,
+      trainee_first_name: input.trainee.firstName,
+      trainee_dob: input.trainee.dob ?? '',
+      program: input.program,
+      last_appointment_id: input.appointmentId,
+      last_appointment_start_iso: input.slotStartISO,
+      appointment_history: input.appointmentId,
+    });
     const created = await createOpp({
       pipelineKey: 'BACK_TO_MATS',
       stageName: 'RE ENROLLMENT CLASS BOOKED',
       contactId: input.contactId,
       name: oppName,
       source: 'back-to-the-mats',
+      customFields: oppCfs,
     });
     await addContactTags(input.contactId, ['return-class-booked']);
     await addContactNote(
       input.contactId,
-      `BTM: Re-enrollment class booked (new BTM opp created) — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
+      `BTM: Re-enrollment class booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
     );
     return { contactId: input.contactId, opportunityId: created.id, isRebook: false, stage: 'RE ENROLLMENT CLASS BOOKED' };
   } catch (err) {
