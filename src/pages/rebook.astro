@@ -96,6 +96,13 @@ const renderTs = Date.now();
         Pick a trainee below to book their next class.
       </p>
       <div data-trainee-list class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"></div>
+      {/*
+        Tailwind safelist: these classes are toggled on the active card via JS
+        in toggleCard()/collapseActive(). Tailwind only compiles classes it
+        sees in source, so without this hidden marker the dynamic classes
+        wouldn't make it into the CSS bundle.
+      */}
+      <span hidden class="sm:col-span-2 lg:col-span-3"></span>
 
       <button
         type="button"
@@ -105,6 +112,14 @@ const renderTs = Date.now();
         ← Look up a different email
       </button>
     </div>
+
+    {/*
+      "Change program" link in DatePicker is a no-op in the rebook flow
+      (program is fixed per trainee card). Hide it via scoped CSS.
+    */}
+    <style>
+      section[data-flow="rebook"] [data-change-program] { display: none; }
+    </style>
 
     {/*
       The single shared booking-flow controller — DatePicker + SlotPicker live
@@ -406,6 +421,10 @@ const renderTs = Date.now();
     }
 
     // ─── Booking-flow render — toggles which step is visible ──────────────
+    // DatePicker + SlotPicker read `step` from the event detail (matching the
+    // /kickstart booking-flow shape). We use `cardStep` to disambiguate from
+    // the page's outer `step` (lookup vs dashboard), so we expose cardStep
+    // AS `step` in the dispatched detail.
     function renderBookingFlow() {
       if (!bookingFlow) return;
       const stepEls = ['date', 'slot', 'confirm', 'error'] as const;
@@ -413,7 +432,9 @@ const renderTs = Date.now();
         const el = bookingFlow.querySelector<HTMLElement>(`[data-step="${s}"]`);
         if (el) el.hidden = state.cardStep !== s;
       }
-      bookingFlow.dispatchEvent(new CustomEvent('booking:render', { detail: state }));
+      bookingFlow.dispatchEvent(
+        new CustomEvent('booking:render', { detail: { ...state, step: state.cardStep } }),
+      );
     }
 
     // ─── Booking-flow events (DatePicker / SlotPicker dispatch these) ────
