@@ -35,7 +35,7 @@ const renderTs = Date.now();
   title="Book Your Next Class | Gracie Barra Whittier"
   description="Manage and book your active trial classes."
 >
-  <section class="max-w-3xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-10" data-render-ts={renderTs}>
+  <section class="max-w-5xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-10" data-render-ts={renderTs}>
     <div class="text-center mb-6 md:mb-8">
       <p class="text-gb-text-muted uppercase tracking-widest text-xs md:text-sm font-semibold mb-2">
         Active Trial Pass
@@ -95,7 +95,7 @@ const renderTs = Date.now();
       <p class="text-sm text-gb-text-muted text-center mb-6">
         Pick a trainee below to book their next class.
       </p>
-      <div data-trainee-list class="space-y-4"></div>
+      <div data-trainee-list class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"></div>
 
       <button
         type="button"
@@ -255,6 +255,9 @@ const renderTs = Date.now();
       }
     }
 
+    /** Tailwind classes that make a card span the full grid row (used when expanded). */
+    const ACTIVE_SPAN_CLASSES = ['sm:col-span-2', 'lg:col-span-3'];
+
     function buildCard(t: Trainee): HTMLElement {
       const isActive = state.activeTraineeKey === t.traineeKey;
       const programLabel = PROGRAM_NAME[t.program as ProgramKey] ?? t.program;
@@ -263,7 +266,7 @@ const renderTs = Date.now();
       card.dataset.traineeCard = '';
       card.dataset.traineeKey = t.traineeKey;
       card.className = `bg-gb-white rounded-2xl shadow-md border-2 ${
-        isActive ? 'border-gb-gold' : 'border-gb-bg-light'
+        isActive ? 'border-gb-gold ' + ACTIVE_SPAN_CLASSES.join(' ') : 'border-gb-bg-light'
       } p-5 md:p-6 transition-colors`;
 
       const header = document.createElement('div');
@@ -340,7 +343,7 @@ const renderTs = Date.now();
 
       area.appendChild(bookingFlow);
       area.hidden = false;
-      card.classList.add('border-gb-gold');
+      card.classList.add('border-gb-gold', ...ACTIVE_SPAN_CLASSES);
       card.classList.remove('border-gb-bg-light');
 
       const btn = card.querySelector<HTMLButtonElement>('[data-book-here]');
@@ -380,7 +383,7 @@ const renderTs = Date.now();
       }
       if (card) {
         card.classList.add('border-gb-bg-light');
-        card.classList.remove('border-gb-gold');
+        card.classList.remove('border-gb-gold', ...ACTIVE_SPAN_CLASSES);
       }
       const t = state.trainees.find((x) => x.traineeKey === state.activeTraineeKey);
       if (btn && t) {
