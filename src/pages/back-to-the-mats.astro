@@ -38,7 +38,7 @@ import { getCustomValue } from '../lib/ghl-custom-values';
 
 const programDirectorName = 'Alex';
 
-const deadlineISO = (await getCustomValue('back_to_mats_deadline'))?.trim() ?? '';
+const deadlineISO = (await getCustomValue('back_to_the_mats_deadline'))?.trim() ?? '';
 const parsedDeadline = deadlineISO ? new Date(deadlineISO) : null;
 const deadlineValid = !!(parsedDeadline && !Number.isNaN(parsedDeadline.getTime()));
 
