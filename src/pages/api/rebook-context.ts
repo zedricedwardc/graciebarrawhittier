@@ -4,15 +4,18 @@
  * Magic-link entry path for /rebook. Accepts a long-lived rebook token
  * (minted at trial activation in Phase 4 and stored on the Trial Credit
  * Monitoring opportunity's `rebook_link_token` custom field), verifies it,
- * fetches fresh credit context from GHL, and returns the same shape as
- * /api/rebook-lookup so the page can use a single render path.
+ * fetches fresh credit context from GHL, and returns the multi-trainee
+ * dashboard payload — same shape as /api/rebook-lookup, plus a
+ * `tokenTraineeKey` flag pointing at the trainee the magic link was minted
+ * for (so the page can pre-expand that card).
  *
- * Returns: { ok:true, sessionToken, contactId, traineeName, traineeKey, program, creditsRemaining }
- *          | { ok:false, code: 'INVALID_TOKEN' | 'NOT_FOUND' | 'GHL_FAILED' }
+ * Returns:
+ *   { ok: true, contactId, tokenTraineeKey, trainees: [...] }
+ *   | { ok: false, code: 'INVALID_TOKEN' | 'NOT_FOUND' | 'GHL_FAILED' }
  *
- * The returned `sessionToken` is a fresh short-lived (15-min) token used by
- * subsequent /api/book calls during this rebook session — keeps the magic
- * link itself out of HTTP request bodies after the initial validation.
+ * Each trainee in the response carries its own short-lived (15-min) session
+ * token used by /api/book — keeps the magic-link token out of subsequent
+ * request bodies after the initial validation.
  */
 
 import type { APIRoute } from 'astro';
@@ -25,6 +28,7 @@ import {
 import { getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { getPipelineId } from '../../lib/ghl-pipelines';
 import { signRebookToken, verifyRebookToken } from '../../lib/rebook-token';
+import type { TraineeCard } from './rebook-lookup';
 
 export const prerender = false;
 
@@ -48,7 +52,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!verified.ok) {
     return json({ ok: false, code: 'INVALID_TOKEN' });
   }
-  const { contactId, traineeKey } = verified.payload;
+  const { contactId, traineeKey: tokenTraineeKey } = verified.payload;
 
   let creditPipelineId: string;
   try {
@@ -73,39 +77,41 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  // Find the opp matching the trainee_key from the token. Iterate opps and use
-  // async getOppCfValueByKey (since GET responses strip key/fieldKey).
-  let matchOpp: OpportunityRecord | undefined;
-  for (const o of opps) {
-    const k = await getOppCfValueByKey<string>(o, 'trainee_key');
-    if (k === traineeKey) { matchOpp = o; break; }
-  }
-  if (!matchOpp) {
+  // Build a card for every open Credit-Monitoring opp; the page will pre-expand
+  // the one matching the token's traineeKey.
+  const trainees = await opps.reduce(async (accP, o) => {
+    const acc = await accP;
+    const tk = (await getOppCfValueByKey<string>(o, 'trainee_key')) ?? '';
+    const tn = (await getOppCfValueByKey<string>(o, 'trainee_first_name')) ?? '';
+    if (!tk || !tn) return acc;
+    const program = (await getOppCfValueByKey<string>(o, 'program')) ?? 'adults';
+    const creditsRaw = await getOppCfValueByKey<string | number>(o, 'credits_remaining');
+    const creditsRemaining = Number(creditsRaw ?? 0);
+    const lastAttendanceISO = (await getOppCfValueByKey<string>(o, 'last_attendance_iso')) ?? null;
+    acc.push({
+      traineeName: tn.trim(),
+      traineeKey: tk,
+      program,
+      creditsRemaining: Number.isFinite(creditsRemaining) ? creditsRemaining : 0,
+      lastAttendanceISO,
+      sessionToken: signRebookToken({
+        contactId,
+        traineeKey: tk,
+        ttlDays: 1 / 96,
+      }),
+    });
+    return acc;
+  }, Promise.resolve([] as TraineeCard[]));
+
+  if (trainees.length === 0) {
     return json({ ok: false, code: 'NOT_FOUND' });
   }
 
-  const traineeName =
-    (await getOppCfValueByKey<string>(matchOpp, 'trainee_first_name')) ?? 'there';
-  const program = (await getOppCfValueByKey<string>(matchOpp, 'program')) ?? 'adults';
-  const creditsRaw = await getOppCfValueByKey<string | number>(matchOpp, 'credits_remaining');
-  const creditsRemaining = Number(creditsRaw ?? 0);
-
-  // Mint a short-lived session token (15 min) so subsequent calls don't pass the
-  // long-lived magic-link token around.
-  const sessionToken = signRebookToken({
-    contactId,
-    traineeKey,
-    ttlDays: 1 / 96,
-  });
-
   return json({
     ok: true,
-    sessionToken,
     contactId,
-    traineeName,
-    traineeKey,
-    program,
-    creditsRemaining: Number.isFinite(creditsRemaining) ? creditsRemaining : 0,
+    tokenTraineeKey,
+    trainees,
   });
 };
 
