@@ -102,7 +102,7 @@ const renderTs = Date.now();
         sees in source, so without this hidden marker the dynamic classes
         wouldn't make it into the CSS bundle.
       */}
-      <span hidden class="sm:col-span-2 lg:col-span-3"></span>
+      <span hidden class="sm:col-span-2 lg:col-span-3 order-first"></span>
 
       <button
         type="button"
@@ -281,8 +281,13 @@ const renderTs = Date.now();
       }
     }
 
-    /** Tailwind classes that make a card span the full grid row (used when expanded). */
-    const ACTIVE_SPAN_CLASSES = ['sm:col-span-2', 'lg:col-span-3'];
+    /**
+     * Classes toggled on the active card to (a) span the full grid row
+     * and (b) jump to grid position 1 — so the active card always reads
+     * as `[full-width active] / [collapsed cards below in the normal grid]`
+     * instead of orphaning earlier cards in their narrow column.
+     */
+    const ACTIVE_SPAN_CLASSES = ['sm:col-span-2', 'lg:col-span-3', 'order-first'];
 
     function buildCard(t: Trainee): HTMLElement {
       const isActive = state.activeTraineeKey === t.traineeKey;
