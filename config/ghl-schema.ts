@@ -518,6 +518,13 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
     trigger: { type: 'appointment_status_changed', calendarFilter: 'all' },
     callsWebsiteWebhook: { path: '/api/webhooks/ghl/appointment-status' },
   },
+  {
+    envVarKey: 'WORKFLOW_ID_BOT_BOOKING_ORCHESTRATOR',
+    name: '[Backflow] Bot Booking → Pipeline Orchestrator',
+    description: 'Invoked by the SMS AI booking bot via its `Trigger a Workflow` action at the end of every successful appointment booking. Fires POST /api/webhooks/ghl/agent-booking-completed so the website runs handleBooking() — creates Trial Conversion opp, moves Lead Acquisition opp to INTRO BOOKED (WON), sets trainee CFs, adds audit notes. MUST include X-GBW-Secret header.',
+    trigger: { type: 'webhook_inbound', description: 'Triggered by bot action; no native GHL trigger type — workflow exposes a manual-invocation entry point.' },
+    callsWebsiteWebhook: { path: '/api/webhooks/ghl/agent-booking-completed' },
+  },
 
   // ─── Back to the Mats campaigns ─────────────────────────────────────
   {
@@ -560,6 +567,7 @@ export const TAGS: readonly { name: string; description: string }[] = [
   { name: 'quarterly-reactivation', description: 'LOST/COLD lead — picked up by quarterly winback campaign.' },
   { name: 'back-to-the-mats-import', description: 'Bulk-imported via CSV into the Back to the Mats campaign. Source attribution.' },
   { name: 'return-class-booked', description: 'Set when a former student books their re-enrollment class. Workflow exit signal for the BTM 30-Day and Re-Booking campaigns.' },
+  { name: 'source-agent-booking', description: 'Set on the contact by the agent-booking-completed webhook after the SMS bot books an appointment. Differentiates bot-driven bookings from page-driven ones in reporting.' },
 ] as const;
 
 // ─── Env var manifest ───────────────────────────────────────────────────────

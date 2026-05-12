@@ -28,3 +28,4 @@ pnpm-debug.log*
 _scaffold/
 
 .vercel
+.env*.local
