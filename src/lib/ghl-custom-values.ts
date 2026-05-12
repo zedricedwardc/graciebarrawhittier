@@ -2,8 +2,8 @@
  * Read GHL custom values at request time, with a short in-memory cache so we
  * don't hammer GHL on every page render.
  *
- * Custom values are studio-admin-editable globals (e.g. `back_to_mats_deadline`,
- * `back_to_mats_offer_name`). Storing campaign-tunable settings in GHL — instead
+ * Custom values are studio-admin-editable globals (e.g. `back_to_the_mats_deadline`,
+ * `back_to_the_mats_offer_name`). Storing campaign-tunable settings in GHL — instead
  * of Vercel env vars — lets the studio admin change them via Settings → Custom
  * Values without coordinating with a developer or triggering a redeploy.
  *
@@ -46,8 +46,8 @@ function locationId(): string {
 /**
  * Extract the bare custom-value key from GHL's wrapped fieldKey format.
  * GHL returns fieldKey as a template-merge string:
- *   "{{ custom_values.back_to_mats_deadline }}" → "back_to_mats_deadline"
- * Also handles the unwrapped form "custom_values.back_to_mats_deadline"
+ *   "{{ custom_values.back_to_the_mats_deadline }}" → "back_to_the_mats_deadline"
+ * Also handles the unwrapped form "custom_values.back_to_the_mats_deadline"
  * just in case GHL ever changes the response shape.
  */
 function bareKey(fieldKey: string | undefined): string | null {

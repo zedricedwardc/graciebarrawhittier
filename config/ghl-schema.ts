@@ -350,19 +350,19 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
 
   // ─── Back to the Mats campaign ───────────────────────────────────────
   {
-    fieldKey: 'back_to_mats_deadline',
+    fieldKey: 'back_to_the_mats_deadline',
     name: 'Back to the Mats Deadline',
     defaultValue: '',
     description: 'Human-readable deadline label rendered in BTM email/SMS bodies (e.g. "Friday, June 8, 2026"). Update before every campaign run. Must align with PUBLIC_BACK_TO_MATS_DEADLINE_ISO in the website Vercel env (the website auto-formats from the ISO; this value is for GHL message merge).',
   },
   {
-    fieldKey: 'back_to_mats_page_url',
+    fieldKey: 'back_to_the_mats_page_url',
     name: 'Back to the Mats Page URL',
     defaultValue: 'https://gbwhittier.com/back-to-the-mats',
     description: 'Landing-page URL referenced in every BTM email/SMS. Hardcoded in the page; this value is for GHL message merge.',
   },
   {
-    fieldKey: 'back_to_mats_offer_name',
+    fieldKey: 'back_to_the_mats_offer_name',
     name: 'Back to the Mats Offer Name',
     defaultValue: 'Back to the Mats Special',
     description: 'Display name of the offer used in subject lines / body copy.',
@@ -410,14 +410,14 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
   {
     envVarKey: 'WORKFLOW_ID_TRIAL_NURTURE',
     name: 'Trial Nurture Campaign',
-    description: 'Email/SMS sequence inviting NEW LEAD contacts to book their first trial. Runs for 7 days.',
+    description: 'Email/SMS sequence inviting NEW LEAD contacts to book their first trial. Runs for 7 days. Contact is removed from this workflow by the website on successful booking (see exitNurtureWorkflows in src/lib/ghl-adapter.ts).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'LEAD_ACQ', enterStage: 'TRIAL NURTURE' },
     callsWebsiteWebhook: false,
   },
   {
     envVarKey: 'WORKFLOW_ID_NURTURE_CAMPAIGN',
     name: 'Last Chance Nurture Campaign',
-    description: 'Final-push sequence for leads who didn\'t book during Trial Nurture. Runs for 14 days.',
+    description: 'Final-push sequence for leads who didn\'t book during Trial Nurture. Runs for 14 days. Contact is removed from this workflow by the website on successful booking (see exitNurtureWorkflows in src/lib/ghl-adapter.ts).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'LEAD_ACQ', enterStage: 'NURTURE CAMPAIGN' },
     callsWebsiteWebhook: false,
   },
@@ -440,14 +440,14 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
   {
     envVarKey: 'WORKFLOW_ID_REBOOKING_CAMPAIGN',
     name: 'Intro Class Rebooking Campaign',
-    description: 'Email/SMS sequence pushing NO-SHOW leads to rebook. Runs for 14 days.',
+    description: 'Email/SMS sequence pushing NO-SHOW leads to rebook. Runs for 14 days. Contact is removed from this workflow by the website on successful rebook (see exitNurtureWorkflows in src/lib/ghl-adapter.ts).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'TRIAL_CONV', enterStage: 'INTRO CLASS REBOOKING' },
     callsWebsiteWebhook: false,
   },
   {
     envVarKey: 'WORKFLOW_ID_INACTIVE_REACTIVATION',
     name: 'Trial Inactive Reactivation Campaign',
-    description: 'Reactivation sequence for trials that went cold without enrolling. Runs for 21 days.',
+    description: 'Reactivation sequence for trials that went cold without enrolling. Runs for 21 days. Contact is removed from this workflow by the website on successful rebook (see exitNurtureWorkflows in src/lib/ghl-adapter.ts).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'TRIAL_CONV', enterStage: 'TRIAL INACTIVE REACTIVATION' },
     callsWebsiteWebhook: false,
   },
@@ -463,7 +463,7 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
   {
     envVarKey: 'WORKFLOW_ID_ANOTHER_TRIAL_CAMPAIGN',
     name: 'Another Trial Booking Campaign',
-    description: 'Invites active-trial students to book their next class on their pass. Includes magic /rebook link.',
+    description: 'Invites active-trial students to book their next class on their pass. Includes magic /rebook link. Contact is removed from this workflow by the website on successful rebook (see exitNurtureWorkflows in src/lib/ghl-adapter.ts).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'CREDIT_MON', enterStage: 'CREDIT ACTIVE' },
     callsWebsiteWebhook: false,
   },
@@ -491,7 +491,7 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
   {
     envVarKey: 'WORKFLOW_ID_CREDIT_REACTIVATION',
     name: 'Trial Active Reactivation Campaign',
-    description: 'Reactivation sequence for credit-pipeline students who went idle.',
+    description: 'Reactivation sequence for credit-pipeline students who went idle. Contact is removed from this workflow by the website on successful rebook (see exitNurtureWorkflows in src/lib/ghl-adapter.ts).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'CREDIT_MON', enterStage: 'REACTIVATION' },
     callsWebsiteWebhook: false,
   },
@@ -617,7 +617,7 @@ export const ENV_VARS: readonly EnvVarDef[] = [
   { key: 'GHL_CAL_BTM_JUNIORS', required: false, description: 'Calendar ID for Juniors BJJ program (BTM flow).' },
   { key: 'GHL_CAL_BTM_ADULTS', required: false, description: 'Calendar ID for Adults BJJ program (BTM flow).' },
 
-  // NOTE: BTM campaign deadline lives in the `back_to_mats_deadline` GHL
+  // NOTE: BTM campaign deadline lives in the `back_to_the_mats_deadline` GHL
   // custom value (read at request time via src/lib/ghl-custom-values.ts) so
   // the studio admin can update it via Settings → Custom Values in GHL —
   // no env var, no redeploy required.

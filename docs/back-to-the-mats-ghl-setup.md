@@ -76,7 +76,7 @@ GHL → **Automation → Workflows** → `+ Create Workflow` (start from blank).
 | 30 | Email | "Last chance — this offer closes today, {{contact.first_name}}" |
 | 30 | SMS | "{{contact.first_name}}, today is the last day" |
 
-> Use `{{custom_values.back_to_mats_page_url}}` in every CTA link, `{{custom_values.back_to_mats_deadline}}` in every "ends" line, and `{{custom_values.academy_name}}` for the studio name. (The provision script creates these.)
+> Use `{{custom_values.back_to_the_mats_page_url}}` in every CTA link, `{{custom_values.back_to_the_mats_deadline}}` in every "ends" line, and `{{custom_values.academy_name}}` for the studio name. (The provision script creates these.)
 
 ### 2.2 — `BTM Appointment Confirmation`
 
@@ -147,9 +147,9 @@ npm run onboard:ghl provision
 This idempotently creates (skipping any that already exist):
 
 **4 new BTM custom values:**
-- `back_to_mats_deadline`
-- `back_to_mats_page_url` (default: `https://gbwhittier.com/back-to-the-mats`)
-- `back_to_mats_offer_name` (default: `Back to the Mats Special`)
+- `back_to_the_mats_deadline`
+- `back_to_the_mats_page_url` (default: `https://gbwhittier.com/back-to-the-mats`)
+- `back_to_the_mats_offer_name` (default: `Back to the Mats Special`)
 - `back_to_mats_30day_to_expired_days` (default: `30`)
 - `back_to_mats_rebooking_to_expired_days` (default: `14`)
 
@@ -222,7 +222,7 @@ GHL_CAL_BTM_JUNIORS=…
 GHL_CAL_BTM_ADULTS=…
 
 # Note: deadline is NO LONGER a Vercel env var.
-# It lives in the GHL custom value `back_to_mats_deadline` and the page
+# It lives in the GHL custom value `back_to_the_mats_deadline` and the page
 # fetches it at request time. Update it in GHL UI per campaign run.
 ```
 
@@ -289,7 +289,7 @@ The 30-Day Campaign will fire automatically on each new opp. Monitor delivery + 
 
 ## Operational notes
 
-- **Update the deadline before every campaign run.** Set the `back_to_mats_deadline` GHL custom value (Settings → Custom Values) — the website fetches it at request time and parses it for the countdown timer + display label. Format: ISO 8601 with offset, e.g. `2026-06-08T23:59:00-07:00`. The change propagates to the live page within ~5 minutes (cache TTL).
+- **Update the deadline before every campaign run.** Set the `back_to_the_mats_deadline` GHL custom value (Settings → Custom Values) — the website fetches it at request time and parses it for the countdown timer + display label. Format: ISO 8601 with offset, e.g. `2026-06-08T23:59:00-07:00`. The change propagates to the live page within ~5 minutes (cache TTL).
 - **Re-running CSV import:** GHL will create duplicate opps even for contacts already in BTM. Filter your CSV to exclude contacts where `back_to_mats_imported_at` was set within the last 60 days.
 - **Multi-trainee bookings:** A parent who books multiple kids in one session sees their BTM opp move to RE ENROLLMENT CLASS BOOKED on the first booking. Subsequent bookings in the same session are no-ops on BTM (logged but don't move stage). Per-trainee tracking happens in TRIAL_CONV opps.
 - **NO-SHOW classification:** Admin manually moves opps from `APPOINTMENT TODAY` → `NO-SHOW` or `RE ENROLLED`. The 14-day re-booking workflow fires automatically on NO-SHOW. Auto-move to OFFER EXPIRED happens 14 days later if they don't re-book.
