@@ -124,6 +124,27 @@ For **campaign workflows** (Trial Nurture, Nurture Campaign, etc.):
 - Add the SMS/email steps your client wants for that campaign.
 - At the **end** of the campaign, add: **Wait** + **Update Opportunity Stage** to advance the opp to the next stage in the funnel. (This is how `auto_move_after` is implemented — declared in the schema, executed inside the campaign workflow.)
 
+#### C.3.1 Nurture-campaign exits *(handled by website code)*
+
+When a contact in a nurture stage books an appointment, the website moves their opp off the nurture stage (e.g. Lead Acq `TRIAL NURTURE` → `INTRO BOOKED (WON)`) AND calls `removeContactFromWorkflow` for every nurture workflow in that funnel. See `exitNurtureWorkflows` in [src/lib/ghl-adapter.ts](../src/lib/ghl-adapter.ts).
+
+This covers all 6 nurture workflows:
+
+| Workflow env var | Pipeline | Funnel |
+|---|---|---|
+| `WORKFLOW_ID_TRIAL_NURTURE` | LEAD_ACQ | trial |
+| `WORKFLOW_ID_NURTURE_CAMPAIGN` | LEAD_ACQ | trial |
+| `WORKFLOW_ID_REBOOKING_CAMPAIGN` | TRIAL_CONV | trial |
+| `WORKFLOW_ID_INACTIVE_REACTIVATION` | TRIAL_CONV | trial |
+| `WORKFLOW_ID_ANOTHER_TRIAL_CAMPAIGN` | CREDIT_MON | credit |
+| `WORKFLOW_ID_CREDIT_REACTIVATION` | CREDIT_MON | credit |
+
+**No GHL UI configuration needed.** The website calls the GHL API directly on every booking; both code paths (`handleTrialBooking` for `/api/book` + `/api/webhooks/ghl/agent-booking-completed`, and `handleRebook` for credit-pipeline rebooks) invoke `exitNurtureWorkflows`.
+
+> **Caveat — contact scope:** GHL workflows are contact-scoped, so the removal clears ALL of this contact's active enrollments in the workflow, not just the enrollment tied to the booking opp. For a parent with multiple trainees in the same nurture stage simultaneously, this means the other trainees' nurture also stops. Accepted trade-off: the alternative is the contact getting nurture messages AFTER booking, which is worse.
+>
+> **Bookings made manually in GHL UI** (admin books directly without going through the website) bypass this code path → contact stays enrolled. Admin should manually remove from the workflow, or the workflow will naturally time out on its built-in duration.
+
 ---
 
 ## Phase D — Provision API-creatable assets *(2 min)*
@@ -186,7 +207,8 @@ Expected: `{ ok: true, drift: [] }`. If `drift` is non-empty, fix what it lists.
 2. In GHL: confirm a Trial Conversion opp at INTRO BOOKED is created.
 3. Confirm Lead Acquisition opp moved to INTRO BOOKED (WON).
 4. Confirm `appointment_id`, `trainee_key`, `trial_date_iso` custom fields are populated.
-5. Wait until appointment end time — opp should auto-move to TRIAL APPOINTMENT DONE.
+5. **Confirm the Trial Nurture workflow exited:** GHL → Contacts → test contact → Workflows tab → `Trial Nurture Campaign` should show status *Removed* (within ~10s of booking). If still *Active*, the `exitNurtureWorkflows` call failed silently — check Vercel runtime logs for `[exitNurtureWorkflows]` warnings.
+6. Wait until appointment end time — opp should auto-move to TRIAL APPOINTMENT DONE.
 
 ### G.4 Stage-change webhook
 
@@ -208,6 +230,7 @@ If all 4 smoke tests pass, the integration is live for this client.
 | Auto-move never fires | Campaign workflow missing the Wait + Update Stage steps at end | Add them per checklist |
 | Opps create duplicates on rebook | `trainee_key` not being set on opp | Verify CF exists in GHL and is populated by webhook handler |
 | Credits never decrement | `last_decrement_trial_date` field missing on contact | Verify CF exists |
+| Contact keeps getting nurture messages after booking | `WORKFLOW_ID_*` env vars unset, or admin booked manually in GHL UI bypassing the website | Verify env vars in Vercel; for manual GHL bookings, admin removes contact from workflow by hand. See §C.3.1. |
 
 ---
 

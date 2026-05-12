@@ -15,7 +15,7 @@ import {
   GhlError,
   readEnv,
 } from '../../lib/ghl';
-import { handleBooking } from '../../lib/ghl-adapter';
+import { handleBooking, exitNurtureWorkflows } from '../../lib/ghl-adapter';
 import { findOpps, findByTraineeKey, moveStage, getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { cfPayload } from '../../lib/ghl-custom-fields';
 import { generateSlots } from '../../lib/slot-resolver';
@@ -355,6 +355,8 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
     console.error('[book/rebook] moveStage failed (appointment did succeed)',
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
   }
+
+  await exitNurtureWorkflows(body.rebook.contactId, 'credit');
 
   return json({
     ok: true,
