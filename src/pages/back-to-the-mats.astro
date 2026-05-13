@@ -22,7 +22,7 @@
  *   - Picks the GHL_CAL_BTM_* calendar set (separate from /kickstart calendars)
  *   - Promotes the parent's BACK_TO_MATS opp from FORMER STUDENT →
  *     RE ENROLLMENT CLASS BOOKED (idempotent for multi-trainee bookings)
- *   - Adds the `return-class-booked` tag (exits the BTM 30-day workflow)
+ *   - Removes the contact from the BTM 30-day and re-booking workflows via API
  *   - Skips the LEAD_ACQ pipeline entirely (former students aren't new leads)
  *   - Still creates per-trainee TRIAL_CONV opps via the existing flow
  *

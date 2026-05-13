@@ -367,18 +367,11 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
     defaultValue: 'Back to the Mats Special',
     description: 'Display name of the offer used in subject lines / body copy.',
   },
-  {
-    fieldKey: 'back_to_mats_30day_to_expired_days',
-    name: 'BTM FORMER STUDENT → OFFER EXPIRED timeout (days)',
-    defaultValue: '30',
-    description: 'How long an opp sits in FORMER STUDENT before auto-moving to OFFER EXPIRED.',
-  },
-  {
-    fieldKey: 'back_to_mats_rebooking_to_expired_days',
-    name: 'BTM NO-SHOW → OFFER EXPIRED timeout (days)',
-    defaultValue: '14',
-    description: 'How long the BTM re-booking campaign runs before marking the opp OFFER EXPIRED.',
-  },
+  // NOTE: BTM FORMER STUDENT → OFFER EXPIRED (30d) and NO-SHOW → OFFER EXPIRED
+  // (14d) used to live here as tunable custom values. They were removed because
+  // the Wait + Update Stage steps are configured with literal day counts inside
+  // the BTM workflows in GHL — no merge tag, nothing reads them at runtime. Edit
+  // the day count inside the workflow if you need to change it.
 ] as const;
 
 // ─── Workflows ──────────────────────────────────────────────────────────────
@@ -530,7 +523,7 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
   {
     envVarKey: 'WORKFLOW_ID_BTM_30DAY',
     name: 'BTM 30-Day Campaign',
-    description: '30-day re-enrollment campaign for former students. 9 emails + 3 SMS per docx Part 2. Exit on tag `return-class-booked`. Auto-move to OFFER EXPIRED after 30 days if no booking.',
+    description: '30-day re-enrollment campaign for former students. 9 emails + 3 SMS per docx Part 2. Website /api/book removes the contact from this workflow on successful BTM booking (handleBtmBooking → exitNurtureWorkflows). Wait + Update Stage to OFFER EXPIRED at the end (configured inside the workflow itself, 30 days).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'BACK_TO_MATS', enterStage: 'FORMER STUDENT' },
     callsWebsiteWebhook: false,
   },
@@ -544,7 +537,7 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
   {
     envVarKey: 'WORKFLOW_ID_BTM_REBOOKING',
     name: 'BTM Re-Booking Campaign (no-show)',
-    description: '14-day re-booking nudge campaign for no-shows. 4 emails + 1 SMS per docx Part 4. Exit on tag `return-class-booked` (re-book). Auto-move to OFFER EXPIRED after 14 days if no re-book.',
+    description: '14-day re-booking nudge campaign for no-shows. 4 emails + 1 SMS per docx Part 4. Website /api/book removes the contact from this workflow on successful BTM booking (handleBtmBooking → exitNurtureWorkflows). Wait + Update Stage to OFFER EXPIRED at the end (configured inside the workflow itself, 14 days).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'BACK_TO_MATS', enterStage: 'NO-SHOW' },
     callsWebsiteWebhook: false,
   },
@@ -566,7 +559,6 @@ export const TAGS: readonly { name: string; description: string }[] = [
   { name: 'source-contact-form', description: 'Submitted the /contact form (not an opt-in but tagged for source attribution).' },
   { name: 'quarterly-reactivation', description: 'LOST/COLD lead — picked up by quarterly winback campaign.' },
   { name: 'back-to-the-mats-import', description: 'Bulk-imported via CSV into the Back to the Mats campaign. Source attribution.' },
-  { name: 'return-class-booked', description: 'Set when a former student books their re-enrollment class. Workflow exit signal for the BTM 30-Day and Re-Booking campaigns.' },
   { name: 'source-agent-booking', description: 'Set on the contact by the agent-booking-completed webhook after the SMS bot books an appointment. Differentiates bot-driven bookings from page-driven ones in reporting.' },
 ] as const;
 
@@ -868,7 +860,7 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
     enterStage: 'FORMER STUDENT',
     actions: [
       { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_BTM_30DAY' },
-      { type: 'auto_move_after', targetStage: 'OFFER EXPIRED', afterCustomValueKey: 'back_to_mats_30day_to_expired_days' },
+      // Wait 30 days → move to OFFER EXPIRED is configured inside the workflow itself.
     ],
   },
   {
@@ -886,7 +878,7 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
     enterStage: 'NO-SHOW',
     actions: [
       { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_BTM_REBOOKING' },
-      { type: 'auto_move_after', targetStage: 'OFFER EXPIRED', afterCustomValueKey: 'back_to_mats_rebooking_to_expired_days' },
+      // Wait 14 days → move to OFFER EXPIRED is configured inside the workflow itself.
     ],
   },
   {

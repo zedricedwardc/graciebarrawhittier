@@ -269,11 +269,16 @@ function formatTraineeLabel(firstName: string, age: number | undefined, isSelf: 
  */
 export async function exitNurtureWorkflows(
   contactId: string,
-  funnel: 'trial' | 'credit',
+  funnel: 'trial' | 'credit' | 'btm',
 ): Promise<void> {
-  const envKeys = funnel === 'trial'
-    ? ['WORKFLOW_ID_TRIAL_NURTURE', 'WORKFLOW_ID_NURTURE_CAMPAIGN', 'WORKFLOW_ID_REBOOKING_CAMPAIGN', 'WORKFLOW_ID_INACTIVE_REACTIVATION']
-    : ['WORKFLOW_ID_ANOTHER_TRIAL_CAMPAIGN', 'WORKFLOW_ID_CREDIT_REACTIVATION'];
+  let envKeys: string[];
+  if (funnel === 'trial') {
+    envKeys = ['WORKFLOW_ID_TRIAL_NURTURE', 'WORKFLOW_ID_NURTURE_CAMPAIGN', 'WORKFLOW_ID_REBOOKING_CAMPAIGN', 'WORKFLOW_ID_INACTIVE_REACTIVATION'];
+  } else if (funnel === 'credit') {
+    envKeys = ['WORKFLOW_ID_ANOTHER_TRIAL_CAMPAIGN', 'WORKFLOW_ID_CREDIT_REACTIVATION'];
+  } else {
+    envKeys = ['WORKFLOW_ID_BTM_30DAY', 'WORKFLOW_ID_BTM_REBOOKING'];
+  }
   await Promise.all(envKeys.map(async (key) => {
     const wfId = readEnv(key);
     if (!wfId) return;
@@ -377,8 +382,9 @@ export async function handleBooking(input: HandleBookingInput): Promise<HandleBo
  *        → CREATE a new per-trainee BTM opp at RE ENROLLMENT CLASS BOOKED,
  *          with trainee_key/trainee_first_name/program/last_appointment_id CFs
  *
- * Both branches add the `return-class-booked` tag (which exits the 30-day
- * workflow at the contact level) and an audit note.
+ * Both branches DELETE the contact's enrollment in the BTM 30-day and
+ * re-booking workflows (so they stop receiving nurture messaging post-
+ * booking) and add an audit note.
  *
  * Never creates anything in LEAD_ACQ or TRIAL_CONV — those are the trial
  * funnel's responsibility, not BTM's.
@@ -431,7 +437,7 @@ async function handleBtmBooking(
         stageName: 'RE ENROLLMENT CLASS BOOKED',
         customFields: oppCfs,
       });
-      await addContactTags(input.contactId, ['return-class-booked']);
+      await exitNurtureWorkflows(input.contactId, 'btm');
       await addContactNote(
         input.contactId,
         `BTM: Re-booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
@@ -475,7 +481,7 @@ async function handleBtmBooking(
       source: 'back-to-the-mats',
       customFields: oppCfs,
     });
-    await addContactTags(input.contactId, ['return-class-booked']);
+    await exitNurtureWorkflows(input.contactId, 'btm');
     await addContactNote(
       input.contactId,
       `BTM: Re-enrollment class booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
