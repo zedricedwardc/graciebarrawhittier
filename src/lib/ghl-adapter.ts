@@ -399,7 +399,6 @@ async function handleBtmBooking(
     return { contactId: input.contactId, opportunityId: '', isRebook: false, stage: 'NO_PIPELINE' };
   }
 
-  const traineeLabel = formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf);
   // Opp name includes program + trainee age so multi-trainee bookings under
   // one contact produce visibly distinct opp cards in the pipeline view AND
   // never collide on the GHL "Allow Duplicate Opportunity" check (which keys
@@ -459,10 +458,6 @@ async function handleBtmBooking(
         customFields: oppCfs,
       });
       await exitNurtureWorkflows(input.contactId, 'btm');
-      await addContactNote(
-        input.contactId,
-        `BTM: Re-booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
-      );
     } catch (err) {
       console.warn('[handleBtmBooking] rebook stage move failed (non-fatal)', err);
     }
@@ -514,10 +509,6 @@ async function handleBtmBooking(
       traineeKey,
     });
     await exitNurtureWorkflows(input.contactId, 'btm');
-    await addContactNote(
-      input.contactId,
-      `BTM: Re-enrollment class booked — ${traineeLabel} for ${input.programName} on ${formatTrialTime(input.slotStartISO)}`,
-    );
     return { contactId: input.contactId, opportunityId: created.id, isRebook: false, stage: 'RE ENROLLMENT CLASS BOOKED' };
   } catch (err) {
     console.error('[handleBtmBooking] BRANCH_B createOpp failed',
