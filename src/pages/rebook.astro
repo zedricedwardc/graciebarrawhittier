@@ -200,7 +200,7 @@ const renderTs = Date.now();
    */
   type ProgramKey = 'tiny' | 'lc1' | 'lc2' | 'juniors' | 'adults';
   type Step = 'lookup' | 'dashboard';
-  type CardStep = 'idle' | 'date' | 'slot' | 'confirm' | 'success' | 'error';
+  type CardStep = 'idle' | 'change-program' | 'date' | 'slot' | 'confirm' | 'success' | 'error';
 
   interface Slot { startISO: string; endISO: string; label: string; }
   interface Trainee {
@@ -219,6 +219,16 @@ const renderTs = Date.now();
     juniors: 'Juniors Jiu-Jitsu',
     adults: 'Adults Brazilian Jiu-Jitsu',
   };
+
+  const PROGRAM_AGE: Record<ProgramKey, string> = {
+    tiny: 'Ages 3–4',
+    lc1: 'Ages 5–6',
+    lc2: 'Ages 7–9',
+    juniors: 'Ages 10–15',
+    adults: 'Ages 16+',
+  };
+
+  const PROGRAM_ORDER: ProgramKey[] = ['tiny', 'lc1', 'lc2', 'juniors', 'adults'];
 
   const root = document.querySelector<HTMLElement>('[data-render-ts]');
   if (root) {
@@ -291,19 +301,33 @@ const renderTs = Date.now();
 
     function buildCard(t: Trainee): HTMLElement {
       const isActive = state.activeTraineeKey === t.traineeKey;
+      const isExhausted = t.creditsRemaining <= 0;
       const programLabel = PROGRAM_NAME[t.program as ProgramKey] ?? t.program;
 
       const card = document.createElement('article');
       card.dataset.traineeCard = '';
       card.dataset.traineeKey = t.traineeKey;
-      card.className = `bg-gb-white rounded-2xl shadow-md border-2 ${
-        isActive ? 'border-gb-gold ' + ACTIVE_SPAN_CLASSES.join(' ') : 'border-gb-bg-light'
-      } p-5 md:p-6 transition-colors`;
+      // Border / bg priorities: active > exhausted > default.
+      // Exhausted gets red border + soft red tint to draw attention to the
+      // "trial complete, enroll next" call-to-action.
+      const baseClass = 'rounded-2xl shadow-md border-2 p-5 md:p-6 transition-colors';
+      if (isActive) {
+        card.className = `bg-gb-white ${baseClass} border-gb-gold ${ACTIVE_SPAN_CLASSES.join(' ')}`;
+      } else if (isExhausted) {
+        card.className = `bg-gb-red/5 ${baseClass} border-gb-red`;
+      } else {
+        card.className = `bg-gb-white ${baseClass} border-gb-bg-light`;
+      }
 
       const header = document.createElement('div');
       header.className = 'flex items-start justify-between gap-4';
       header.innerHTML = `
         <div class="flex-1 min-w-0">
+          ${
+            isExhausted
+              ? `<span class="inline-block bg-gb-red/10 text-gb-red text-[10px] font-bold tracking-wider px-2 py-0.5 rounded uppercase whitespace-nowrap mb-1">Trial complete</span>`
+              : ''
+          }
           <h3 class="text-lg md:text-xl font-extrabold text-gb-navy truncate">${escapeHtml(t.traineeName)}</h3>
           <p class="text-sm text-gb-text-muted">${escapeHtml(programLabel)}</p>
           ${
@@ -324,12 +348,34 @@ const renderTs = Date.now();
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.dataset.bookHere = '';
-      btn.disabled = t.creditsRemaining <= 0;
-      btn.textContent = isActive ? 'Cancel' : t.creditsRemaining > 0 ? 'Book a class' : 'No classes left';
-      btn.className = isActive
-        ? 'w-full h-12 rounded-full font-bold transition-colors bg-gb-white border-2 border-gb-navy text-gb-navy hover:bg-gb-bg-light'
-        : 'w-full h-12 rounded-full font-bold transition-colors bg-gb-red text-gb-white hover:bg-gb-red-dark disabled:opacity-50 disabled:cursor-not-allowed';
+      // Three button modes: cancel (active card), schedule-enrollment
+      // (exhausted credits), book (default). All three route through
+      // toggleCard — only the label + classes change.
+      if (isActive) {
+        btn.textContent = 'Cancel';
+        btn.className = 'w-full h-12 rounded-full font-bold transition-colors bg-gb-white border-2 border-gb-navy text-gb-navy hover:bg-gb-bg-light';
+      } else if (isExhausted) {
+        btn.textContent = 'Schedule enrollment class';
+        btn.className = 'w-full h-12 rounded-full font-bold transition-colors bg-gb-red text-gb-white hover:bg-gb-red-dark';
+      } else {
+        btn.textContent = 'Book a class';
+        btn.className = 'w-full h-12 rounded-full font-bold transition-colors bg-gb-red text-gb-white hover:bg-gb-red-dark';
+      }
       actions.appendChild(btn);
+
+      // "Change class" only makes sense while credits remain — once the
+      // trial pass is exhausted the conversion CTA takes priority and we
+      // remove the change-class option.
+      if (!isExhausted) {
+        const changeLink = document.createElement('button');
+        changeLink.type = 'button';
+        changeLink.dataset.changeClassHere = '';
+        changeLink.textContent = 'Change class';
+        changeLink.className = 'mt-2 w-full text-sm text-gb-text-muted underline hover:text-gb-navy transition-colors';
+        changeLink.addEventListener('click', () => openChangeProgram(t.traineeKey));
+        actions.appendChild(changeLink);
+      }
+
       card.appendChild(actions);
 
       const bookingArea = document.createElement('div');
@@ -341,7 +387,7 @@ const renderTs = Date.now();
       const successArea = document.createElement('div');
       successArea.dataset.cardSuccess = '';
       successArea.hidden = true;
-      successArea.className = 'mt-5 pt-5 border-t border-gb-bg-light text-sm text-gb-navy font-semibold';
+      successArea.className = 'mt-5 pt-5 border-t border-gb-bg-light text-sm text-gb-text-muted font-semibold';
       card.appendChild(successArea);
 
       btn.addEventListener('click', () => toggleCard(t.traineeKey));
@@ -374,8 +420,10 @@ const renderTs = Date.now();
 
       area.appendChild(bookingFlow);
       area.hidden = false;
-      card.classList.add('border-gb-gold', ...ACTIVE_SPAN_CLASSES);
-      card.classList.remove('border-gb-bg-light');
+      // Drop any prior border/bg colors (default OR exhausted) before applying
+      // active styling. classList.remove ignores classes that aren't present.
+      card.classList.remove('border-gb-bg-light', 'border-gb-red', 'bg-gb-red/5', 'bg-gb-white');
+      card.classList.add('bg-gb-white', 'border-gb-gold', ...ACTIVE_SPAN_CLASSES);
 
       const btn = card.querySelector<HTMLButtonElement>('[data-book-here]');
       if (btn) {
@@ -409,22 +457,150 @@ const renderTs = Date.now();
       const area = card?.querySelector<HTMLElement>('[data-card-booking-area]');
       const btn = card?.querySelector<HTMLButtonElement>('[data-book-here]');
       if (area && bookingFlow && bookingFlowParking) {
+        // Move bookingFlow back to its parking spot (no-op if it wasn't in
+        // this area — e.g. when collapsing the change-program picker).
         bookingFlowParking.appendChild(bookingFlow);
+        // Wipe any inline content (change-program picker writes into this
+        // area directly; bookingFlow has already been moved out, so this
+        // only clears leftover picker HTML).
+        area.innerHTML = '';
         area.hidden = true;
       }
-      if (card) {
-        card.classList.add('border-gb-bg-light');
-        card.classList.remove('border-gb-gold', ...ACTIVE_SPAN_CLASSES);
-      }
       const t = state.trainees.find((x) => x.traineeKey === state.activeTraineeKey);
+      const isExhausted = t ? t.creditsRemaining <= 0 : false;
+      if (card) {
+        card.classList.remove('border-gb-gold', 'border-gb-bg-light', 'border-gb-red', 'bg-gb-red/5', 'bg-gb-white', ...ACTIVE_SPAN_CLASSES);
+        if (isExhausted) {
+          card.classList.add('bg-gb-red/5', 'border-gb-red');
+        } else {
+          card.classList.add('bg-gb-white', 'border-gb-bg-light');
+        }
+      }
       if (btn && t) {
-        btn.disabled = t.creditsRemaining <= 0;
-        btn.textContent = t.creditsRemaining > 0 ? 'Book a class' : 'No classes left';
-        btn.className = 'w-full h-12 rounded-full font-bold transition-colors bg-gb-red text-gb-white hover:bg-gb-red-dark disabled:opacity-50 disabled:cursor-not-allowed';
+        btn.disabled = false;
+        if (isExhausted) {
+          btn.textContent = 'Schedule enrollment class';
+          btn.className = 'w-full h-12 rounded-full font-bold transition-colors bg-gb-red text-gb-white hover:bg-gb-red-dark';
+        } else {
+          btn.textContent = 'Book a class';
+          btn.className = 'w-full h-12 rounded-full font-bold transition-colors bg-gb-red text-gb-white hover:bg-gb-red-dark';
+        }
       }
 
       state.activeTraineeKey = null;
       state.cardStep = 'idle';
+    }
+
+    // ─── Change-class flow ────────────────────────────────────────────────
+    // Renders a program-picker directly into the card's booking area (not the
+    // shared #booking-flow DOM, which is reserved for date/slot/confirm).
+    // On submit: POST /api/rebook-change-program, then transition the same
+    // card into the booking flow with the new program.
+    function openChangeProgram(traineeKey: string) {
+      if (state.activeTraineeKey === traineeKey && state.cardStep === 'change-program') {
+        collapseActive();
+        return;
+      }
+      collapseActive();
+
+      const t = state.trainees.find((x) => x.traineeKey === traineeKey);
+      if (!t) return;
+
+      const card = traineeList?.querySelector<HTMLElement>(`[data-trainee-key="${cssEscape(traineeKey)}"]`);
+      const area = card?.querySelector<HTMLElement>('[data-card-booking-area]');
+      if (!card || !area) return;
+
+      area.hidden = false;
+      card.classList.add('border-gb-gold', ...ACTIVE_SPAN_CLASSES);
+      card.classList.remove('border-gb-bg-light');
+
+      const btn = card.querySelector<HTMLButtonElement>('[data-book-here]');
+      if (btn) {
+        btn.textContent = 'Cancel';
+        btn.className = 'w-full h-12 rounded-full font-bold transition-colors bg-gb-white border-2 border-gb-navy text-gb-navy hover:bg-gb-bg-light';
+      }
+
+      state.activeTraineeKey = traineeKey;
+      state.cardStep = 'change-program';
+
+      renderChangeProgramPicker(area, t);
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderChangeProgramPicker(area: HTMLElement, t: Trainee) {
+      const currentKey = (t.program as ProgramKey);
+      area.innerHTML = `
+        <h4 class="text-base md:text-lg font-bold text-gb-navy mb-1">Switch ${escapeHtml(t.traineeName)}'s class</h4>
+        <p class="text-sm text-gb-text-muted mb-4">
+          Pick the class ${escapeHtml(t.traineeName)} should be in. We'll save the change and show open times for that class.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" data-program-grid></div>
+        <p data-change-error class="hidden mt-3 text-sm text-gb-red" role="alert">
+          We couldn't update the class right now. Please try again or call us at (562) 640-1400.
+        </p>
+      `;
+
+      const grid = area.querySelector<HTMLElement>('[data-program-grid]');
+      if (!grid) return;
+
+      for (const key of PROGRAM_ORDER) {
+        const isCurrent = key === currentKey;
+        const optBtn = document.createElement('button');
+        optBtn.type = 'button';
+        optBtn.dataset.pickProgram = key;
+        optBtn.disabled = isCurrent;
+        optBtn.className = isCurrent
+          ? 'flex items-center justify-between gap-3 text-left p-3 rounded-xl border-2 border-gb-bg-light bg-gb-bg-light/50 cursor-not-allowed'
+          : 'flex items-center justify-between gap-3 text-left p-3 rounded-xl border-2 border-gb-bg-light hover:border-gb-navy hover:bg-gb-bg-light transition-colors';
+        optBtn.innerHTML = `
+          <div class="min-w-0">
+            <div class="text-sm font-bold text-gb-navy">${escapeHtml(PROGRAM_NAME[key])}</div>
+            <div class="text-xs text-gb-text-muted">${escapeHtml(PROGRAM_AGE[key])}</div>
+          </div>
+          <span class="text-xs font-semibold ${isCurrent ? 'text-gb-text-muted' : 'text-gb-red'}">${isCurrent ? 'Current' : 'Switch →'}</span>
+        `;
+        if (!isCurrent) optBtn.addEventListener('click', () => void submitChangeProgram(t, key));
+        grid.appendChild(optBtn);
+      }
+    }
+
+    async function submitChangeProgram(t: Trainee, newProgram: ProgramKey) {
+      if (!state.contactId) return;
+      const card = traineeList?.querySelector<HTMLElement>(`[data-trainee-key="${cssEscape(t.traineeKey)}"]`);
+      const area = card?.querySelector<HTMLElement>('[data-card-booking-area]');
+      const errEl = area?.querySelector<HTMLElement>('[data-change-error]');
+      const optionBtns = area?.querySelectorAll<HTMLButtonElement>('[data-pick-program]');
+      errEl?.classList.add('hidden');
+      optionBtns?.forEach((b) => { b.disabled = true; });
+
+      try {
+        const res = await fetch('/api/rebook-change-program', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contactId: state.contactId,
+            traineeKey: t.traineeKey,
+            sessionToken: t.sessionToken,
+            program: newProgram,
+          }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.code ?? 'unknown');
+
+        // Mutate in-memory state, re-render cards, then auto-open the date picker
+        // for the new program so the customer can immediately book.
+        t.program = newProgram;
+        state.activeTraineeKey = null;
+        state.cardStep = 'idle';
+        renderCards();
+        if (t.creditsRemaining > 0) toggleCard(t.traineeKey);
+      } catch (err) {
+        console.warn('[rebook] change-program failed', err);
+        errEl?.classList.remove('hidden');
+        optionBtns?.forEach((b) => {
+          if (b.dataset.pickProgram !== t.program) b.disabled = false;
+        });
+      }
     }
 
     function cssEscape(s: string): string {
