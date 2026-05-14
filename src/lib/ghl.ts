@@ -420,3 +420,18 @@ export async function createAppointment(args: CreateAppointmentArgs): Promise<st
   }
   return id;
 }
+
+/**
+ * Add a note to an appointment so it appears in the appointment's Notes tab.
+ * Distinct from contact notes (which live on the contact, not the appointment).
+ * Used by /api/book to write structured booking details right after the
+ * appointment is created — replaces the workflow-driven note that was
+ * rendering "Date:" blank from a bad merge field.
+ */
+export async function createAppointmentNote(appointmentId: string, body: string): Promise<void> {
+  await request(`/calendars/appointments/${encodeURIComponent(appointmentId)}/notes`, {
+    method: 'POST',
+    version: CALENDAR_VERSION,
+    body: JSON.stringify({ body }),
+  });
+}

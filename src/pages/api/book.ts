@@ -10,6 +10,7 @@ import { getProgram, getCalendarIdEnvVar, type ProgramKey } from '../../data/pro
 import {
   upsertContact,
   createAppointment,
+  createAppointmentNote,
   getFreeSlots,
   getContact,
   GhlError,
@@ -132,6 +133,20 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not create appointment.' });
   }
 
+  // Write a structured appointment note (replaces the old GHL workflow note
+  // step that was rendering "Date:" blank). Non-fatal — booking is already
+  // confirmed if this fails.
+  try {
+    await createAppointmentNote(appointmentId, formatBookingNote({
+      title,
+      slotStartISO: body.slotStartISO,
+      parent: body.parent,
+    }));
+  } catch (err) {
+    console.warn('[book] createAppointmentNote failed (non-fatal)',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
+  }
+
   // Phase 3: dispatch to ghl-adapter for opportunity orchestration
   // (replaces the legacy fire-and-forget GHL_APPOINTMENT_WEBHOOK_URL).
   let opportunityId: string | undefined;
@@ -220,6 +235,32 @@ function json(body: BookingResponse): Response {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function formatBookingNote(args: {
+  title: string;
+  slotStartISO: string;
+  parent: { firstName: string; lastName: string; email: string; phone: string };
+}): string {
+  const when = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(args.slotStartISO));
+  const parentName = `${args.parent.firstName} ${args.parent.lastName}`.trim();
+  return [
+    args.title,
+    '',
+    `When: ${when}`,
+    '',
+    `Parent: ${parentName}`,
+    `Phone: ${args.parent.phone}`,
+    `Email: ${args.parent.email}`,
+  ].join('\n');
 }
 
 // ─── Rebook flow (active-trial student) ──────────────────────────────────
@@ -335,6 +376,22 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
     console.error('[book/rebook] createAppointment failed',
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not create appointment.' });
+  }
+
+  try {
+    await createAppointmentNote(appointmentId, formatBookingNote({
+      title,
+      slotStartISO: body.slotStartISO,
+      parent: {
+        firstName: contact.firstName ?? '',
+        lastName:  contact.lastName  ?? '',
+        email:     contact.email     ?? '',
+        phone:     contact.phone     ?? '',
+      },
+    }));
+  } catch (err) {
+    console.warn('[book/rebook] createAppointmentNote failed (non-fatal)',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
   }
 
   // Update the credit opp: move to ANOTHER TRIAL BOOKED + record appointment.

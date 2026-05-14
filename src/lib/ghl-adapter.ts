@@ -35,7 +35,7 @@ import {
 } from './ghl-opportunities';
 import { cfPayload } from './ghl-custom-fields';
 import { deriveTraineeKey } from './trainee-key';
-import { readEnv, type OpportunityRecord } from './ghl';
+import { readEnv, GhlError, type OpportunityRecord } from './ghl';
 import { getStageId } from './ghl-pipelines';
 import { signRebookToken } from './rebook-token';
 import type { PipelineKey } from '../../config/ghl-schema';
@@ -400,9 +400,21 @@ async function handleBtmBooking(
   }
 
   const traineeLabel = formatTraineeLabel(input.trainee.firstName, input.trainee.age, input.trainee.isSelf);
+  // Opp name includes program + trainee age so multi-trainee bookings under
+  // one contact produce visibly distinct opp cards in the pipeline view AND
+  // never collide on the GHL "Allow Duplicate Opportunity" check (which keys
+  // off opp name + contact + pipeline).
   const oppName = input.trainee.isSelf
-    ? `${input.parent.firstName} ${input.parent.lastName}`
-    : `${input.trainee.firstName} ${input.parent.lastName}`;
+    ? `${input.parent.firstName} ${input.parent.lastName} — ${input.programName} (${input.trainee.age})`
+    : `${input.trainee.firstName} ${input.parent.lastName} — ${input.programName} (${input.trainee.age})`;
+
+  console.log('[handleBtmBooking] start', {
+    contactId: input.contactId,
+    appointmentId: input.appointmentId,
+    program: input.program,
+    traineeKey,
+    oppName,
+  });
 
   // Read all open BTM opps for this contact in one round-trip.
   let btmOpps;
@@ -412,6 +424,11 @@ async function handleBtmBooking(
       pipelineKey: 'BACK_TO_MATS',
       status: 'open',
       limit: 20,
+    });
+    console.log('[handleBtmBooking] findOpps result', {
+      contactId: input.contactId,
+      count: btmOpps.length,
+      ids: btmOpps.map((o) => o.id),
     });
   } catch (err) {
     console.warn('[handleBtmBooking] findOpps failed (non-fatal)', err);
@@ -423,6 +440,10 @@ async function handleBtmBooking(
   // (e.g. they no-showed and now re-booked).
   const existingTraineeOpp = await findByTraineeKey(btmOpps, traineeKey);
   if (existingTraineeOpp) {
+    console.log('[handleBtmBooking] BRANCH_A rebook — moving existing opp', {
+      oppId: existingTraineeOpp.id,
+      traineeKey,
+    });
     try {
       const oppCfs = await cfPayload('opportunity', {
         trainee_key: traineeKey,
@@ -452,9 +473,14 @@ async function handleBtmBooking(
   // The parent's FORMER STUDENT opp (if any) gets removed on the first
   // trainee booking. Subsequent trainee bookings find no FORMER STUDENT opp
   // (already gone) and just create their own opp.
+  console.log('[handleBtmBooking] BRANCH_B new trainee — scanning for FORMER STUDENT opp', {
+    traineeKey,
+    candidateOppIds: btmOpps.map((o) => o.id),
+  });
   for (const opp of btmOpps) {
     try {
       if (await isAtStage(opp, 'BACK_TO_MATS', 'FORMER STUDENT')) {
+        console.log('[handleBtmBooking] deleting FORMER STUDENT opp', { oppId: opp.id });
         await deleteOpportunity(opp.id);
         break;
       }
@@ -481,6 +507,12 @@ async function handleBtmBooking(
       source: 'back-to-the-mats',
       customFields: oppCfs,
     });
+    console.log('[handleBtmBooking] BRANCH_B created opp', {
+      newOppId: created.id,
+      requestedName: oppName,
+      responseName: created.name,
+      traineeKey,
+    });
     await exitNurtureWorkflows(input.contactId, 'btm');
     await addContactNote(
       input.contactId,
@@ -488,7 +520,8 @@ async function handleBtmBooking(
     );
     return { contactId: input.contactId, opportunityId: created.id, isRebook: false, stage: 'RE ENROLLMENT CLASS BOOKED' };
   } catch (err) {
-    console.warn('[handleBtmBooking] createOpp failed (non-fatal)', err);
+    console.error('[handleBtmBooking] BRANCH_B createOpp failed',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText, path: err.path, traineeKey, oppName } : { err, traineeKey, oppName });
     return { contactId: input.contactId, opportunityId: '', isRebook: false, stage: 'BTM_CREATE_FAILED' };
   }
 }
