@@ -350,6 +350,12 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
 
   // ─── Back to the Mats campaign ───────────────────────────────────────
   {
+    fieldKey: 'academy_name',
+    name: 'Academy Name',
+    defaultValue: 'Gracie Barra Whittier',
+    description: 'Studio display name used in BTM email/SMS merge tags ({{custom_values.academy_name}}). Pre-existing in GBW sub-account from an old snapshot; declared here so the onboard script provisions it for new academies.',
+  },
+  {
     fieldKey: 'back_to_the_mats_deadline',
     name: 'Back to the Mats Deadline',
     defaultValue: '',
