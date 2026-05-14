@@ -439,7 +439,16 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
   {
     envVarKey: 'WORKFLOW_ID_PRE_TRIAL_REMINDERS',
     name: 'Pre-Trial Reminders',
-    description: '24h-before + 2h-before SMS/email reminders for the first trial appointment.',
+    description:
+      'Unified reminder workflow for BOTH first-trial and active-credit-pass rebook appointments. ' +
+      'Triggered by "Customer Booked Appointment" on the trial calendar group (both flows write to the same ' +
+      'per-program trial calendar — see getProgram(program).calendarIdEnvVar in src/data/programs.ts). ' +
+      'Branches on a Find Opportunity step against the Trial Credit Monitoring pipeline: ' +
+      'Found = active credit pass exists → REBOOK branch (3d / 1d / 2h reminders only), ' +
+      'Not Found = no credit pass yet → FIRST-TRIAL branch (welcome Confirmation Email + SMS, then 3d / 1d / 2h reminders). ' +
+      'Wait steps anchor on {{appointment.start_time}} from the trigger event — do NOT reference opp ' +
+      'last_appointment_start_iso (suffers a race vs. the moveStage commit). ' +
+      'Replaces the previously-separate "Rebooking Reminders" workflow which fired on CREDIT_MON → ANOTHER TRIAL BOOKED.',
     trigger: { type: 'appointment_status_changed', calendarFilter: 'all' },
     callsWebsiteWebhook: false,
   },
@@ -471,13 +480,6 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
     name: 'Another Trial Booking Campaign',
     description: 'Invites active-trial students to book their next class on their pass. Includes magic /rebook link. Contact is removed from this workflow by the website on successful rebook (see exitNurtureWorkflows in src/lib/ghl-adapter.ts).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'CREDIT_MON', enterStage: 'CREDIT ACTIVE' },
-    callsWebsiteWebhook: false,
-  },
-  {
-    envVarKey: 'WORKFLOW_ID_REBOOK_REMINDERS',
-    name: 'Rebooking Reminders',
-    description: '24h + 2h reminders for ANOTHER TRIAL BOOKED appointments.',
-    trigger: { type: 'opp_stage_changed', pipelineKey: 'CREDIT_MON', enterStage: 'ANOTHER TRIAL BOOKED' },
     callsWebsiteWebhook: false,
   },
   {
@@ -808,7 +810,10 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
     pipelineKey: 'CREDIT_MON',
     enterStage: 'ANOTHER TRIAL BOOKED',
     actions: [
-      { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_REBOOK_REMINDERS' },
+      // Reminder messaging is no longer fired from this stage transition —
+      // it's handled by the unified Pre-Trial Reminders workflow which
+      // triggers on "Customer Booked Appointment" and branches on Find
+      // Opportunity to send rebook copy (see WORKFLOW_ID_PRE_TRIAL_REMINDERS).
       // Auto-move to APPOINTMENT TODAY at 00:01 on the day of the appointment
       // so admin sees a daily list of "appointments today to classify."
       { type: 'auto_move_on_appointment_day', targetStage: 'APPOINTMENT TODAY' },
