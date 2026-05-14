@@ -18,7 +18,10 @@ export default defineConfig({
   }),
   integrations: [
     sitemap({
-      filter: (page) => !page.includes('/kickstart') && !page.includes('/back-to-the-mats'),
+      filter: (page) =>
+        !page.includes('/kickstart') &&
+        !page.includes('/back-to-the-mats') &&
+        !page.includes('/rebook'),
     }),
   ],
   vite: {

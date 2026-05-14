@@ -20,6 +20,12 @@ export const nap = {
   },
   priceRange: '$$',
   serviceAreas: ['Whittier', 'La Habra', 'La Mirada', 'Pico Rivera'],
+  social: {
+    instagram: 'https://www.instagram.com/graciebarrawhittier/',
+    facebook: 'https://www.facebook.com/graciebarrawhittier/',
+    googleBusiness: 'https://share.google/6bdDUn4PBYx81HmW4',
+    yelp: 'https://www.yelp.com/biz/gracie-barra-whittier-whittier',
+  },
 } as const;
 
 export type Nap = typeof nap;
