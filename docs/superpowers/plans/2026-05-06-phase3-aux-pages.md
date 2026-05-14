@@ -1,4 +1,4 @@
-# Phase 3 — Aux Pages Implementation Plan
+﻿# Phase 3 â€” Aux Pages Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -17,7 +17,7 @@
 Pre-implementation grep + read shows:
 - `src/pages/reviews.astro` (166 lines): has hero, reviews-widget placeholder, featured-quotes section, navy CTA section. Uses old edge-to-edge layout. Phase 3 = bento adaptation + brief copy + BreadcrumbList.
 - `src/pages/contact.astro` (365 lines): has hero, NAP block + schedule, contact form (Name/Email/Phone/Message + `Send Message` submit), Google Map iframe, service-areas, navy CTA. Form already POSTs to a webhook with the right shape. Phase 3 = bento adaptation + meta + BreadcrumbList; ensure form POST body includes `source: 'contact-form'`.
-- `src/pages/kickstart.astro` (103 lines): brief-aligned. Section 1 (header) ✓, Section 2 (age routing) ✓, Section 3 (BookingFlow) ✓, Section 4 (What Happens Next) ✓, Section 5 (Trust strip) ✓. Phase 3 = verify only.
+- `src/pages/kickstart.astro` (103 lines): brief-aligned. Section 1 (header) âœ“, Section 2 (age routing) âœ“, Section 3 (BookingFlow) âœ“, Section 4 (What Happens Next) âœ“, Section 5 (Trust strip) âœ“. Phase 3 = verify only.
 
 Real diff: 2 page rewrites + 1 verification (likely no commit).
 
@@ -38,7 +38,7 @@ Use the Write tool to overwrite `src/pages/reviews.astro` with EXACTLY this cont
 ---
 export const prerender = true;
 /**
- * /reviews — social-proof hub for Gracie Barra Whittier.
+ * /reviews â€” social-proof hub for Gracie Barra Whittier.
  * Copy aligned to build brief Part 3 Reviews section.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -47,24 +47,24 @@ import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import { reviews } from '../content/reviews';
 
 const breadcrumb = [
-  { name: 'Home', url: 'https://gbwhittier.com/' },
-  { name: 'Reviews', url: 'https://gbwhittier.com/reviews/' },
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'Reviews', url: 'https://www.graciebarrawhittier.com/reviews/' },
 ];
 ---
 
 <BaseLayout
-  title="Reviews — Gracie Barra Whittier | Brazilian Jiu-Jitsu in Whittier, CA"
+  title="Reviews â€” Gracie Barra Whittier | Brazilian Jiu-Jitsu in Whittier, CA"
   description="Read reviews from students and families training at Gracie Barra Whittier. See why families across Whittier, La Habra, La Mirada, and Pico Rivera trust us for kids and adult BJJ."
-  canonical="https://gbwhittier.com/reviews/"
+  canonical="https://www.graciebarrawhittier.com/reviews/"
 >
   <div class="bg-gb-bg-light">
-    {/* HERO — rounded card on light-gray background */}
+    {/* HERO â€” rounded card on light-gray background */}
     <section class="px-4 md:px-6 pt-6 md:pt-8">
       <div class="max-w-7xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
         <div class="absolute inset-0 -z-10 bg-gradient-to-br from-gb-navy via-gb-navy/95 to-gb-navy-dark"></div>
         <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
           <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
-            Reviews — Gracie Barra Whittier
+            Reviews â€” Gracie Barra Whittier
           </p>
           <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
             What Students Say About Gracie Barra Whittier
@@ -82,7 +82,7 @@ const breadcrumb = [
       <div class="max-w-5xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
         <div class="text-center mb-6">
           <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Live Google Reviews</h2>
-          <p class="mt-2 text-sm text-gb-text-muted">Powered by Google Reviews — updated in real time</p>
+          <p class="mt-2 text-sm text-gb-text-muted">Powered by Google Reviews â€” updated in real time</p>
         </div>
         <div id="reviews-widget" class="bg-gb-bg-light rounded-xl p-6 md:p-8 text-center text-gb-text-muted">
           Reviews loading...
@@ -122,7 +122,7 @@ const breadcrumb = [
     </section>
   </div>
 
-  {/* FINAL CTA — full-width navy band */}
+  {/* FINAL CTA â€” full-width navy band */}
   <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6">
     <div class="max-w-3xl mx-auto text-center">
       <h2 class="text-2xl md:text-4xl font-extrabold">Ready to write your own success story?</h2>
@@ -132,7 +132,7 @@ const breadcrumb = [
       <div class="mt-7 flex justify-center">
         <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
       </div>
-      <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts</p>
+      <p class="mt-4 text-xs text-gb-white/70">3 free classes â€¢ Free uniform rental â€¢ No contracts</p>
     </div>
   </section>
 
@@ -165,7 +165,7 @@ In `src/pages/reviews.astro`:
 
 ```
 git add src/pages/reviews.astro
-git commit -m "feat(reviews): rebuild Reviews page per Phase 3 spec — bento layout, brief copy, BreadcrumbList"
+git commit -m "feat(reviews): rebuild Reviews page per Phase 3 spec â€” bento layout, brief copy, BreadcrumbList"
 ```
 
 ---
@@ -185,7 +185,7 @@ Use the Write tool to overwrite `src/pages/contact.astro` with EXACTLY this cont
 ---
 export const prerender = true;
 /**
- * /contact — contact form, NAP block, map, service areas.
+ * /contact â€” contact form, NAP block, map, service areas.
  * Copy aligned to build brief Part 3 Contact section.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -195,8 +195,8 @@ import SchemaLocalBusiness from '../components/seo/SchemaLocalBusiness.astro';
 import { nap } from '../content/nap';
 
 const breadcrumb = [
-  { name: 'Home', url: 'https://gbwhittier.com/' },
-  { name: 'Contact', url: 'https://gbwhittier.com/contact/' },
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'Contact', url: 'https://www.graciebarrawhittier.com/contact/' },
 ];
 
 interface ScheduleRow {
@@ -206,45 +206,45 @@ interface ScheduleRow {
 
 const schedule: ScheduleRow[] = [
   {
-    day: 'Monday – Thursday',
+    day: 'Monday â€“ Thursday',
     classes: [
-      '11:00 AM — Adults Fundamentals',
-      '12:00 PM — Adults Advanced',
-      '3:00 PM – 7:00 PM — Kids classes (varying age groups by hour)',
-      '7:00 PM — Adults Fundamentals',
-      '8:00 PM — Adults Advanced (No Gi / Gi alternating)',
+      '11:00 AM â€” Adults Fundamentals',
+      '12:00 PM â€” Adults Advanced',
+      '3:00 PM â€“ 7:00 PM â€” Kids classes (varying age groups by hour)',
+      '7:00 PM â€” Adults Fundamentals',
+      '8:00 PM â€” Adults Advanced (No Gi / Gi alternating)',
     ],
   },
   {
     day: 'Friday',
     classes: [
-      '4:00 PM — Top Team (invite only)',
-      '7:00 PM — Open Mat (all levels)',
+      '4:00 PM â€” Top Team (invite only)',
+      '7:00 PM â€” Open Mat (all levels)',
     ],
   },
   {
     day: 'Saturday',
     classes: [
-      '10:00 AM — Little Champs 1 & 2',
-      '11:00 AM — Juniors BJJ + Adults Fundamentals',
-      '12:00 PM — Adults Fundamentals',
-      '1:00 PM — Adults Advanced',
+      '10:00 AM â€” Little Champs 1 & 2',
+      '11:00 AM â€” Juniors BJJ + Adults Fundamentals',
+      '12:00 PM â€” Adults Fundamentals',
+      '1:00 PM â€” Adults Advanced',
     ],
   },
   {
     day: 'Sunday',
-    classes: ['No classes — see you Monday'],
+    classes: ['No classes â€” see you Monday'],
   },
 ];
 ---
 
 <BaseLayout
-  title="Contact Us | Gracie Barra Whittier — Whittier, CA"
+  title="Contact Us | Gracie Barra Whittier â€” Whittier, CA"
   description="Visit Gracie Barra Whittier at 13595 Whittier Blvd. #104, Whittier, CA 90605. Call (562) 640-1400 or email info@gbwhittier.com to claim your Free 3-Class Pass."
-  canonical="https://gbwhittier.com/contact/"
+  canonical="https://www.graciebarrawhittier.com/contact/"
 >
   <div class="bg-gb-bg-light">
-    {/* HERO — rounded card on light-gray bg */}
+    {/* HERO â€” rounded card on light-gray bg */}
     <section class="px-4 md:px-6 pt-6 md:pt-8">
       <div class="max-w-7xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
         <div class="absolute inset-0 -z-10 bg-gradient-to-br from-gb-navy via-gb-navy/95 to-gb-navy-dark"></div>
@@ -263,7 +263,7 @@ const schedule: ScheduleRow[] = [
       </div>
     </section>
 
-    {/* NAP + SCHEDULE — two-column white card */}
+    {/* NAP + SCHEDULE â€” two-column white card */}
     <section class="px-4 md:px-6 py-12 md:py-16">
       <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
         <div class="grid md:grid-cols-2 gap-8 md:gap-12">
@@ -388,7 +388,7 @@ const schedule: ScheduleRow[] = [
       </div>
     </section>
 
-    {/* GOOGLE MAP — lazy-loaded below the fold */}
+    {/* GOOGLE MAP â€” lazy-loaded below the fold */}
     <section class="px-4 md:px-6 py-12 md:py-16" aria-labelledby="map-heading">
       <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
         <h2 id="map-heading" class="text-2xl md:text-3xl font-extrabold text-gb-navy text-center">Find Us</h2>
@@ -418,7 +418,7 @@ const schedule: ScheduleRow[] = [
     </section>
   </div>
 
-  {/* FINAL CTA — full-width navy band */}
+  {/* FINAL CTA â€” full-width navy band */}
   <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6">
     <div class="max-w-3xl mx-auto text-center">
       <h2 class="text-2xl md:text-4xl font-extrabold">Ready to step on the mat?</h2>
@@ -428,7 +428,7 @@ const schedule: ScheduleRow[] = [
       <div class="mt-7 flex justify-center">
         <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
       </div>
-      <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts</p>
+      <p class="mt-4 text-xs text-gb-white/70">3 free classes â€¢ Free uniform rental â€¢ No contracts</p>
     </div>
   </section>
 
@@ -514,7 +514,7 @@ In `src/pages/contact.astro`:
 
 ```
 git add src/pages/contact.astro
-git commit -m "feat(contact): rebuild Contact page per Phase 3 spec — bento layout, NAP/schedule/form/map/service-areas, contact-form source tag"
+git commit -m "feat(contact): rebuild Contact page per Phase 3 spec â€” bento layout, NAP/schedule/form/map/service-areas, contact-form source tag"
 ```
 
 ---
@@ -532,13 +532,13 @@ Use the Read tool to read the full file. Compare against brief Part 3 (Kickstart
 
 | Brief requirement | Verification |
 |---|---|
-| H1: `You're In, [First Name]! Your Free 3-Class Pass Is Reserved.` | Search file for `Your Free 3-Class Pass Is Reserved` — must be present in `<h1>` and in the JS interpolation script. |
+| H1: `You're In, [First Name]! Your Free 3-Class Pass Is Reserved.` | Search file for `Your Free 3-Class Pass Is Reserved` â€” must be present in `<h1>` and in the JS interpolation script. |
 | Subtitle paragraph beginning `One last step` | Must be present. |
 | Section 2 H2: `Not sure which program to choose?` + age-to-program map (5 bullets, 3-4/5-6/7-9/10-15/16+) | Must be present. |
 | Section 4 H2: `What Happens Next` + 3-step list | Must be present with 3 list items. |
 | Section 5 trust strip: includes `Free uniform rental included`, `No contracts`, `No pressure`, `World-class Gracie Barra curriculum` | Must be present. |
-| No `<Nav>` or `<Footer>` (uses `<FunnelLayout>`) | `<FunnelLayout>` is the wrapper — no `BaseLayout`. |
-| No banned strings | Grep for `Get My Free Class`, `Free First Class`, `Click Here`, `>Submit<`, `label="Submit"`, `Get Started(?! Free)` — all 0. |
+| No `<Nav>` or `<Footer>` (uses `<FunnelLayout>`) | `<FunnelLayout>` is the wrapper â€” no `BaseLayout`. |
+| No banned strings | Grep for `Get My Free Class`, `Free First Class`, `Click Here`, `>Submit<`, `label="Submit"`, `Get Started(?! Free)` â€” all 0. |
 
 - [ ] **Step 2: Run grep checks**
 
@@ -546,7 +546,7 @@ For each pattern below in `src/pages/kickstart.astro`, expected match counts:
 
 | Pattern | Expected count |
 |---|---|
-| `Your Free 3-Class Pass Is Reserved` | ≥ 1 (in static `<h1>`; the JS interpolation reuses the same text) |
+| `Your Free 3-Class Pass Is Reserved` | â‰¥ 1 (in static `<h1>`; the JS interpolation reuses the same text) |
 | `Not sure which program to choose?` | 1 |
 | `What Happens Next` | 1 |
 | `Free uniform rental included` | 1 |
@@ -636,7 +636,7 @@ Capture the preview URL.
 Open `<preview>/reviews/`, `<preview>/contact/`, `<preview>/kickstart/` (if not gated by SSO) and confirm:
 - Reviews: hero with single visible H1, reviews-widget placeholder, 4 quote cards, navy final CTA
 - Contact: hero, NAP + schedule two-column, contact form (Send Message), Google Map iframe, service-areas, navy final CTA
-- Kickstart: confirmation header, age guide, BookingFlow, What Happens Next, trust strip — no nav/footer
+- Kickstart: confirmation header, age guide, BookingFlow, What Happens Next, trust strip â€” no nav/footer
 
 - [ ] **Step 3: Spawn brief-alignment audit subagent**
 
@@ -658,7 +658,7 @@ Use the Agent tool with `subagent_type: general-purpose`. Prompt:
 > 5. Verify BreadcrumbList JSON-LD on Reviews (2 items) and Contact (2 items); LocalBusiness on Contact.
 > 6. Output Markdown report: Summary (PASS/FAIL/N/A counts), Failures, Warnings, Passes (collapsed).
 >
-> Note: `Send Message` is the brief-mandated submit label on the contact form — do NOT flag it as a banned-string violation. Allowed CTA labels: `Claim My Free 3-Class Pass`, `Start My Free Trial`, `Learn More`, `Get Started Free`, `Send Message`.
+> Note: `Send Message` is the brief-mandated submit label on the contact form â€” do NOT flag it as a banned-string violation. Allowed CTA labels: `Claim My Free 3-Class Pass`, `Start My Free Trial`, `Learn More`, `Get Started Free`, `Send Message`.
 >
 > Pass criteria: zero FAIL items.
 
@@ -696,7 +696,7 @@ Expected: each returns one `<h1>` line. Reviews `<h1>` contains `What Students S
 ## Done criteria
 
 Phase 3 is complete when:
-1. All 5 tasks are checked off (Tasks 1–2 with commits; Tasks 3–4 typically no-commits; Task 5 with deploy).
+1. All 5 tasks are checked off (Tasks 1â€“2 with commits; Tasks 3â€“4 typically no-commits; Task 5 with deploy).
 2. The brief-alignment audit subagent returns zero FAILs.
 3. Production deploy reflects all spec changes on visual inspection of `/reviews/`, `/contact/`, and `/kickstart/`.
 4. `npx vitest run`, `npx astro check`, and `npm run build` all pass cleanly.

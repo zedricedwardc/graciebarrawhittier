@@ -1,17 +1,17 @@
-# Phase 4 — SEO + Tracking Infrastructure Design Spec
+﻿# Phase 4 â€” SEO + Tracking Infrastructure Design Spec
 
 **Date:** 2026-05-06
 **Source brief:** `GB_Whittier_Website_Build_Brief (1).docx`, Part 4 (SEO Strategy) + Part 5 (GHL Integration / Tracking)
-**Phase:** 4 of 4 in the Brief Implementation roadmap (offer alignment ✅ → program pages ✅ → aux pages ✅ → **SEO/tracking**)
+**Phase:** 4 of 4 in the Brief Implementation roadmap (offer alignment âœ… â†’ program pages âœ… â†’ aux pages âœ… â†’ **SEO/tracking**)
 **Predecessors:** [Phase 1](./2026-05-06-phase1-offer-global-polish-design.md), [Phase 2](./2026-05-06-phase2-program-pages-design.md), [Phase 3](./2026-05-06-phase3-aux-pages-design.md) (all shipped)
 
 ## Context
 
-Phases 1–3 aligned all visible page content with the brief. Phase 4 finishes brief-required infrastructure that's behind the scenes:
+Phases 1â€“3 aligned all visible page content with the brief. Phase 4 finishes brief-required infrastructure that's behind the scenes:
 
 - **Tracking:** brief Part 5 mandates GA4 events on `generate_lead` (form submit), `booking_initiated` (kickstart calendar loaded), and `booking_complete` (booking submission). Currently `GTM.astro` is scaffolded but no events fire. Gap closes here.
-- **SEO:** brief Part 4 mandates schema markup, canonical tags, sitemap, and robots.txt blocking funnel pages. All four are already in place from prior phases — Phase 4 verifies and documents.
-- **Webhook source taxonomy:** Phase 3 reviewer flagged that OptInForm sends `source: window.location.pathname` while Contact form sends `source: 'contact-form'` — same field, two semantics. Phase 4 normalizes OptInForm to match Contact's pattern.
+- **SEO:** brief Part 4 mandates schema markup, canonical tags, sitemap, and robots.txt blocking funnel pages. All four are already in place from prior phases â€” Phase 4 verifies and documents.
+- **Webhook source taxonomy:** Phase 3 reviewer flagged that OptInForm sends `source: window.location.pathname` while Contact form sends `source: 'contact-form'` â€” same field, two semantics. Phase 4 normalizes OptInForm to match Contact's pattern.
 
 ## Goals
 
@@ -19,9 +19,9 @@ Phases 1–3 aligned all visible page content with the brief. Phase 4 finishes b
   - `generate_lead` on successful homepage/program-page opt-in form submission, payload includes `source` and `page`
   - `booking_initiated` when the booking calendar first renders to the user (after program survey + trainee form, when slots load)
   - `booking_complete` on a `200 { ok: true, appointmentId }` response from `/api/book`, payload includes `appointmentId` and `program`
-- OptInForm webhook payload uses consistent taxonomy: `{ source: 'opt-in', page: window.location.pathname, ...formFields }`. Contact form already uses `{ source: 'contact-form', page: window.location.pathname, ... }` — both shapes now match.
+- OptInForm webhook payload uses consistent taxonomy: `{ source: 'opt-in', page: window.location.pathname, ...formFields }`. Contact form already uses `{ source: 'contact-form', page: window.location.pathname, ... }` â€” both shapes now match.
 - Schema/canonical/sitemap/robots audit confirms zero gaps against brief Part 4. No code changes expected; verification only.
-- Phase 1–3 acceptance criteria continue to pass.
+- Phase 1â€“3 acceptance criteria continue to pass.
 
 ## Non-goals
 
@@ -35,10 +35,10 @@ Phases 1–3 aligned all visible page content with the brief. Phase 4 finishes b
 
 | File | Change |
 |---|---|
-| `src/lib/analytics.ts` | Create — tiny helper `trackEvent(name, payload)` that no-ops when `dataLayer` is absent (e.g., `PUBLIC_GTM_ID` unset, ad-blocker in dev) |
-| `src/lib/analytics.test.ts` | Create — Vitest unit tests for `trackEvent` |
-| `src/components/form/OptInForm.astro` | Modify the submit `<script>` block — call `trackEvent('generate_lead', ...)` on success, change webhook body to `{ source: 'opt-in', page, ...fields }` |
-| `src/components/booking/BookingFlow.astro` | Modify the booking flow — fire `trackEvent('booking_initiated')` when `step` first becomes `'date'` (calendar step), fire `trackEvent('booking_complete', { appointmentId, program })` on `/api/book` 200 response |
+| `src/lib/analytics.ts` | Create â€” tiny helper `trackEvent(name, payload)` that no-ops when `dataLayer` is absent (e.g., `PUBLIC_GTM_ID` unset, ad-blocker in dev) |
+| `src/lib/analytics.test.ts` | Create â€” Vitest unit tests for `trackEvent` |
+| `src/components/form/OptInForm.astro` | Modify the submit `<script>` block â€” call `trackEvent('generate_lead', ...)` on success, change webhook body to `{ source: 'opt-in', page, ...fields }` |
+| `src/components/booking/BookingFlow.astro` | Modify the booking flow â€” fire `trackEvent('booking_initiated')` when `step` first becomes `'date'` (calendar step), fire `trackEvent('booking_complete', { appointmentId, program })` on `/api/book` 200 response |
 
 Approximate diff: 4 files (2 new, 2 modified). Vitest covers the helper; the integration points are wired in plain JS where the existing form/flow logic already runs. No new dependencies.
 
@@ -68,7 +68,7 @@ The `Window` interface declaration lives inside `analytics.ts` so it's globally 
 
 Inside the existing `<script>` block at the bottom of the file, two edits:
 
-**Change 1 — webhook body taxonomy:**
+**Change 1 â€” webhook body taxonomy:**
 
 From:
 ```ts
@@ -80,7 +80,7 @@ To:
 body: JSON.stringify({ name, email, phone, source: 'opt-in', page: window.location.pathname }),
 ```
 
-**Change 2 — fire `generate_lead` on success:**
+**Change 2 â€” fire `generate_lead` on success:**
 
 After the existing line `if (!res.ok) throw new Error(...)`, before the redirect, add:
 ```ts
@@ -92,14 +92,14 @@ Import the helper at the top of the script:
 import { trackEvent } from '../../lib/analytics';
 ```
 
-Astro `<script>` blocks already support TS imports — no build config changes.
+Astro `<script>` blocks already support TS imports â€” no build config changes.
 
 ## BookingFlow changes (`src/components/booking/BookingFlow.astro`)
 
 The booking flow has multiple states. Brief defines two trigger points:
 
-- **`booking_initiated`** — fires once per page session when the calendar UI first becomes visible to the user. The natural trigger is the transition into the `'date'` step (after `'survey'` and `'form'`/'`form_returning`'). Use a module-level `let initiatedFired = false` flag so it fires exactly once.
-- **`booking_complete`** — fires on a successful `/api/book` POST returning `{ ok: true, appointmentId }`. Payload: `{ appointmentId, program }`.
+- **`booking_initiated`** â€” fires once per page session when the calendar UI first becomes visible to the user. The natural trigger is the transition into the `'date'` step (after `'survey'` and `'form'`/'`form_returning`'). Use a module-level `let initiatedFired = false` flag so it fires exactly once.
+- **`booking_complete`** â€” fires on a successful `/api/book` POST returning `{ ok: true, appointmentId }`. Payload: `{ appointmentId, program }`.
 
 **Implementation in the existing controller `<script>` block:**
 
@@ -129,7 +129,7 @@ trackEvent('booking_complete', {
 });
 ```
 
-Both calls are inside an existing client-only script — no SSR concerns.
+Both calls are inside an existing client-only script â€” no SSR concerns.
 
 ## Vitest coverage (`src/lib/analytics.test.ts`)
 
@@ -142,12 +142,12 @@ describe('trackEvent', () => {
 
   beforeEach(() => {
     originalWindow = globalThis.window;
-    // @ts-expect-error — test-only window stub
+    // @ts-expect-error â€” test-only window stub
     globalThis.window = { dataLayer: [] };
   });
 
   afterEach(() => {
-    // @ts-expect-error — restore
+    // @ts-expect-error â€” restore
     globalThis.window = originalWindow;
   });
 
@@ -164,25 +164,25 @@ describe('trackEvent', () => {
   });
 
   it('no-ops when window is undefined (SSR)', () => {
-    // @ts-expect-error — simulate SSR
+    // @ts-expect-error â€” simulate SSR
     globalThis.window = undefined;
     expect(() => trackEvent('any', {})).not.toThrow();
   });
 
   it('no-ops when dataLayer is not an array (GTM not loaded)', () => {
-    // @ts-expect-error — simulate GTM-disabled environment
+    // @ts-expect-error â€” simulate GTM-disabled environment
     globalThis.window = {};
     expect(() => trackEvent('any', {})).not.toThrow();
   });
 });
 ```
 
-## SEO audit (verification only — no code changes expected)
+## SEO audit (verification only â€” no code changes expected)
 
 Phase 4 includes a verification pass to confirm brief Part 4 requirements are satisfied:
 
 - One `<h1>` per page; H2/H3 hierarchy without skipped levels
-- Canonical tag with `https://gbwhittier.com/<path>/` on every public page
+- Canonical tag with `https://www.graciebarrawhittier.com/<path>/` on every public page
 - LocalBusiness/MartialArtsSchool schema on Home + Contact
 - FAQPage schema on Home, Kids, Adults
 - BreadcrumbList schema on Kids, Adults, Reviews, Contact
@@ -196,14 +196,14 @@ If audit finds gaps, address inline. Otherwise, no commits.
 
 **Manual checks (Vercel preview deploy):**
 
-- Opening DevTools → Network → submit homepage opt-in form → see POST to `PUBLIC_GHL_WEBHOOK_URL` with body `{ name, email, phone, source: 'opt-in', page: '/' }`. After response, see a `dataLayer.push({ event: 'generate_lead', source: 'opt-in', page: '/' })` call (visible via `window.dataLayer` console inspection if GTM is unset).
-- Open `/kickstart`, complete the survey + trainee form, see calendar render. Inspect `window.dataLayer` — exactly one entry with `event: 'booking_initiated'` regardless of how many times you switch dates.
-- Complete a booking. Inspect `window.dataLayer` — one entry with `event: 'booking_complete'`, `appointmentId`, and `program`.
+- Opening DevTools â†’ Network â†’ submit homepage opt-in form â†’ see POST to `PUBLIC_GHL_WEBHOOK_URL` with body `{ name, email, phone, source: 'opt-in', page: '/' }`. After response, see a `dataLayer.push({ event: 'generate_lead', source: 'opt-in', page: '/' })` call (visible via `window.dataLayer` console inspection if GTM is unset).
+- Open `/kickstart`, complete the survey + trainee form, see calendar render. Inspect `window.dataLayer` â€” exactly one entry with `event: 'booking_initiated'` regardless of how many times you switch dates.
+- Complete a booking. Inspect `window.dataLayer` â€” one entry with `event: 'booking_complete'`, `appointmentId`, and `program`.
 
 **Automated:**
-- `npx astro check` → 0 errors, 0 warnings
-- `npx vitest run` → all tests pass (Phase 1+2+3 + new `analytics.test.ts` cases)
-- `npm run build` → completes without warnings
+- `npx astro check` â†’ 0 errors, 0 warnings
+- `npx vitest run` â†’ all tests pass (Phase 1+2+3 + new `analytics.test.ts` cases)
+- `npm run build` â†’ completes without warnings
 
 **Grep checks:**
 - `dataLayer.push` references in code: 0 (only `trackEvent` is called; the helper handles the push)
@@ -212,7 +212,7 @@ If audit finds gaps, address inline. Otherwise, no commits.
 - `'contact-form'` source string in `contact.astro` (unchanged from Phase 3)
 
 **Regression non-goals:**
-- All Phase 1–3 acceptance still passes
+- All Phase 1â€“3 acceptance still passes
 - `/api/book` and `/api/availability` continue to function
 - Form submission still POSTs to webhook and redirects to `/kickstart`
 - Booking flow continues to write contact + appointment to GHL via the API routes
@@ -241,7 +241,7 @@ Same protocol as prior phases, scoped to Phase 4:
 - `/congrats` page rebuild
 - Sitemap manual curation (Astro auto-generates)
 - Server-side analytics / first-party data piping
-- Cookie consent banner (region-dependent compliance — separate)
+- Cookie consent banner (region-dependent compliance â€” separate)
 
 ## Roll-out
 
@@ -252,7 +252,7 @@ Single PR / deploy:
 4. SEO verification pass (likely no-op; confirm)
 5. `vercel deploy` (preview)
 6. Manual DevTools check of dataLayer events on preview
-7. Brief-alignment audit subagent — fix any FAILs
+7. Brief-alignment audit subagent â€” fix any FAILs
 8. `vercel deploy --prod --yes`
 9. Final smoke check on production
 10. Communicate the OptInForm `source` schema change to the GHL workflow owner so the lead-acquisition workflow continues to branch correctly.

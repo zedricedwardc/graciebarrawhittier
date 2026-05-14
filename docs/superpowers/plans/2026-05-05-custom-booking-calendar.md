@@ -1,10 +1,10 @@
-# Custom Booking Calendar Implementation Plan
+﻿# Custom Booking Calendar Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the 5 GHL booking iframes on `/kickstart` with a native in-page flow that reads availability via the GHL Calendar API v2 and writes appointments + contacts directly to GHL on submit.
 
-**Architecture:** Astro switches to `output: 'server'` with `@astrojs/vercel`. Recurring class schedule lives in repo (`src/data/schedule.ts`); GHL stays canonical for actual bookings. Browser talks to two server endpoints (`/api/availability`, `/api/book`) which proxy GHL with a server-side token. Anti-spam handled with four zero-cost layers (single-flight submit, honeypot, dwell timer, per-IP token bucket). UI is vanilla TS in pre-rendered Astro partials swapped via `hidden` toggling — same pattern as existing `kickstart.astro`.
+**Architecture:** Astro switches to `output: 'server'` with `@astrojs/vercel`. Recurring class schedule lives in repo (`src/data/schedule.ts`); GHL stays canonical for actual bookings. Browser talks to two server endpoints (`/api/availability`, `/api/book`) which proxy GHL with a server-side token. Anti-spam handled with four zero-cost layers (single-flight submit, honeypot, dwell timer, per-IP token bucket). UI is vanilla TS in pre-rendered Astro partials swapped via `hidden` toggling â€” same pattern as existing `kickstart.astro`.
 
 **Tech Stack:** Astro 6, TypeScript, Tailwind 4, Zod, Vitest (new dev dep for pure-logic tests), `@astrojs/vercel` (new), Node 22+, GHL API v2 (`https://services.leadconnectorhq.com`).
 
@@ -39,7 +39,7 @@ NEW:
 MODIFY:
   astro.config.mjs                    (output: 'server', vercel adapter)
   package.json                         (deps + test script)
-  src/pages/kickstart.astro            (iframe block → BookingFlow)
+  src/pages/kickstart.astro            (iframe block â†’ BookingFlow)
   src/pages/congrats.astro             (read ?count= for headline)
   src/pages/index.astro                (+ prerender = true)
   src/pages/404.astro                  (+ prerender = true)
@@ -54,7 +54,7 @@ MODIFY:
 
 ---
 
-## Phase 0 — Stack Prep
+## Phase 0 â€” Stack Prep
 
 ### Task 0.1: Install runtime deps
 
@@ -125,7 +125,7 @@ In the `"scripts"` block, add:
 npm test
 ```
 
-Expected: exits 0 with "No test files found" (acceptable — vitest exits 0 with `--passWithNoTests` default in 1.x; if it fails, add `passWithNoTests: true` to vitest.config.ts under `test:`).
+Expected: exits 0 with "No test files found" (acceptable â€” vitest exits 0 with `--passWithNoTests` default in 1.x; if it fails, add `passWithNoTests: true` to vitest.config.ts under `test:`).
 
 - [ ] **Step 5: Commit**
 
@@ -151,7 +151,7 @@ import vercel from '@astrojs/vercel';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  site: 'https://gbwhittier.com',
+  site: 'https://www.graciebarrawhittier.com',
   output: 'server',
   adapter: vercel(),
   integrations: [
@@ -171,7 +171,7 @@ export default defineConfig({
 
 - [ ] **Step 2: Verify build still passes**
 
-Build will likely warn that pages aren't prerendered yet — expected. We fix in 0.4.
+Build will likely warn that pages aren't prerendered yet â€” expected. We fix in 0.4.
 
 ```bash
 npm run build
@@ -201,7 +201,7 @@ For each of the 9 files above, add this as the FIRST line inside the existing `-
 export const prerender = true;
 ```
 
-(Do **NOT** add to `kickstart.astro` — it stays SSR because it'll fetch availability live in a follow-up if we ever do.)
+(Do **NOT** add to `kickstart.astro` â€” it stays SSR because it'll fetch availability live in a follow-up if we ever do.)
 
 For `index.astro` example, the frontmatter changes from:
 
@@ -228,7 +228,7 @@ import BaseLayout from ...;
 npm run build
 ```
 
-Expected: build output shows `▶ src/pages/index.astro` as a prerendered route, no SSR warnings on the marketing pages.
+Expected: build output shows `â–¶ src/pages/index.astro` as a prerendered route, no SSR warnings on the marketing pages.
 
 - [ ] **Step 3: Commit**
 
@@ -247,14 +247,14 @@ git commit -m "chore: mark marketing pages as prerendered"
 - [ ] **Step 1: Create `.env.example`**
 
 ```bash
-# GoHighLevel API v2 — Private Integration Token (server-only, NEVER PUBLIC_)
-# Generate at: GHL → Settings → Private Integrations → Create new
+# GoHighLevel API v2 â€” Private Integration Token (server-only, NEVER PUBLIC_)
+# Generate at: GHL â†’ Settings â†’ Private Integrations â†’ Create new
 GHL_PIT_TOKEN=
 
 # GoHighLevel sub-account / location ID
 GHL_LOCATION_ID=
 
-# GHL calendar IDs — one per program (find in GHL → Calendars → … → Calendar Settings)
+# GHL calendar IDs â€” one per program (find in GHL â†’ Calendars â†’ â€¦ â†’ Calendar Settings)
 GHL_CAL_TINY=
 GHL_CAL_LC1=
 GHL_CAL_LC2=
@@ -283,7 +283,7 @@ git commit -m "chore: document GHL env vars in .env.example"
 
 ---
 
-## Phase 1 — Data Layer
+## Phase 1 â€” Data Layer
 
 ### Task 1.1: Create `src/data/programs.ts`
 
@@ -307,10 +307,10 @@ export interface Program {
 }
 
 export const programs: Program[] = [
-  { key: 'tiny',    name: 'Tiny Champions',             ageRange: 'Ages 3–4',   calendarIdEnvVar: 'GHL_CAL_TINY' },
-  { key: 'lc1',     name: 'Little Champions 1',         ageRange: 'Ages 5–6',   calendarIdEnvVar: 'GHL_CAL_LC1' },
-  { key: 'lc2',     name: 'Little Champions 2',         ageRange: 'Ages 7–9',   calendarIdEnvVar: 'GHL_CAL_LC2' },
-  { key: 'juniors', name: 'Juniors Jiu-Jitsu',          ageRange: 'Ages 10–15', calendarIdEnvVar: 'GHL_CAL_JUNIORS' },
+  { key: 'tiny',    name: 'Tiny Champions',             ageRange: 'Ages 3â€“4',   calendarIdEnvVar: 'GHL_CAL_TINY' },
+  { key: 'lc1',     name: 'Little Champions 1',         ageRange: 'Ages 5â€“6',   calendarIdEnvVar: 'GHL_CAL_LC1' },
+  { key: 'lc2',     name: 'Little Champions 2',         ageRange: 'Ages 7â€“9',   calendarIdEnvVar: 'GHL_CAL_LC2' },
+  { key: 'juniors', name: 'Juniors Jiu-Jitsu',          ageRange: 'Ages 10â€“15', calendarIdEnvVar: 'GHL_CAL_JUNIORS' },
   { key: 'adults',  name: 'Adults Brazilian Jiu-Jitsu', ageRange: 'Ages 16+',   calendarIdEnvVar: 'GHL_CAL_ADULTS' },
 ];
 
@@ -348,8 +348,8 @@ git commit -m "feat(booking): add programs data module"
 ```ts
 /**
  * Recurring weekly class template per program, in America/Los_Angeles local time.
- * Source of truth for trial-eligible class times — verified against Schedule-2.pdf.
- * Adults: only Fundamentals (GB1) — Advanced/Top Team excluded for trials.
+ * Source of truth for trial-eligible class times â€” verified against Schedule-2.pdf.
+ * Adults: only Fundamentals (GB1) â€” Advanced/Top Team excluded for trials.
  */
 import type { ProgramKey } from './programs';
 
@@ -360,7 +360,7 @@ export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface ClassSlot {
   weekday: Weekday;
-  hour: number;        // 0–23, local time
+  hour: number;        // 0â€“23, local time
   minute: number;      // 0 or 30 typically
   durationMin: number;
 }
@@ -460,7 +460,7 @@ git commit -m "feat(booking): add blackouts data (empty set, manually maintained
 
 ---
 
-## Phase 2 — Types + Pure Logic
+## Phase 2 â€” Types + Pure Logic
 
 ### Task 2.1: Create `src/lib/booking-types.ts`
 
@@ -489,7 +489,7 @@ export type AvailabilityRequest = z.infer<typeof AvailabilityRequest>;
 export interface AvailabilitySlot {
   startISO: string;   // e.g. "2026-05-06T15:00:00-07:00"
   endISO: string;
-  label: string;      // "Tue, May 6 · 3:00 PM"
+  label: string;      // "Tue, May 6 Â· 3:00 PM"
 }
 
 export type AvailabilityResponse =
@@ -563,7 +563,7 @@ describe('generateSlots', () => {
       minLeadMinutes: 60,
     });
 
-    // Tiny: Mon 3pm, Wed 3pm, Tue 4pm, Thu 4pm — across 2 weeks = 8 slots
+    // Tiny: Mon 3pm, Wed 3pm, Tue 4pm, Thu 4pm â€” across 2 weeks = 8 slots
     expect(slots).toHaveLength(8);
     expect(slots[0].label).toContain('Mon');
     expect(slots[0].startISO).toBe('2026-05-04T15:00:00-07:00');
@@ -598,7 +598,7 @@ describe('generateSlots', () => {
   });
 
   it('excludes slots starting within minLeadMinutes of now', () => {
-    // It's 14:30 PT on Mon 2026-05-04. Mon 3pm slot is 30 min away → excluded if leadMin=60.
+    // It's 14:30 PT on Mon 2026-05-04. Mon 3pm slot is 30 min away â†’ excluded if leadMin=60.
     const slots = generateSlots({
       programKey: 'tiny',
       fromISODate: '2026-05-04',
@@ -613,7 +613,7 @@ describe('generateSlots', () => {
   });
 
   it('handles a date range that crosses a Sunday (no classes Sunday)', () => {
-    // Sun 2026-05-10 → Mon 2026-05-11. Tiny has Mon class → 1 slot.
+    // Sun 2026-05-10 â†’ Mon 2026-05-11. Tiny has Mon class â†’ 1 slot.
     const slots = generateSlots({
       programKey: 'tiny',
       fromISODate: '2026-05-10',
@@ -638,7 +638,7 @@ describe('generateSlots', () => {
       now: new Date('2026-05-04T06:00:00-07:00'),
       minLeadMinutes: 60,
     });
-    expect(slots[0].label).toMatch(/Mon, May 4 · 11:00 AM/);
+    expect(slots[0].label).toMatch(/Mon, May 4 Â· 11:00 AM/);
   });
 });
 ```
@@ -723,7 +723,7 @@ function* iterateDates(fromISO: string, toISO: string): Generator<string> {
 
 /** Returns 0=Sun..6=Sat for a YYYY-MM-DD interpreted in TZ. */
 function weekdayInTZ(dateISO: string): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
-  // Use Intl to get the weekday in our target tz (date-only — noon avoids DST edge confusion).
+  // Use Intl to get the weekday in our target tz (date-only â€” noon avoids DST edge confusion).
   const fmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' });
   const wd = fmt.format(new Date(`${dateISO}T12:00:00Z`));
   const map: Record<string, 0 | 1 | 2 | 3 | 4 | 5 | 6> = {
@@ -792,12 +792,12 @@ function formatLabel(startISO: string): string {
     minute: '2-digit',
     hour12: true,
   });
-  // "Tue, May 6, 3:00 PM" → reformat to "Tue, May 6 · 3:00 PM"
+  // "Tue, May 6, 3:00 PM" â†’ reformat to "Tue, May 6 Â· 3:00 PM"
   const parts = fmt.formatToParts(d);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
   const date = `${get('weekday')}, ${get('month')} ${get('day')}`;
   const time = `${get('hour')}:${get('minute')} ${get('dayPeriod')}`;
-  return `${date} · ${time}`;
+  return `${date} Â· ${time}`;
 }
 ```
 
@@ -818,9 +818,9 @@ git commit -m "feat(booking): pure slot-resolver with timezone-aware ISO output"
 
 ---
 
-## Phase 3 — GHL Client
+## Phase 3 â€” GHL Client
 
-> **VERIFY note:** The exact GHL `Get Free Slots` and `Create Appointment` payload shapes must be validated against the live GHL sub-account during Task 3.4. Until that runs successfully, treat the wrapper code in 3.1–3.3 as best-effort based on public docs.
+> **VERIFY note:** The exact GHL `Get Free Slots` and `Create Appointment` payload shapes must be validated against the live GHL sub-account during Task 3.4. Until that runs successfully, treat the wrapper code in 3.1â€“3.3 as best-effort based on public docs.
 
 ### Task 3.1: Test for `ghl.ts` low-level wrapper
 
@@ -879,7 +879,7 @@ describe('ghl client', () => {
       contactId: 'c_1',
       startISO: '2026-05-06T15:00:00-07:00',
       endISO:   '2026-05-06T15:45:00-07:00',
-      title: 'Tiny Champions trial — Emma (6)',
+      title: 'Tiny Champions trial â€” Emma (6)',
     });
     expect(id).toBe('apt_42');
     const [, init] = (fetch as any).mock.calls[0];
@@ -974,7 +974,7 @@ async function request(path: string, init: RequestInit = {}): Promise<unknown> {
   return res.json();
 }
 
-// ── Free slots ───────────────────────────────────────────────────────────
+// â”€â”€ Free slots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export interface GetFreeSlotsArgs {
   calendarId: string;
   startDate: number; // epoch ms
@@ -1000,7 +1000,7 @@ export async function getFreeSlots(args: GetFreeSlotsArgs): Promise<Set<string>>
   return out;
 }
 
-// ── Contacts ─────────────────────────────────────────────────────────────
+// â”€â”€ Contacts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export interface UpsertContactArgs {
   firstName: string;
   lastName: string;
@@ -1027,7 +1027,7 @@ export async function upsertContact(args: UpsertContactArgs): Promise<string> {
   return id;
 }
 
-// ── Appointments ─────────────────────────────────────────────────────────
+// â”€â”€ Appointments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export interface CreateAppointmentArgs {
   calendarId: string;
   contactId: string;
@@ -1081,7 +1081,7 @@ git commit -m "feat(booking): add server-only GHL API v2 client (free-slots + up
 
 ---
 
-## Phase 4 — API Routes
+## Phase 4 â€” API Routes
 
 ### Task 4.1: `GET /api/availability`
 
@@ -1147,7 +1147,7 @@ export const GET: APIRoute = async ({ url }) => {
 
 /**
  * GHL returns FREE slots; our slot-resolver expects BOOKED start ISOs to subtract.
- * We compute "booked = template − free" by passing the free set through the resolver
+ * We compute "booked = template âˆ’ free" by passing the free set through the resolver
  * and inverting. Simpler: pass `bookedStartISOs` such that resolver returns ONLY
  * what GHL also reports as free. We do that by treating any template slot NOT in
  * `freeSet` as booked.
@@ -1163,10 +1163,10 @@ async function invertFreeSlotsToBooked(calendarId: string, startMs: number, endM
 
 /**
  * Marker: callers using this set with generateSlots must intersect, not subtract.
- * Adjust generateSlots in this codebase to support an intersection mode? No —
+ * Adjust generateSlots in this codebase to support an intersection mode? No â€”
  * to keep generateSlots pure-and-simple we instead build the booked set in the
- * route. See README of slot-resolver: returns template ∩ free is equivalent to
- * (template) − (template − free).
+ * route. See README of slot-resolver: returns template âˆ© free is equivalent to
+ * (template) âˆ’ (template âˆ’ free).
  */
 function invertViaIntersection(_free: Set<string>): Set<string> {
   // Sentinel; actual subtraction happens inline below in this function's caller.
@@ -1309,7 +1309,7 @@ const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX_PER_WINDOW = 5;
 const MIN_LEAD_MINUTES = 60;
 
-// Module-scoped — survives across requests on a warm Fluid Compute instance.
+// Module-scoped â€” survives across requests on a warm Fluid Compute instance.
 const buckets = new Map<string, { count: number; firstSeen: number }>();
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
@@ -1320,18 +1320,18 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (!parsed.success) return json({ ok: false, code: 'INVALID_INPUT' });
   const body = parsed.data;
 
-  // Layer 2 — Honeypot. Silent OK so bots don't learn.
+  // Layer 2 â€” Honeypot. Silent OK so bots don't learn.
   if (body.website && body.website.length > 0) {
     return json({ ok: true, appointmentId: 'spam-discarded' });
   }
 
-  // Layer 3 — Min dwell time.
+  // Layer 3 â€” Min dwell time.
   const elapsed = Date.now() - body.ts;
   if (elapsed < MIN_DWELL_MS) {
     return json({ ok: true, appointmentId: 'spam-discarded' });
   }
 
-  // Layer 4 — Per-IP token bucket.
+  // Layer 4 â€” Per-IP token bucket.
   const ip = clientAddress || 'unknown';
   if (!checkRate(ip)) {
     return json({ ok: false, code: 'RATE_LIMITED' });
@@ -1377,7 +1377,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   const endISO = computeEndISO(body.slotStartISO, body.program);
   const traineeName = body.trainee.isSelf ? body.parent.firstName : body.trainee.firstName;
-  const title = `${getProgram(body.program).name} trial — ${traineeName} (${body.trainee.age})`;
+  const title = `${getProgram(body.program).name} trial â€” ${traineeName} (${body.trainee.age})`;
 
   let appointmentId: string;
   try {
@@ -1409,7 +1409,7 @@ function checkRate(ip: string): boolean {
 }
 
 function computeEndISO(startISO: string, program: ProgramKey): string {
-  // Look up duration from schedule for this program — match by hour/minute/weekday.
+  // Look up duration from schedule for this program â€” match by hour/minute/weekday.
   // Cheap fallback: 60 min for adults/juniors, 45 min everything else.
   const duration = program === 'adults' || program === 'juniors' ? 60 : 45;
   const end = new Date(Date.parse(startISO) + duration * 60_000);
@@ -1470,7 +1470,7 @@ curl -s -X POST http://localhost:4321/api/book \
   -d '{"program":"adults","slotStartISO":"2026-05-04T11:00:00-07:00","parent":{"firstName":"A","lastName":"B","email":"a@b.com","phone":"555-555-5555"},"trainee":{"firstName":"A","age":30,"isSelf":true},"marketingConsent":true,"website":"http://spam.example","ts":1}' | head -c 200
 ```
 
-Expected: `{"ok":true,"appointmentId":"spam-discarded"}` — and **no** GHL call in dev terminal logs.
+Expected: `{"ok":true,"appointmentId":"spam-discarded"}` â€” and **no** GHL call in dev terminal logs.
 
 - [ ] **Step 4: Smoke test dwell-time drop**
 
@@ -1493,9 +1493,9 @@ git commit -m "feat(booking): add /api/book with anti-spam + GHL write"
 
 ---
 
-## Phase 5 — UI Components
+## Phase 5 â€” UI Components
 
-### Task 5.1: `BookingFlow.astro` — shell + state machine
+### Task 5.1: `BookingFlow.astro` â€” shell + state machine
 
 **Files:**
 - Create: `src/components/booking/BookingFlow.astro`
@@ -1505,7 +1505,7 @@ git commit -m "feat(booking): add /api/book with anti-spam + GHL write"
 ```astro
 ---
 /**
- * BookingFlow — the in-place state machine that replaces the GHL iframes.
+ * BookingFlow â€” the in-place state machine that replaces the GHL iframes.
  * Renders all 6 states pre-rendered in the DOM; controller toggles `hidden`.
  */
 import ProgramSurvey from './ProgramSurvey.astro';
@@ -1544,7 +1544,7 @@ const renderTs = Date.now();
 </section>
 
 <script>
-  // ─── State ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   type ProgramKey = 'tiny'|'lc1'|'lc2'|'juniors'|'adults';
   type Step = 'survey'|'date'|'slot'|'form'|'success'|'error';
 
@@ -1592,7 +1592,7 @@ const renderTs = Date.now();
       return clean ? clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase() : '';
     }
 
-    // ─── Render ──────────────────────────────────────────────────────────
+    // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     function render() {
       const steps: Step[] = ['survey','date','slot','form','success','error'];
       for (const s of steps) {
@@ -1603,7 +1603,7 @@ const renderTs = Date.now();
       root!.dispatchEvent(new CustomEvent('booking:render', { detail: state }));
     }
 
-    // ─── Transitions ─────────────────────────────────────────────────────
+    // â”€â”€â”€ Transitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     root.addEventListener('booking:program-selected', (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: ProgramKey; name: string };
       state.program = detail.key;
@@ -1664,7 +1664,7 @@ const renderTs = Date.now();
       render();
     });
 
-    // ─── Network ─────────────────────────────────────────────────────────
+    // â”€â”€â”€ Network â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     async function loadSlotsForDate(date: string) {
       if (!state.program) return;
       try {
@@ -1735,11 +1735,11 @@ const renderTs = Date.now();
 npm run check
 ```
 
-Expected: 0 errors (note: child components don't exist yet, but Astro tolerates missing files only at build — type-check should pass as long as imports resolve. If imports fail, create stubs first then re-check.)
+Expected: 0 errors (note: child components don't exist yet, but Astro tolerates missing files only at build â€” type-check should pass as long as imports resolve. If imports fail, create stubs first then re-check.)
 
 - [ ] **Step 3: Create stub child components for compilation**
 
-Create each as an empty stub for now (Tasks 5.2–5.7 fill them in):
+Create each as an empty stub for now (Tasks 5.2â€“5.7 fill them in):
 
 ```astro
 ---
@@ -1767,7 +1767,7 @@ git commit -m "feat(booking): add BookingFlow shell + state machine + child stub
 
 ---
 
-### Task 5.2: `ProgramSurvey.astro` — STATE 2
+### Task 5.2: `ProgramSurvey.astro` â€” STATE 2
 
 **Files:**
 - Create (replace stub): `src/components/booking/ProgramSurvey.astro`
@@ -1777,7 +1777,7 @@ git commit -m "feat(booking): add BookingFlow shell + state machine + child stub
 ```astro
 ---
 /**
- * ProgramSurvey — STATE 2.
+ * ProgramSurvey â€” STATE 2.
  * Two-question survey resolving to a ProgramKey.
  * Q1: "Booking for self / someone else"
  * Q2 (only if "someone else"): age tier
@@ -1891,7 +1891,7 @@ git commit -m "feat(booking): implement ProgramSurvey (STATE 2)"
 
 ---
 
-### Task 5.3: `DatePicker.astro` — STATE 3
+### Task 5.3: `DatePicker.astro` â€” STATE 3
 
 **Files:**
 - Create (replace stub): `src/components/booking/DatePicker.astro`
@@ -1901,7 +1901,7 @@ git commit -m "feat(booking): implement ProgramSurvey (STATE 2)"
 ```astro
 ---
 /**
- * DatePicker — STATE 3.
+ * DatePicker â€” STATE 3.
  * Horizontal-scroll chips for the next 14 days.
  * Disables days that have no class for the chosen program (computed from schedule.ts).
  *
@@ -1916,7 +1916,7 @@ import { schedule, TZ } from '../../data/schedule';
       <p class="text-gb-text-muted uppercase tracking-widest text-xs font-semibold" data-program-age></p>
       <h3 class="text-2xl font-bold text-gb-navy" data-program-name></h3>
     </div>
-    <button type="button" data-change-program class="text-sm text-gb-text-muted hover:text-gb-navy underline">← Change program</button>
+    <button type="button" data-change-program class="text-sm text-gb-text-muted hover:text-gb-navy underline">â† Change program</button>
   </div>
 
   <p class="text-gb-text mb-3 font-semibold">Pick a date</p>
@@ -1935,7 +1935,7 @@ import { schedule, TZ } from '../../data/schedule';
     const back = node?.querySelector('[data-change-program]');
 
     const PROGRAM_AGE = {
-      tiny: 'Ages 3–4', lc1: 'Ages 5–6', lc2: 'Ages 7–9', juniors: 'Ages 10–15', adults: 'Ages 16+',
+      tiny: 'Ages 3â€“4', lc1: 'Ages 5â€“6', lc2: 'Ages 7â€“9', juniors: 'Ages 10â€“15', adults: 'Ages 16+',
     };
 
     back?.addEventListener('click', () => {
@@ -2017,7 +2017,7 @@ git commit -m "feat(booking): implement DatePicker (STATE 3)"
 
 ---
 
-### Task 5.4: `SlotPicker.astro` — STATE 4
+### Task 5.4: `SlotPicker.astro` â€” STATE 4
 
 **Files:**
 - Create (replace stub): `src/components/booking/SlotPicker.astro`
@@ -2027,7 +2027,7 @@ git commit -m "feat(booking): implement DatePicker (STATE 3)"
 ```astro
 ---
 /**
- * SlotPicker — STATE 4.
+ * SlotPicker â€” STATE 4.
  * Renders the slots fetched by BookingFlow into pill buttons.
  * Emits booking:slot-selected with the chosen Slot.
  */
@@ -2036,11 +2036,11 @@ git commit -m "feat(booking): implement DatePicker (STATE 3)"
 <div>
   <div class="flex items-center justify-between mb-4">
     <h3 class="text-xl md:text-2xl font-bold text-gb-navy" data-slot-header></h3>
-    <button type="button" data-change-date class="text-sm text-gb-text-muted hover:text-gb-navy underline">← Change date</button>
+    <button type="button" data-change-date class="text-sm text-gb-text-muted hover:text-gb-navy underline">â† Change date</button>
   </div>
 
   <div data-slot-list class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-    <div data-skeleton class="col-span-full text-center text-gb-text-muted py-8">Loading available times…</div>
+    <div data-skeleton class="col-span-full text-center text-gb-text-muted py-8">Loading available timesâ€¦</div>
   </div>
 
   <p data-no-slots class="hidden text-center text-gb-text-muted mt-6">
@@ -2076,7 +2076,7 @@ git commit -m "feat(booking): implement DatePicker (STATE 3)"
       if (s.step !== 'slot') return;
       if (header) {
         const dateLabel = s.selectedDate ? formatDate(s.selectedDate) : '';
-        header.textContent = `${s.programName} · ${dateLabel}`;
+        header.textContent = `${s.programName} Â· ${dateLabel}`;
       }
       if (!list || !empty) return;
       list.innerHTML = '';
@@ -2084,7 +2084,7 @@ git commit -m "feat(booking): implement DatePicker (STATE 3)"
         // Either still loading (slots = []) or genuinely empty after fetch.
         const skel = document.createElement('div');
         skel.className = 'col-span-full text-center text-gb-text-muted py-8';
-        skel.textContent = 'Loading available times…';
+        skel.textContent = 'Loading available timesâ€¦';
         list.appendChild(skel);
         empty.classList.add('hidden');
         return;
@@ -2094,7 +2094,7 @@ git commit -m "feat(booking): implement DatePicker (STATE 3)"
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'min-h-[56px] px-4 rounded-full border-2 border-gray-300 font-semibold text-gb-text hover:border-gb-navy transition-colors';
-        const time = slot.label.split(' · ')[1] ?? slot.label;
+        const time = slot.label.split(' Â· ')[1] ?? slot.label;
         btn.textContent = time;
         btn.addEventListener('click', () => {
           root.dispatchEvent(new CustomEvent('booking:slot-selected', { detail: slot }));
@@ -2140,7 +2140,7 @@ git commit -m "feat(booking): implement SlotPicker (STATE 4) + back-to-date tran
 
 ---
 
-### Task 5.5: `TraineeForm.astro` — STATE 5
+### Task 5.5: `TraineeForm.astro` â€” STATE 5
 
 **Files:**
 - Create (replace stub): `src/components/booking/TraineeForm.astro`
@@ -2150,10 +2150,10 @@ git commit -m "feat(booking): implement SlotPicker (STATE 4) + back-to-date tran
 ```astro
 ---
 /**
- * TraineeForm — STATE 5.
+ * TraineeForm â€” STATE 5.
  * Captures parent + trainee details. Pre-fills parent fields from URL params
  * and from prior bookings in the loop. Hides student fields when the parent
- * is booking themselves (Adults · isSelf=true).
+ * is booking themselves (Adults Â· isSelf=true).
  *
  * Emits booking:form-submit with { parent, trainee, marketingConsent }.
  */
@@ -2238,9 +2238,9 @@ git commit -m "feat(booking): implement SlotPicker (STATE 4) + back-to-date tran
       const s = (e as CustomEvent).detail;
       if (s.step !== 'form') return;
       if (ctx && s.selectedSlot) {
-        ctx.textContent = `Booking ${s.programName} · ${s.selectedSlot.label}`;
+        ctx.textContent = `Booking ${s.programName} Â· ${s.selectedSlot.label}`;
       }
-      isSelf = s.program === 'adults'; // crude default — actual `isSelf` comes from survey choice elsewhere
+      isSelf = s.program === 'adults'; // crude default â€” actual `isSelf` comes from survey choice elsewhere
       // Better: BookingFlow sets isSelf when "Myself" was chosen. We carry it via state.trainee.isSelf.
       isSelf = !!s.trainee?.isSelf || s.program === 'adults' && !s.trainee?.firstName;
       if (studentBlock) {
@@ -2265,7 +2265,7 @@ git commit -m "feat(booking): implement SlotPicker (STATE 4) + back-to-date tran
       // Reset submit button state.
       if (submitBtn) {
         submitBtn.disabled = !!s.submitting;
-        submitBtn.textContent = s.submitting ? 'Booking…' : 'Confirm Booking';
+        submitBtn.textContent = s.submitting ? 'Bookingâ€¦' : 'Confirm Booking';
       }
       errorEl?.classList.add('hidden');
     });
@@ -2401,7 +2401,7 @@ git commit -m "feat(booking): implement TraineeForm (STATE 5) + isSelf propagati
 
 ---
 
-### Task 5.6: `BookingSuccess.astro` — STATE 6a
+### Task 5.6: `BookingSuccess.astro` â€” STATE 6a
 
 **Files:**
 - Create (replace stub): `src/components/booking/BookingSuccess.astro`
@@ -2411,9 +2411,9 @@ git commit -m "feat(booking): implement TraineeForm (STATE 5) + isSelf propagati
 ```astro
 ---
 /**
- * BookingSuccess — STATE 6a.
+ * BookingSuccess â€” STATE 6a.
  * Confirms the just-booked appointment, lists prior bookings (if any),
- * and offers "book another child" or "I'm all set" → /congrats.
+ * and offers "book another child" or "I'm all set" â†’ /congrats.
  *
  * Emits booking:book-another or booking:done.
  */
@@ -2467,14 +2467,14 @@ git commit -m "feat(booking): implement TraineeForm (STATE 5) + isSelf propagati
       if (s.step !== 'success') return;
       const last = s.bookings[s.bookings.length - 1];
       if (summary && last) {
-        summary.textContent = `${last.traineeName} is confirmed for ${last.programName} · ${last.label}`;
+        summary.textContent = `${last.traineeName} is confirmed for ${last.programName} Â· ${last.label}`;
       }
       if (list && block) {
         list.innerHTML = '';
         if (s.bookings.length > 1) {
           for (const b of s.bookings) {
             const li = document.createElement('li');
-            li.textContent = `• ${b.traineeName} — ${b.programName} — ${b.label}`;
+            li.textContent = `â€¢ ${b.traineeName} â€” ${b.programName} â€” ${b.label}`;
             list.appendChild(li);
           }
           block.classList.remove('hidden');
@@ -2504,7 +2504,7 @@ git commit -m "feat(booking): implement BookingSuccess (STATE 6a) + book-another
 
 ---
 
-### Task 5.7: `BookingError.astro` — STATE 6b
+### Task 5.7: `BookingError.astro` â€” STATE 6b
 
 **Files:**
 - Create (replace stub): `src/components/booking/BookingError.astro`
@@ -2514,7 +2514,7 @@ git commit -m "feat(booking): implement BookingSuccess (STATE 6a) + book-another
 ```astro
 ---
 /**
- * BookingError — STATE 6b.
+ * BookingError â€” STATE 6b.
  * Inline error card with retry + studio phone fallback.
  * If the error is SLOT_TAKEN, lists alternate times the user can pick instantly.
  *
@@ -2601,7 +2601,7 @@ git commit -m "feat(booking): implement BookingError (STATE 6b) with alternates 
 
 ---
 
-## Phase 6 — Page Integration
+## Phase 6 â€” Page Integration
 
 ### Task 6.1: Replace iframe block in `kickstart.astro` with `BookingFlow`
 
@@ -2615,7 +2615,7 @@ Replace the entire file with:
 ```astro
 ---
 /**
- * /kickstart — post opt-in booking page.
+ * /kickstart â€” post opt-in booking page.
  * FunnelLayout: NO nav, NO footer, NO AI chat, NO sticky CTA.
  *
  * Reached after homepage opt-in submit. Optional ?name=, ?email=, ?phone=
@@ -2650,10 +2650,10 @@ import BookingFlow from '../components/booking/BookingFlow.astro';
       <h2 class="text-xl md:text-2xl font-bold text-gb-navy mb-3">Not sure which program to choose?</h2>
       <p class="text-gb-text-muted mb-4">Here's a quick guide to match each student to the right program:</p>
       <ul class="space-y-2 text-gb-text">
-        <li class="flex items-baseline gap-3"><span class="font-semibold text-gb-navy whitespace-nowrap">Ages 3–4:</span><span>Tiny Champions</span></li>
-        <li class="flex items-baseline gap-3"><span class="font-semibold text-gb-navy whitespace-nowrap">Ages 5–6:</span><span>Little Champions 1</span></li>
-        <li class="flex items-baseline gap-3"><span class="font-semibold text-gb-navy whitespace-nowrap">Ages 7–9:</span><span>Little Champions 2</span></li>
-        <li class="flex items-baseline gap-3"><span class="font-semibold text-gb-navy whitespace-nowrap">Ages 10–15:</span><span>Juniors Jiu-Jitsu</span></li>
+        <li class="flex items-baseline gap-3"><span class="font-semibold text-gb-navy whitespace-nowrap">Ages 3â€“4:</span><span>Tiny Champions</span></li>
+        <li class="flex items-baseline gap-3"><span class="font-semibold text-gb-navy whitespace-nowrap">Ages 5â€“6:</span><span>Little Champions 1</span></li>
+        <li class="flex items-baseline gap-3"><span class="font-semibold text-gb-navy whitespace-nowrap">Ages 7â€“9:</span><span>Little Champions 2</span></li>
+        <li class="flex items-baseline gap-3"><span class="font-semibold text-gb-navy whitespace-nowrap">Ages 10â€“15:</span><span>Juniors Jiu-Jitsu</span></li>
         <li class="flex items-baseline gap-3"><span class="font-semibold text-gb-navy whitespace-nowrap">Ages 16+:</span><span>Adults Brazilian Jiu-Jitsu</span></li>
       </ul>
     </div>
@@ -2784,7 +2784,7 @@ Replace the frontmatter block:
 ```ts
 ---
 /**
- * /congrats — post-booking confirmation page.
+ * /congrats â€” post-booking confirmation page.
  * FunnelLayout: NO nav, NO footer, NO AI chat.
  * No links out except phone, email, map directions, and a small
  * "back to home" escape hatch in the footer of the page.
@@ -2805,7 +2805,7 @@ With:
 ---
 export const prerender = true;
 /**
- * /congrats — post-booking confirmation page.
+ * /congrats â€” post-booking confirmation page.
  * FunnelLayout: NO nav, NO footer, NO AI chat.
  * Reads ?count=N to personalize headline for multi-child bookings.
  */
@@ -2819,7 +2819,7 @@ const mapsHref = `https://www.google.com/maps/dir/?api=1&destination=${encodeURI
 ---
 ```
 
-> Note: `prerender = true` was already added in Task 0.4 — keep it. If duplicated, leave only one.
+> Note: `prerender = true` was already added in Task 0.4 â€” keep it. If duplicated, leave only one.
 
 Then replace the H1 + intro paragraph block:
 
@@ -2850,8 +2850,8 @@ With:
           if (Number.isFinite(n) && n > 1) {
             var h = document.getElementById('congrats-headline');
             var p = document.getElementById('congrats-intro');
-            if (h) h.textContent = 'All ' + n + ' Classes Are Booked — See You On The Mat!';
-            if (p) p.textContent = 'We’ve sent confirmation emails for each class. Here’s what to do next:';
+            if (h) h.textContent = 'All ' + n + ' Classes Are Booked â€” See You On The Mat!';
+            if (p) p.textContent = 'Weâ€™ve sent confirmation emails for each class. Hereâ€™s what to do next:';
           }
         } catch (_) {}
       })();
@@ -2875,7 +2875,7 @@ git commit -m "feat(congrats): personalize headline for multi-child bookings via
 
 ---
 
-## Phase 7 — End-to-End Verification
+## Phase 7 â€” End-to-End Verification
 
 ### Task 7.1: Full local smoke test
 
@@ -2909,20 +2909,20 @@ Open `http://localhost:4321/kickstart?name=Jane&email=jane@example.com&phone=555
 
 Verify in this exact order:
 
-1. H1 reads "You're In, Jane! …"
+1. H1 reads "You're In, Jane! â€¦"
 2. Survey renders with both Q1 buttons.
-3. Click "Myself" → date picker appears with `Adults Brazilian Jiu-Jitsu · Ages 16+` header.
-4. Click any enabled date → slot picker shows skeleton, then loads slots within ~1s.
-5. Click a slot → form renders, parent fields pre-filled with `Jane`, `jane@example.com`, `5555551212`. Student fields hidden.
-6. Click `Confirm Booking` (with valid name fields) → success card shows the booking line.
-7. Click `Book another child` → flow returns to survey, parent fields kept.
-8. Pick "Someone else" → age question appears → pick `5–6` → date picker → slot → form. Student fields visible and required this time.
-9. Submit → success card shows BOTH bookings in the "Your bookings so far" list.
-10. Click `I'm all set` → navigates to `/congrats?count=2`. Headline reads "All 2 Classes Are Booked …".
+3. Click "Myself" â†’ date picker appears with `Adults Brazilian Jiu-Jitsu Â· Ages 16+` header.
+4. Click any enabled date â†’ slot picker shows skeleton, then loads slots within ~1s.
+5. Click a slot â†’ form renders, parent fields pre-filled with `Jane`, `jane@example.com`, `5555551212`. Student fields hidden.
+6. Click `Confirm Booking` (with valid name fields) â†’ success card shows the booking line.
+7. Click `Book another child` â†’ flow returns to survey, parent fields kept.
+8. Pick "Someone else" â†’ age question appears â†’ pick `5â€“6` â†’ date picker â†’ slot â†’ form. Student fields visible and required this time.
+9. Submit â†’ success card shows BOTH bookings in the "Your bookings so far" list.
+10. Click `I'm all set` â†’ navigates to `/congrats?count=2`. Headline reads "All 2 Classes Are Booked â€¦".
 
 - [ ] **Step 4: Verify in GHL**
 
-Open the GHL sub-account → Conversations / Contacts. Confirm:
+Open the GHL sub-account â†’ Conversations / Contacts. Confirm:
 - A single contact exists for `jane@example.com`.
 - Two appointments are attached, on the two correct calendars at the booked times.
 - The user received GHL's native confirmation email (check the inbox of the test email).
@@ -2945,21 +2945,21 @@ git commit --allow-empty -m "test(booking): manual end-to-end smoke verified loc
 
 ## Self-Review
 
-**1. Spec coverage** — checked each section of the design spec against the task list:
-- §3 Architecture (server output, vercel adapter, layered files) → Tasks 0.3, 1–5
-- §4 Data model (programs, schedule, blackouts, types) → Tasks 1.1–1.3, 2.1
-- §5 UI flow (6 states, book-another loop, /congrats handoff) → Tasks 5.1–5.7, 6.3
-- §6 Failure handling (availability fail card, slot-taken alternates, write-fail card) → Tasks 4.1, 4.2, 5.7
-- §7 Anti-spam (4 layers) → Tasks 4.2, 5.1, 5.5
-- §8 File structure → matches Phase 5 + 6 file list
-- §9 Open implementation risks (GHL endpoint shapes) → flagged in Task 3 header + Task 7.1 step 4
+**1. Spec coverage** â€” checked each section of the design spec against the task list:
+- Â§3 Architecture (server output, vercel adapter, layered files) â†’ Tasks 0.3, 1â€“5
+- Â§4 Data model (programs, schedule, blackouts, types) â†’ Tasks 1.1â€“1.3, 2.1
+- Â§5 UI flow (6 states, book-another loop, /congrats handoff) â†’ Tasks 5.1â€“5.7, 6.3
+- Â§6 Failure handling (availability fail card, slot-taken alternates, write-fail card) â†’ Tasks 4.1, 4.2, 5.7
+- Â§7 Anti-spam (4 layers) â†’ Tasks 4.2, 5.1, 5.5
+- Â§8 File structure â†’ matches Phase 5 + 6 file list
+- Â§9 Open implementation risks (GHL endpoint shapes) â†’ flagged in Task 3 header + Task 7.1 step 4
 
 All spec sections have at least one task. No gaps.
 
-**2. Placeholder scan** — no "TBD", "TODO", "implement later", "fill in details" outside the data file `blackouts.ts` (which is intentionally empty, with a comment explaining how to populate). Every code step shows full code.
+**2. Placeholder scan** â€” no "TBD", "TODO", "implement later", "fill in details" outside the data file `blackouts.ts` (which is intentionally empty, with a comment explaining how to populate). Every code step shows full code.
 
-**3. Type consistency** — verified across tasks:
-- `ProgramKey` defined in `data/programs.ts`, re-exported via `lib/booking-types.ts` (`z.infer`) — matches usage in API routes and components.
+**3. Type consistency** â€” verified across tasks:
+- `ProgramKey` defined in `data/programs.ts`, re-exported via `lib/booking-types.ts` (`z.infer`) â€” matches usage in API routes and components.
 - `Slot` interface in `BookingFlow.astro` matches `AvailabilitySlot` in `booking-types.ts` (same fields).
 - `getFreeSlots`, `upsertContact`, `createAppointment` signatures match between `ghl.ts` (Task 3.2), `availability.ts` (Task 4.1), and `book.ts` (Task 4.2).
 - Custom event names consistent across components: `booking:program-selected`, `booking:date-selected`, `booking:slot-selected`, `booking:form-submit`, `booking:render`, `booking:book-another`, `booking:done`, `booking:retry-from-error`, `booking:back-to-date`.

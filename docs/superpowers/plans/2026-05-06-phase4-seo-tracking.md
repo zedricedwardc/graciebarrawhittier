@@ -1,4 +1,4 @@
-# Phase 4 — SEO + Tracking Implementation Plan
+﻿# Phase 4 â€” SEO + Tracking Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -17,7 +17,7 @@
 - `public/robots.txt` already disallows `/kickstart` + `/congrats` and references the sitemap
 - `@astrojs/sitemap` integration already generates `sitemap-index.xml` at build
 - `src/components/analytics/GTM.astro` already scaffolded, gated on `PUBLIC_GTM_ID`
-- Schemas + canonicals already in place per Phase 1–3 audits
+- Schemas + canonicals already in place per Phase 1â€“3 audits
 - Phase 4's actual work: 1 helper module, 2 wiring tasks, 1 verification pass
 
 ---
@@ -41,12 +41,12 @@ describe('trackEvent', () => {
 
   beforeEach(() => {
     originalWindow = globalThis.window;
-    // @ts-expect-error — test-only window stub
+    // @ts-expect-error â€” test-only window stub
     globalThis.window = { dataLayer: [] };
   });
 
   afterEach(() => {
-    // @ts-expect-error — restore
+    // @ts-expect-error â€” restore
     globalThis.window = originalWindow;
   });
 
@@ -63,13 +63,13 @@ describe('trackEvent', () => {
   });
 
   it('no-ops when window is undefined (SSR)', () => {
-    // @ts-expect-error — simulate SSR
+    // @ts-expect-error â€” simulate SSR
     globalThis.window = undefined;
     expect(() => trackEvent('any', {})).not.toThrow();
   });
 
   it('no-ops when dataLayer is not an array (GTM not loaded)', () => {
-    // @ts-expect-error — simulate GTM-disabled environment
+    // @ts-expect-error â€” simulate GTM-disabled environment
     globalThis.window = {};
     expect(() => trackEvent('any', {})).not.toThrow();
   });
@@ -82,7 +82,7 @@ describe('trackEvent', () => {
 npx vitest run src/lib/analytics.test.ts
 ```
 
-Expected: FAIL — `Cannot find module './analytics'`.
+Expected: FAIL â€” `Cannot find module './analytics'`.
 
 - [ ] **Step 3: Create `src/lib/analytics.ts`**
 
@@ -110,7 +110,7 @@ export function trackEvent(name: string, payload: Record<string, unknown> = {}):
 npx vitest run
 ```
 
-Expected: all tests pass — Phase 1+2+3 (22 tests) + 4 new analytics tests = 26 total.
+Expected: all tests pass â€” Phase 1+2+3 (22 tests) + 4 new analytics tests = 26 total.
 
 - [ ] **Step 5: Type-check**
 
@@ -136,7 +136,7 @@ git commit -m "feat(analytics): trackEvent helper for GTM dataLayer with SSR/no-
 
 - [ ] **Step 1: Read the current OptInForm script block**
 
-Use the Read tool on `src/components/form/OptInForm.astro` to see the current `<script>` block (around lines 187–225). This task only edits the script block — leave the markup above it unchanged.
+Use the Read tool on `src/components/form/OptInForm.astro` to see the current `<script>` block (around lines 187â€“225). This task only edits the script block â€” leave the markup above it unchanged.
 
 - [ ] **Step 2: Replace the script block**
 
@@ -256,7 +256,7 @@ If the step renderer dispatches a `booking:render` CustomEvent and the date step
 
 - [ ] **Step 5: Wire `booking_complete`**
 
-In the booking submit handler — the block that POSTs to `/api/book` — find the success branch where `data.ok` is true and `state.bookings.push(...)` runs. After that line, add:
+In the booking submit handler â€” the block that POSTs to `/api/book` â€” find the success branch where `data.ok` is true and `state.bookings.push(...)` runs. After that line, add:
 
 ```ts
 trackEvent('booking_complete', {
@@ -282,7 +282,7 @@ In `src/components/booking/BookingFlow.astro`:
 | `import { trackEvent } from '../../lib/analytics'` | 1 |
 | `trackEvent('booking_initiated'` | 1 |
 | `trackEvent('booking_complete'` | 1 |
-| `bookingInitiatedFired` | ≥ 2 (declaration + check) |
+| `bookingInitiatedFired` | â‰¥ 2 (declaration + check) |
 
 - [ ] **Step 8: Commit**
 
@@ -322,7 +322,7 @@ npx astro check && npx vitest run && npm run build
 
 Expected: all clean. Vitest count: 26 tests (Phase 1 + 2 + 3 + 4 helper).
 
-- [ ] **Step 3: Verify built dist HTML — schema coverage**
+- [ ] **Step 3: Verify built dist HTML â€” schema coverage**
 
 Use the Grep tool with these patterns:
 
@@ -341,12 +341,12 @@ Use the Grep tool with these patterns:
 - [ ] **Step 4: Verify sitemap + robots**
 
 Use the Grep tool:
-- Pattern `Disallow: /kickstart` in `public/robots.txt` — 1 match
-- Pattern `Disallow: /congrats` in `public/robots.txt` — 1 match
+- Pattern `Disallow: /kickstart` in `public/robots.txt` â€” 1 match
+- Pattern `Disallow: /congrats` in `public/robots.txt` â€” 1 match
 - File exists: `dist/client/sitemap-index.xml`
 - File exists: `dist/client/sitemap-0.xml`
 
-Read `dist/client/sitemap-0.xml` and confirm it lists at minimum: `/`, `/kids-martial-arts/`, `/adults-jiu-jitsu/`, `/reviews/`, `/contact/`. Does NOT list `/kickstart/` or `/congrats/` (or if it does, they have `<changefreq>` indicators — Astro auto-includes prerendered pages; funnel pages with `prerender = false` are excluded).
+Read `dist/client/sitemap-0.xml` and confirm it lists at minimum: `/`, `/kids-martial-arts/`, `/adults-jiu-jitsu/`, `/reviews/`, `/contact/`. Does NOT list `/kickstart/` or `/congrats/` (or if it does, they have `<changefreq>` indicators â€” Astro auto-includes prerendered pages; funnel pages with `prerender = false` are excluded).
 
 - [ ] **Step 5: If any check fails, fix inline**
 
@@ -361,7 +361,7 @@ If no fixes needed, no commit.
 
 - [ ] **Step 6: Verify canonical tags on all public pages**
 
-Use the Grep tool with pattern `<link rel="canonical"` in `dist/client/*/index.html` and `dist/client/index.html`. Each public page should have exactly one match. Read each match to confirm the URL is `https://gbwhittier.com/<path>/`.
+Use the Grep tool with pattern `<link rel="canonical"` in `dist/client/*/index.html` and `dist/client/index.html`. Each public page should have exactly one match. Read each match to confirm the URL is `https://www.graciebarrawhittier.com/<path>/`.
 
 ---
 
@@ -378,9 +378,9 @@ Capture the preview URL.
 - [ ] **Step 2: Manual DevTools check for events**
 
 On the preview:
-1. Open homepage. Open DevTools console. Type `window.dataLayer` — should be defined (or a stub array). Submit the opt-in form. Watch the Network tab — POST body should have `source: "opt-in", page: "/"`. Then check `window.dataLayer` — last entry should be `{ event: 'generate_lead', source: 'opt-in', page: '/' }`.
-2. Navigate to `/kickstart?name=Test` (or follow opt-in redirect). Complete the survey + trainee form. Once the calendar renders, check `window.dataLayer` — should contain `{ event: 'booking_initiated', program: '<program>' }` exactly once.
-3. Complete a booking (if PUBLIC_GTM_ID is unset, this still fires — the no-op-on-missing-dataLayer happens elsewhere). Check `window.dataLayer` — should contain `{ event: 'booking_complete', appointmentId: '<id>', program: '<program>' }`.
+1. Open homepage. Open DevTools console. Type `window.dataLayer` â€” should be defined (or a stub array). Submit the opt-in form. Watch the Network tab â€” POST body should have `source: "opt-in", page: "/"`. Then check `window.dataLayer` â€” last entry should be `{ event: 'generate_lead', source: 'opt-in', page: '/' }`.
+2. Navigate to `/kickstart?name=Test` (or follow opt-in redirect). Complete the survey + trainee form. Once the calendar renders, check `window.dataLayer` â€” should contain `{ event: 'booking_initiated', program: '<program>' }` exactly once.
+3. Complete a booking (if PUBLIC_GTM_ID is unset, this still fires â€” the no-op-on-missing-dataLayer happens elsewhere). Check `window.dataLayer` â€” should contain `{ event: 'booking_complete', appointmentId: '<id>', program: '<program>' }`.
 
 If `PUBLIC_GTM_ID` is unset on the preview, `window.dataLayer` may not exist. In that case, the events still no-op cleanly. Verify by ensuring the form/booking flow doesn't error.
 
@@ -436,7 +436,7 @@ Open `https://graciebarrawebsite.vercel.app/` in DevTools, submit the opt-in for
 ## Done criteria
 
 Phase 4 is complete when:
-1. All 5 tasks are checked off (Tasks 1–3 with commits; Task 4 typically no-commit; Task 5 with deploy).
+1. All 5 tasks are checked off (Tasks 1â€“3 with commits; Task 4 typically no-commit; Task 5 with deploy).
 2. The brief-alignment audit subagent returns zero FAILs.
 3. Production deploy fires all 3 dataLayer events for the relevant user actions.
 4. `npx vitest run` (26 tests), `npx astro check` (0 errors), and `npm run build` (clean) all pass.

@@ -1,4 +1,4 @@
-# Phase 2 — Program Pages (Kids + Adults) Implementation Plan
+﻿# Phase 2 â€” Program Pages (Kids + Adults) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -21,12 +21,12 @@ Pre-implementation grep shows both pages already have:
 - `<FAQ items={...} heading="..."/>` for FAQ rendering (white-card style, NOT the navy band style spec wants)
 
 Real diff for Phase 2:
-- **OptInForm props** — both pages must use homepage-identical props (`id="trial"`, full set of overrides matching homepage). All `href="#trial-form"` CTA hrefs become `href="#trial"`.
-- **Hero H1/H2** — current H1 is too prominent and display heading is `<p>`. Restructure to small visible H1 + large `<h2>` display.
-- **Visual** — pages currently use edge-to-edge full-width sections. Adapt to bento-card-on-gray pattern matching homepage (`<div class="bg-gb-bg-light">` wrapper, white card sections, rounded hero card on gray, navy band escapes wrapper).
-- **FAQ visual** — replace `<FAQ items={...}>` (white card style) with inline `<details>` accordion matching homepage's navy band style. `<SchemaFAQ>` still emits JSON-LD.
-- **FAQ content** — `kids-faqs.ts` and `adults-faqs.ts` get slightly fuller answers per spec (the current versions are condensed).
-- **Meta** — update title/description per spec on both pages.
+- **OptInForm props** â€” both pages must use homepage-identical props (`id="trial"`, full set of overrides matching homepage). All `href="#trial-form"` CTA hrefs become `href="#trial"`.
+- **Hero H1/H2** â€” current H1 is too prominent and display heading is `<p>`. Restructure to small visible H1 + large `<h2>` display.
+- **Visual** â€” pages currently use edge-to-edge full-width sections. Adapt to bento-card-on-gray pattern matching homepage (`<div class="bg-gb-bg-light">` wrapper, white card sections, rounded hero card on gray, navy band escapes wrapper).
+- **FAQ visual** â€” replace `<FAQ items={...}>` (white card style) with inline `<details>` accordion matching homepage's navy band style. `<SchemaFAQ>` still emits JSON-LD.
+- **FAQ content** â€” `kids-faqs.ts` and `adults-faqs.ts` get slightly fuller answers per spec (the current versions are condensed).
+- **Meta** â€” update title/description per spec on both pages.
 
 Files touched: 4 (`kids-martial-arts.astro`, `adults-jiu-jitsu.astro`, `kids-faqs.ts`, `adults-faqs.ts`). `SchemaBreadcrumb.astro` is verified unchanged (interface already matches).
 
@@ -119,7 +119,7 @@ Expected: `kidsFaqs[0]!.answer` may not match the program-name regex (current an
 
 ```ts
 /**
- * Kids page FAQs — 4 questions per build brief Part 3 Kids Section 7.
+ * Kids page FAQs â€” 4 questions per build brief Part 3 Kids Section 7.
  * Copy verbatim from the build brief, expanded for SEO/AI-search indexing.
  */
 import type { FAQItemData } from './faqs';
@@ -133,7 +133,7 @@ export const kidsFaqs: FAQItemData[] = [
   {
     question: 'What if my child is shy or nervous?',
     answer:
-      "Very common. Our instructors specialize in working with nervous first-timers, and most shy kids are asking to come back after their first class. Your child sets the pace — there is no pressure to do anything they're not ready for.",
+      "Very common. Our instructors specialize in working with nervous first-timers, and most shy kids are asking to come back after their first class. Your child sets the pace â€” there is no pressure to do anything they're not ready for.",
   },
   {
     question: 'Will my child get hurt?',
@@ -143,7 +143,7 @@ export const kidsFaqs: FAQItemData[] = [
   {
     question: "How do I know which program is right for my child's age?",
     answer:
-      "Age determines the program automatically. Just tell us how old your child is and we'll get them into the right class — Tiny Champions (3-4), Little Champions 1 (5-6), Little Champions 2 (7-9), or Juniors Jiu-Jitsu (10-15).",
+      "Age determines the program automatically. Just tell us how old your child is and we'll get them into the right class â€” Tiny Champions (3-4), Little Champions 1 (5-6), Little Champions 2 (7-9), or Juniors Jiu-Jitsu (10-15).",
   },
 ];
 ```
@@ -152,7 +152,7 @@ export const kidsFaqs: FAQItemData[] = [
 
 ```ts
 /**
- * Adults page FAQs — 4 questions per build brief Part 3 Adults Section 6.
+ * Adults page FAQs â€” 4 questions per build brief Part 3 Adults Section 6.
  * Copy verbatim from the build brief, expanded for SEO/AI-search indexing.
  */
 import type { FAQItemData } from './faqs';
@@ -161,17 +161,17 @@ export const adultsFaqs: FAQItemData[] = [
   {
     question: 'Am I too old to start BJJ?',
     answer:
-      'Many of our best students started training in their 30s, 40s, and 50s. BJJ is a technique-based art — age is not a barrier. The Fundamentals program scales to every body type and starting point.',
+      'Many of our best students started training in their 30s, 40s, and 50s. BJJ is a technique-based art â€” age is not a barrier. The Fundamentals program scales to every body type and starting point.',
   },
   {
     question: 'Do I need to be fit to start?',
     answer:
-      'No. Training IS how you get fit. Come as you are — every adult who has ever started training at GB Whittier began exactly where you are.',
+      'No. Training IS how you get fit. Come as you are â€” every adult who has ever started training at GB Whittier began exactly where you are.',
   },
   {
     question: 'Is adult BJJ dangerous?',
     answer:
-      'Like any contact sport, there are risks — but our classes are supervised, structured, and safety-first. Injuries are rare in a well-run environment like ours, and Fundamentals classes specifically avoid live sparring until you are ready.',
+      'Like any contact sport, there are risks â€” but our classes are supervised, structured, and safety-first. Injuries are rare in a well-run environment like ours, and Fundamentals classes specifically avoid live sparring until you are ready.',
   },
   {
     question: 'How quickly will I progress?',
@@ -213,7 +213,7 @@ Use the Write tool to overwrite `src/pages/kids-martial-arts.astro` with this ex
 ---
 export const prerender = true;
 /**
- * /kids-martial-arts — audience: parents of children ages 3–15.
+ * /kids-martial-arts â€” audience: parents of children ages 3â€“15.
  * Copy verbatim from build brief Part 3 Kids section.
  * Visual: bento-card on gray bg, matching homepage.
  */
@@ -229,7 +229,7 @@ import kidsHero from '../assets/images/kids/kids-hero.jpg';
 const programs = [
   {
     name: 'Tiny Champions',
-    ages: 'Ages 3–4',
+    ages: 'Ages 3â€“4',
     blurb:
       'Movement, coordination, listening skills, following instructions. A fun and safe introduction to the mat.',
     image: '/images/kids/kids-tiny-champions.jpg',
@@ -237,7 +237,7 @@ const programs = [
   },
   {
     name: 'Little Champions 1',
-    ages: 'Ages 5–6',
+    ages: 'Ages 5â€“6',
     blurb:
       'Core BJJ fundamentals introduced through age-appropriate drills. Builds discipline, respect, and confidence in a structured team environment.',
     image: '/images/kids/kids-little-champions-1.jpg',
@@ -245,7 +245,7 @@ const programs = [
   },
   {
     name: 'Little Champions 2',
-    ages: 'Ages 7–9',
+    ages: 'Ages 7â€“9',
     blurb:
       'Deeper technique focus and partner drills. Continued emphasis on respect, listening, and structured practice.',
     image: '/images/kids/kids-little-champions-2.jpg',
@@ -253,7 +253,7 @@ const programs = [
   },
   {
     name: 'Juniors Jiu-Jitsu',
-    ages: 'Ages 10–15',
+    ages: 'Ages 10â€“15',
     blurb:
       'Technique-focused training with real BJJ skills, optional competition preparation, and leadership development.',
     image: '/images/kids/kids-juniors.jpg',
@@ -277,27 +277,27 @@ const parentQuotes = [
 ];
 
 const firstClassSteps = [
-  'Arrive 10 minutes early — say hi to the front desk and meet your instructor.',
+  'Arrive 10 minutes early â€” say hi to the front desk and meet your instructor.',
   'Get fitted for your free uniform rental.',
-  'Warm up with the group — fun, age-appropriate movement.',
+  'Warm up with the group â€” fun, age-appropriate movement.',
   'Learn the first technique with the instructor walking you through every step.',
-  'End-of-class reflection — what we learned, what comes next.',
+  'End-of-class reflection â€” what we learned, what comes next.',
   'Sit down with Program Director Alex for a brief no-pressure conversation about the trial.',
 ];
 
 const breadcrumb = [
-  { name: 'Home', url: 'https://gbwhittier.com/' },
-  { name: 'Kids Martial Arts', url: 'https://gbwhittier.com/kids-martial-arts/' },
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'Kids Martial Arts', url: 'https://www.graciebarrawhittier.com/kids-martial-arts/' },
 ];
 ---
 
 <BaseLayout
   title="Kids Martial Arts in Whittier, CA | Gracie Barra Whittier"
   description="Gracie Barra Whittier offers age-specific kids BJJ programs for ages 3-15. Build confidence, focus, and self-defense skills in a safe, structured environment. Claim your free 3-class pass."
-  canonical="https://gbwhittier.com/kids-martial-arts/"
+  canonical="https://www.graciebarrawhittier.com/kids-martial-arts/"
 >
   <div class="bg-gb-bg-light">
-    {/* HERO — rounded card on light-gray background */}
+    {/* HERO â€” rounded card on light-gray background */}
     <section class="px-4 md:px-6 pt-6 md:pt-8">
       <div class="max-w-7xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
         <Image
@@ -318,13 +318,13 @@ const breadcrumb = [
             Brazilian Jiu-Jitsu for Kids in Whittier, CA
           </p>
           <h1 class="text-base md:text-lg font-semibold text-gb-white/90 mb-3">
-            Kids Martial Arts Classes in Whittier, CA — Ages 3 to 15
+            Kids Martial Arts Classes in Whittier, CA â€” Ages 3 to 15
           </h1>
           <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
             Where Kids Build Confidence, Discipline, and Strength
           </h2>
           <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
-            Age-specific Brazilian Jiu-Jitsu programs designed for every stage of childhood — from Tiny Champions (ages 3-4) through Juniors (ages 10-15). Safe, structured, and genuinely fun.
+            Age-specific Brazilian Jiu-Jitsu programs designed for every stage of childhood â€” from Tiny Champions (ages 3-4) through Juniors (ages 10-15). Safe, structured, and genuinely fun.
           </p>
           <CTAButton variant="primary" label="Claim My Child's Free 3-Class Pass" href="#trial" />
         </div>
@@ -403,14 +403,14 @@ const breadcrumb = [
     {/* CERTIFIED INSTRUCTORS */}
     <section class="px-4 md:px-6 py-12 md:py-16">
       <div class="max-w-3xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center">
-        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Certified Gracie Barra Instructors — Not Just Athletes, But Teachers</h2>
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Certified Gracie Barra Instructors â€” Not Just Athletes, But Teachers</h2>
         <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
-          Every instructor at Gracie Barra Whittier completes the official Gracie Barra certification program before stepping on the mat with your child. The same curriculum is taught at over 1,000 GB academies worldwide. Our lead instructors, Professor Phil and Professor Eric, bring decades of training experience and a teaching-first mindset — your child isn't just learning Jiu-Jitsu, they're being mentored.
+          Every instructor at Gracie Barra Whittier completes the official Gracie Barra certification program before stepping on the mat with your child. The same curriculum is taught at over 1,000 GB academies worldwide. Our lead instructors, Professor Phil and Professor Eric, bring decades of training experience and a teaching-first mindset â€” your child isn't just learning Jiu-Jitsu, they're being mentored.
         </p>
       </div>
     </section>
 
-    {/* OPT-IN FORM — identical props to homepage */}
+    {/* OPT-IN FORM â€” identical props to homepage */}
     <OptInForm
       id="trial"
       header="UNLOCK YOUR FREE 3-CLASS PASS"
@@ -424,21 +424,21 @@ const breadcrumb = [
     />
   </div>
 
-  {/* CONVERSION CTA — full-width navy band */}
+  {/* CONVERSION CTA â€” full-width navy band */}
   <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6">
     <div class="max-w-3xl mx-auto text-center">
       <h2 class="text-2xl md:text-4xl font-extrabold">Ready to Get Your Child Started?</h2>
       <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
-        Try any of our kids programs free for 3 classes — no commitment, no contracts, free uniform rental included. Just bring your child and let us take it from there.
+        Try any of our kids programs free for 3 classes â€” no commitment, no contracts, free uniform rental included. Just bring your child and let us take it from there.
       </p>
       <div class="mt-7 flex justify-center">
         <CTAButton variant="primary" label="Claim My Child's Free 3-Class Pass" href="#trial" />
       </div>
-      <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts • No pressure</p>
+      <p class="mt-4 text-xs text-gb-white/70">3 free classes â€¢ Free uniform rental â€¢ No contracts â€¢ No pressure</p>
     </div>
   </section>
 
-  {/* FAQ — full-width navy band, inline details accordion */}
+  {/* FAQ â€” full-width navy band, inline details accordion */}
   <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6" aria-labelledby="kids-faq-heading">
     <div class="max-w-3xl mx-auto">
       <div class="text-center mb-8 md:mb-10">
@@ -486,7 +486,7 @@ Use the Grep tool with pattern `<h1 class="text-base md:text-lg` in `src/pages/k
 
 ```
 git add src/pages/kids-martial-arts.astro
-git commit -m "feat(kids): rebuild Kids page per Phase 2 spec — bento layout, H1/H2 semantics, OptInForm normalization, navy-band FAQ"
+git commit -m "feat(kids): rebuild Kids page per Phase 2 spec â€” bento layout, H1/H2 semantics, OptInForm normalization, navy-band FAQ"
 ```
 
 ---
@@ -506,7 +506,7 @@ Use the Write tool to overwrite `src/pages/adults-jiu-jitsu.astro` with this exa
 ---
 export const prerender = true;
 /**
- * /adults-jiu-jitsu — audience: adults 16+, beginners and returning students.
+ * /adults-jiu-jitsu â€” audience: adults 16+, beginners and returning students.
  * Copy verbatim from build brief Part 3 Adults section.
  * Visual: bento-card on gray bg, matching homepage.
  */
@@ -523,13 +523,13 @@ const benefits = [
   {
     title: 'Real self-defense',
     body:
-      "BJJ works based on leverage and technique — not size or strength. It's why it's the #1 choice for law enforcement and military worldwide.",
+      "BJJ works based on leverage and technique â€” not size or strength. It's why it's the #1 choice for law enforcement and military worldwide.",
     icon: 'shield',
   },
   {
     title: 'Total fitness',
     body:
-      "Cardio, strength, flexibility, coordination — all in one hour. You'll be too focused on learning to notice you're working out.",
+      "Cardio, strength, flexibility, coordination â€” all in one hour. You'll be too focused on learning to notice you're working out.",
     icon: 'zap',
   },
   {
@@ -547,27 +547,27 @@ const benefits = [
 ];
 
 const firstClassSteps = [
-  'Arrive 10 minutes early — meet your instructor and the front desk team.',
+  'Arrive 10 minutes early â€” meet your instructor and the front desk team.',
   'Get fitted for your free uniform rental.',
-  'Warm up with the class — light movement, no surprises.',
-  'Fundamentals class — the instructor walks you through technique step-by-step.',
+  'Warm up with the class â€” light movement, no surprises.',
+  'Fundamentals class â€” the instructor walks you through technique step-by-step.',
   'Practice with a training partner at your level. Slow, controlled, low-pressure.',
-  'Debrief with Program Director Alex — quick chat about how it went and what comes next. No commitment.',
+  'Debrief with Program Director Alex â€” quick chat about how it went and what comes next. No commitment.',
 ];
 
 const breadcrumb = [
-  { name: 'Home', url: 'https://gbwhittier.com/' },
-  { name: 'Adults Jiu-Jitsu', url: 'https://gbwhittier.com/adults-jiu-jitsu/' },
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'Adults Jiu-Jitsu', url: 'https://www.graciebarrawhittier.com/adults-jiu-jitsu/' },
 ];
 ---
 
 <BaseLayout
   title="Adult BJJ Classes in Whittier, CA | Gracie Barra Whittier"
   description="Train Brazilian Jiu-Jitsu at Gracie Barra Whittier. Beginner-friendly adult BJJ classes in Whittier, CA. Build fitness, self-defense skills, and confidence. Try 3 classes free."
-  canonical="https://gbwhittier.com/adults-jiu-jitsu/"
+  canonical="https://www.graciebarrawhittier.com/adults-jiu-jitsu/"
 >
   <div class="bg-gb-bg-light">
-    {/* HERO — rounded card on light-gray background */}
+    {/* HERO â€” rounded card on light-gray background */}
     <section class="px-4 md:px-6 pt-6 md:pt-8">
       <div class="max-w-7xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
         <Image
@@ -594,14 +594,14 @@ const breadcrumb = [
             The Most Effective Martial Art. Beginner-Friendly. Life-Changing.
           </h2>
           <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
-            Gracie Barra Whittier's adult BJJ program is built for people with zero experience who want real results — in fitness, self-defense, and mental toughness. No prior training required.
+            Gracie Barra Whittier's adult BJJ program is built for people with zero experience who want real results â€” in fitness, self-defense, and mental toughness. No prior training required.
           </p>
           <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" />
         </div>
       </div>
     </section>
 
-    {/* THE CASE FOR BJJ — 4 benefit cards with icons */}
+    {/* THE CASE FOR BJJ â€” 4 benefit cards with icons */}
     <section class="px-4 md:px-6 py-12 md:py-16">
       <div class="max-w-6xl mx-auto">
         <div class="text-center mb-10 md:mb-12">
@@ -645,7 +645,7 @@ const breadcrumb = [
       <div class="max-w-3xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center">
         <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">You Don't Need Experience. You Need to Show Up.</h2>
         <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
-          Every black belt at Gracie Barra Whittier was a beginner once — and that includes Professor Phil, who leads our adult program. The culture on the mat is welcoming and ego-free. You'll train with people at your level, learn at your pace, and start with the same Fundamentals class every adult does — whether they're 18 or 58, fit or starting over. Show up; we take it from there.
+          Every black belt at Gracie Barra Whittier was a beginner once â€” and that includes Professor Phil, who leads our adult program. The culture on the mat is welcoming and ego-free. You'll train with people at your level, learn at your pace, and start with the same Fundamentals class every adult does â€” whether they're 18 or 58, fit or starting over. Show up; we take it from there.
         </p>
       </div>
     </section>
@@ -669,7 +669,7 @@ const breadcrumb = [
       </div>
     </section>
 
-    {/* OPT-IN FORM — identical props to homepage */}
+    {/* OPT-IN FORM â€” identical props to homepage */}
     <OptInForm
       id="trial"
       header="UNLOCK YOUR FREE 3-CLASS PASS"
@@ -683,7 +683,7 @@ const breadcrumb = [
     />
   </div>
 
-  {/* CONVERSION CTA — full-width navy band */}
+  {/* CONVERSION CTA â€” full-width navy band */}
   <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6">
     <div class="max-w-3xl mx-auto text-center">
       <h2 class="text-2xl md:text-4xl font-extrabold">Start Your BJJ Journey This Week</h2>
@@ -693,11 +693,11 @@ const breadcrumb = [
       <div class="mt-7 flex justify-center">
         <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" />
       </div>
-      <p class="mt-4 text-xs text-gb-white/70">3 free classes • No experience needed • Free uniform • No contracts</p>
+      <p class="mt-4 text-xs text-gb-white/70">3 free classes â€¢ No experience needed â€¢ Free uniform â€¢ No contracts</p>
     </div>
   </section>
 
-  {/* FAQ — full-width navy band, inline details accordion */}
+  {/* FAQ â€” full-width navy band, inline details accordion */}
   <section class="bg-gb-navy text-gb-white py-14 md:py-20 px-4 md:px-6" aria-labelledby="adults-faq-heading">
     <div class="max-w-3xl mx-auto">
       <div class="text-center mb-8 md:mb-10">
@@ -745,7 +745,7 @@ Use the Grep tool with pattern `<h1 class="text-base md:text-lg` in `src/pages/a
 
 ```
 git add src/pages/adults-jiu-jitsu.astro
-git commit -m "feat(adults): rebuild Adults page per Phase 2 spec — bento layout, H1/H2 semantics, OptInForm normalization, navy-band FAQ"
+git commit -m "feat(adults): rebuild Adults page per Phase 2 spec â€” bento layout, H1/H2 semantics, OptInForm normalization, navy-band FAQ"
 ```
 
 ---
@@ -781,7 +781,7 @@ Expected: 0 errors, 0 warnings.
 npx vitest run
 ```
 
-Expected: all tests pass — Phase 1 (`faqs.test.ts` 5 tests) + Phase 2 (`kids-faqs.test.ts` 4 tests + `adults-faqs.test.ts` 3 tests). Pre-existing tests in `src/lib/` also continue passing.
+Expected: all tests pass â€” Phase 1 (`faqs.test.ts` 5 tests) + Phase 2 (`kids-faqs.test.ts` 4 tests + `adults-faqs.test.ts` 3 tests). Pre-existing tests in `src/lib/` also continue passing.
 
 - [ ] **Step 4: Run production build**
 
@@ -842,7 +842,7 @@ Use the Agent tool with `subagent_type: general-purpose`. Prompt:
 > 3. Verify each row by either grepping the codebase (with file path + line number citation) or fetching the preview URLs and inspecting rendered HTML.
 > 4. Run the banned-string grep from the Phase 2 spec's Acceptance Criteria.
 > 5. Verify FAQPage JSON-LD on each preview URL emits 4 question/answer pairs.
-> 6. Verify BreadcrumbList JSON-LD on each preview URL emits 2 items (Home → page).
+> 6. Verify BreadcrumbList JSON-LD on each preview URL emits 2 items (Home â†’ page).
 > 7. Output a single Markdown report with sections: **Summary** (PASS/FAIL/N/A counts), **Failures** (must-fix list with file/line refs), **Warnings** (review items), **Passes** (collapsed list).
 >
 > If preview URLs are gated by Vercel SSO/auth, fall back to inspecting `dist/client/kids-martial-arts/index.html` and `dist/client/adults-jiu-jitsu/index.html` directly.
