@@ -224,6 +224,22 @@ function appendIfNew(existing: string, item: string): string {
 }
 
 /**
+ * YYYY-MM-DD of an ISO datetime in America/Los_Angeles. Written to the opp's
+ * `appointment_date` DATE field so GHL workflow filters like "Appointment Date
+ * is today" compare cleanly — using a full ISO datetime drifts across the
+ * UTC/Los Angeles boundary (an 11pm PT slot reads as next-day UTC).
+ */
+export function toAcademyLocalDate(iso: string): string {
+  // en-CA produces YYYY-MM-DD; locale chosen for format, not language.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(iso));
+}
+
+/**
  * Format an ISO datetime as a human-readable string in America/Los_Angeles.
  * "2026-05-13T11:00:00-07:00" → "Wed, May 13 at 11:00 AM"
  * Used in audit notes that admins read in GHL.
@@ -450,6 +466,7 @@ async function handleBtmBooking(
         program: input.program,
         last_appointment_id: input.appointmentId,
         last_appointment_start_iso: input.slotStartISO,
+        appointment_date: toAcademyLocalDate(input.slotStartISO),
       });
       await moveStage({
         oppId: existingTraineeOpp.id,
@@ -492,6 +509,7 @@ async function handleBtmBooking(
       program: input.program,
       last_appointment_id: input.appointmentId,
       last_appointment_start_iso: input.slotStartISO,
+      appointment_date: toAcademyLocalDate(input.slotStartISO),
       appointment_history: input.appointmentId,
     });
     const created = await createOpp({
@@ -548,6 +566,7 @@ async function handleTrialBooking(
       program: input.program,
       last_appointment_id: input.appointmentId,
       last_appointment_start_iso: input.slotStartISO,
+      appointment_date: toAcademyLocalDate(input.slotStartISO),
     });
     const updated = await moveStage({
       oppId: existingOpp.id,
@@ -572,6 +591,7 @@ async function handleTrialBooking(
     program: input.program,
     last_appointment_id: input.appointmentId,
     last_appointment_start_iso: input.slotStartISO,
+    appointment_date: toAcademyLocalDate(input.slotStartISO),
     appointment_history: input.appointmentId,
   });
   const created = await createOpp({

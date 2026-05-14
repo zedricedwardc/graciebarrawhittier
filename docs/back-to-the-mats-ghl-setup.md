@@ -83,7 +83,9 @@ GHL â†’ **Automation â†’ Workflows** â†’ `+ Create Workflow` (sta
 | Field | Value |
 |---|---|
 | **Name** (exact) | `BTM Appointment Confirmation` |
-| **Trigger** | Pipeline Stage Changed â†’ Pipeline: `Back to the Mats`, Stage: `RE ENROLLMENT CLASS BOOKED` |
+| **Trigger (pick one)** | **(A) Recommended:** Pipeline Stage Changed â†’ Pipeline: `Back to the Mats`, Stage: `RE ENROLLMENT CLASS BOOKED`. The opp is in scope automatically â€” no Find Opportunity needed. **(B) Alternative:** Customer Booked Appointment, filter Calendar Group = `Back to the Mats`. Requires an explicit **Find Opportunity** action as the first step (see below) â€” GHL rejects Update/Move actions when the workflow has no opp in context, with error "Internal Action Error â€” Please use Opportunity trigger/find opportunity action to get the opportunity". Use (B) only if you also need to catch walk-in/calendar-direct bookings that bypass the website. |
+| **First step (only required for trigger B)** | **Find Opportunity** â†’ Pipeline: `Back to the Mats` â†’ Stage: `RE ENROLLMENT CLASS BOOKED` â†’ Status: `Open` â†’ Contact: workflow contact â†’ *If not found:* `Stop`. (The website's `handleBtmBooking` always creates/moves the opp before this workflow could fire, so a miss means something upstream broke â€” don't auto-create here.) |
+| **Wait + Update Stage on appointment day** | At the **end** of the email/SMS sequence, add: **Wait** â†’ *Wait Until* â†’ *Date based on Custom Field* â†’ Pipeline: `Back to the Mats` â†’ Custom Field: `Appointment Date` â†’ *At 12:01 AM*. Then: **Update Opportunity Stage** â†’ Pipeline: `Back to the Mats` â†’ Stage: `APPOINTMENT TODAY`. *Open* the Update Opportunity step and **disable Duplicate Opportunity** so it strictly moves the existing opp rather than creating a new one. If you used trigger (B) and see the "use Opportunity trigger/find opportunity action" error fire at this step after the long wait, add a **second Find Opportunity** with the same filters right before `Update Opportunity` â€” opp context can drop across multi-day waits. This implements the schema's `auto_move_on_appointment_day` rule â€” the opp lands in the admin's daily classify list (NO-SHOW vs RE ENROLLED) on the morning of the session. Use `Appointment Date` (date-only) for the wait, not `Last Appointment Start ISO` (full datetime) â€” the date-only field is filterable as "is today" and immune to timezone drift. |
 
 **Body â€” 3 emails + 2 SMS** per docx Part 3:
 
@@ -155,6 +157,9 @@ This idempotently creates (skipping any that already exist):
 
 **1 new contact custom field:**
 - `back_to_mats_imported_at` (DATE) â€” used for dedupe + audit on CSV import
+
+**1 new opportunity custom field:**
+- `appointment_date` (DATE) â€” YYYY-MM-DD of the booked session in America/Los_Angeles. Written by the website on every booking. Used by the `BTM Appointment Confirmation` workflow's Wait-until step (Â§2.2) and any workflow that filters "Appointment Date is today". Pairs with the existing `last_appointment_start_iso` (full datetime) â€” keep both: the datetime drives reminders ("2h before"), the date drives day-of filters and gives admins a clean date on the opp card.
 
 **Tags** are created implicitly the first time they're applied (no provision step needed):
 - `back-to-the-mats-import` (set by CSV import; consumed by SMS-bot prompt to detect former students)
@@ -243,6 +248,7 @@ Trigger a redeploy after saving (or push any commit).
    - Email 1 of the BTM Confirmation Campaign arrived âœ“
    - **No new opp was created in `Lead Acquisition`** âœ“ (the BTM detection should have skipped it)
    - A per-trainee opp WAS created in `Trial Conversion` at `INTRO BOOKED` âœ“ (existing flow continues)
+6. **On the morning of the booked session** (00:01 local) â€” the BTM opp should auto-move from `RE ENROLLMENT CLASS BOOKED` to `APPOINTMENT TODAY`. If it doesn't, the Wait + Update Stage step at the end of `BTM Appointment Confirmation` is missing or pointed at the wrong custom field â€” re-check step 2.2.
 
 If any of these fail, check `/api/health/ghl?key=<HEALTH_KEY>` for drift, and check Vercel logs for `[handleBooking] BTM` messages.
 

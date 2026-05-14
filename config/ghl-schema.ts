@@ -225,7 +225,14 @@ export const OPPORTUNITY_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     fieldKey: 'last_appointment_start_iso',
     label: 'Last Appointment Start ISO',
     type: 'DATE',
-    description: 'ISO datetime of the most recent appointment.',
+    description: 'ISO datetime of the most recent appointment. Use this for time-of-day waits (e.g. 2h before). For "is today" filters use appointment_date instead — comparing a full ISO datetime drifts across the UTC/Los Angeles boundary.',
+    setBy: 'webhook',
+  },
+  {
+    fieldKey: 'appointment_date',
+    label: 'Appointment Date',
+    type: 'DATE',
+    description: 'YYYY-MM-DD of the most recent appointment in America/Los_Angeles. Powers GHL workflow filters like "Appointment Date is today" and renders as a clean date in the opp card. Written by the website alongside last_appointment_start_iso on every booking/rebook.',
     setBy: 'webhook',
   },
   {
@@ -536,8 +543,8 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
   {
     envVarKey: 'WORKFLOW_ID_BTM_CONFIRMATION',
     name: 'BTM Appointment Confirmation',
-    description: '3 emails + 2 SMS confirming a booked re-enrollment session. Per docx Part 3. Triggers on opp moving to RE-ENROLLMENT CLASS BOOKED.',
-    trigger: { type: 'opp_stage_changed', pipelineKey: 'BACK_TO_MATS', enterStage: 'RE-ENROLLMENT CLASS BOOKED' },
+    description: '3 emails + 2 SMS confirming a booked re-enrollment session. Per docx Part 3. Triggers on opp moving to RE ENROLLMENT CLASS BOOKED. Ends with a Wait (until Last Appointment Start ISO @ 12:01 AM) + Update Stage to APPOINTMENT TODAY step — implements auto_move_on_appointment_day declared in STAGE_TRANSITIONS. Configured inside the workflow in GHL UI; see docs/back-to-the-mats-ghl-setup.md §2.2.',
+    trigger: { type: 'opp_stage_changed', pipelineKey: 'BACK_TO_MATS', enterStage: 'RE ENROLLMENT CLASS BOOKED' },
     callsWebsiteWebhook: false,
   },
   {

@@ -16,7 +16,7 @@ import {
   GhlError,
   readEnv,
 } from '../../lib/ghl';
-import { handleBooking, exitNurtureWorkflows } from '../../lib/ghl-adapter';
+import { handleBooking, exitNurtureWorkflows, toAcademyLocalDate } from '../../lib/ghl-adapter';
 import { findOpps, findByTraineeKey, moveStage, getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { cfPayload } from '../../lib/ghl-custom-fields';
 import { generateSlots } from '../../lib/slot-resolver';
@@ -399,6 +399,7 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
     const cfs = await cfPayload('opportunity', {
       last_appointment_id: appointmentId,
       last_appointment_start_iso: body.slotStartISO,
+      appointment_date: toAcademyLocalDate(body.slotStartISO),
     });
     await moveStage({
       oppId: creditOpp.id,
