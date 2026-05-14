@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /kickstart
-Disallow: /congrats
+Disallow: /api/
+
 Sitemap: https://www.graciebarrawhittier.com/sitemap-index.xml
