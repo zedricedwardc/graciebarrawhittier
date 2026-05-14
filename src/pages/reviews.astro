@@ -48,9 +48,18 @@ const breadcrumb = [
           <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Live Google Reviews</h2>
           <p class="mt-2 text-sm text-gb-text-muted">Powered by Google Reviews — updated in real time</p>
         </div>
-        <div id="reviews-widget" class="bg-gb-bg-light rounded-xl p-6 md:p-8 text-center text-gb-text-muted">
-          Reviews loading...
+        <div id="reviews-widget" class="bg-gb-bg-light rounded-xl p-6 md:p-8">
+          <iframe
+            class="lc_reviews_widget"
+            src="https://reputationhub.site/reputation/widgets/review_widget/eMHOrbrPAfFd2S1ORNKL"
+            frameborder="0"
+            scrolling="no"
+            style="min-width: 100%; width: 100%;"
+            title="Gracie Barra Whittier Google Reviews"
+            loading="lazy"
+          ></iframe>
         </div>
+        <script is:inline src="https://reputationhub.site/reputation/assets/review-widget.js"></script>
       </div>
     </section>
 
