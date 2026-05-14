@@ -364,7 +364,7 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
   {
     fieldKey: 'back_to_the_mats_page_url',
     name: 'Back to the Mats Page URL',
-    defaultValue: 'https://gbwhittier.com/back-to-the-mats',
+    defaultValue: 'https://www.graciebarrawhittier.com/back-to-the-mats',
     description: 'Landing-page URL referenced in every BTM email/SMS. Hardcoded in the page; this value is for GHL message merge.',
   },
   {

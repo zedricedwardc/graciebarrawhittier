@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /kickstart
 Disallow: /congrats
-Sitemap: https://gbwhittier.com/sitemap-index.xml
+Sitemap: https://www.graciebarrawhittier.com/sitemap-index.xml
