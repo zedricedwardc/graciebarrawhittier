@@ -603,22 +603,33 @@ async function handleTrialBooking(
     customFields: oppCfs,
   });
 
-  // Move Lead Acquisition opp → INTRO BOOKED (WON). Best-effort: missing opp
-  // is a recoverable state (walk-in book without prior opt-in), not an error.
+  // Move Lead Acquisition opp → INTRO BOOKED (WON) and consolidate. Schema
+  // contract is "one LEAD_ACQ opp per parent contact" — but races on rapid
+  // opt-in resubmits can leave duplicates. Keep one, mark won, delete the
+  // rest so the contact disappears cleanly from NEW LEAD / nurture stages.
+  // Best-effort: missing opp = walk-in without prior opt-in (recoverable).
   try {
     const leadOpps = await findOpps({
       contactId: input.contactId,
       pipelineKey: 'LEAD_ACQ',
       status: 'open',
-      limit: 5,
+      limit: 20,
     });
-    const leadOpp = leadOpps[0];
-    if (leadOpp) {
+    const [keeper, ...duplicates] = leadOpps;
+    if (keeper) {
       await moveStage({
-        oppId: leadOpp.id,
+        oppId: keeper.id,
         pipelineKey: 'LEAD_ACQ',
         stageName: 'INTRO BOOKED (WON)',
       });
+      await setOppStatus(keeper.id, 'won');
+    }
+    for (const dup of duplicates) {
+      try {
+        await deleteOpportunity(dup.id);
+      } catch (err) {
+        console.warn('[handleTrialBooking] Lead Acq duplicate delete failed (non-fatal)', { dupId: dup.id, err });
+      }
     }
   } catch (err) {
     console.warn('[handleTrialBooking] Lead Acq stage move failed (non-fatal)', err);
