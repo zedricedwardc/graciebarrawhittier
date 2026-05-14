@@ -11,7 +11,11 @@ dotenv.config();
 export default defineConfig({
   site: 'https://gbwhittier.com',
   output: 'server',
-  adapter: vercel(),
+  adapter: vercel({
+    webAnalytics: {
+      enabled: true,
+    },
+  }),
   integrations: [
     sitemap({
       filter: (page) => !page.includes('/kickstart') && !page.includes('/back-to-the-mats'),
