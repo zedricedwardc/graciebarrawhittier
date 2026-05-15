@@ -1,0 +1,551 @@
+◇ injected env (25) from .env // tip: ⌘ enable debugging { debug: true }
+Sub-account inventory: eMHOrbrPAfFd2S1ORNKL
+Time: 2026-05-14T22:24:25.161Z
+
+══════════════════════════════════════════════════════════════════════════════
+  1. LOCATION INFO
+══════════════════════════════════════════════════════════════════════════════
+  Name:     Gracie Barra Whittier
+  Business: [object Object]
+  Address:  13595 Whittier Blvd #104, Whittier, CA 90605
+  Phone:    +15626401400
+  Email:    eric@gbwhittier.com
+  Website:  www.graciebarrawhittier.com
+  Timezone: America/Los_Angeles
+  Country:  US
+
+══════════════════════════════════════════════════════════════════════════════
+  2. PIPELINES + OPP COUNTS PER STAGE
+══════════════════════════════════════════════════════════════════════════════
+
+Pipeline: 30 Day Jiu-Jitsu Challenge  (id=sC8d7DNj3D1mMAR9348M)
+──────────────────────────────────────────────────────────────────────────────
+  ⚪     0  Challenge Prospects
+  ⚪     0  Booked Challenge
+  ⚪     0  Challenger
+  ⚪     0  Enrolled
+  ──────────────  Total in pipeline: 0
+
+Pipeline: Academy Launch Pipeline  (id=4CAUV0Ymgzy3hVBc6S1W)
+──────────────────────────────────────────────────────────────────────────────
+  ⚪     0  Not A Prospect
+  ⚪     0  Old Student
+  🟢   135  Prospect
+  🟢  1295  Hot Lead
+  🟢     2  Appointment Booked
+  🟢     3  Trial Student
+  🟢   224  NEW STUDENT
+  🟢     1  (2.0) Prospect
+  🟢     1  (2.0) Hot Lead
+  🟢  1662  (2.0) Appointment Booked
+  🟢     2  (2.0) Trial Student
+  🟢     1  (2.0) New Student
+  ⚪     0  (2.0) Old Student
+  ⚪     0  (2.0) Did Not Enroll
+  ──────────────  Total in pipeline: 3326
+
+Pipeline: Active Students  (id=Jm1WPU6O6jNovPzDv0cl)
+──────────────────────────────────────────────────────────────────────────────
+  ⚪     0  ONBOARDING
+  ⚪     0  ACTIVE MEMBER
+  ⚪     0  AT RISK
+  ⚪     0  PAUSED
+  ⚪     0  CANCELLED
+  ⚪     0  WIN-BACK
+  ──────────────  Total in pipeline: 0
+
+Pipeline: Back to the Mats  (id=EWTA8eW0UNTsMioWI0Ce)
+──────────────────────────────────────────────────────────────────────────────
+  🟢    48  FORMER STUDENT
+  🟢     2  RE ENROLLMENT CLASS BOOKED
+  🟢     1  APPOINTMENT TODAY
+  ⚪     0  NO-SHOW
+  ⚪     0  OFFER EXPIRED
+  ⚪     0  RE ENROLLED
+  ──────────────  Total in pipeline: 51
+
+Pipeline: Lead Acquisition  (id=iCvmuak82CNxovJfbWs8)
+──────────────────────────────────────────────────────────────────────────────
+  🟢     1  NEW LEAD
+  ⚪     0  TRIAL NURTURE
+  ⚪     0  NURTURE CAMPAIGN
+  🟢     1  INTRO BOOKED (WON)
+  ⚪     0  LOST / COLD
+  ──────────────  Total in pipeline: 2
+
+Pipeline: Night King Pipeline  (id=qqDKfvZQMhIjNauk17xC)
+──────────────────────────────────────────────────────────────────────────────
+  🟢    22  Leads
+  🟢    36  Positive Intent
+  🟢     9  Negative Intent
+  🟢  1389  No Response
+  🟢     1  Positive + Link Clicked
+  ⚪     0  Booked Appointment
+  ──────────────  Total in pipeline: 1457
+
+Pipeline: Revival Protocol  (id=ZfyLP6ghuqzsOPqNr7N7)
+──────────────────────────────────────────────────────────────────────────────
+  ⚪     0  DEAD LEAD
+  ⚪     0  REVIVED LEAD
+  ⚪     0  BOOKED
+  ⚪     0  NO RESPONSE
+  ──────────────  Total in pipeline: 0
+
+Pipeline: Sales Pipeline (Editable)  (id=H3af1FY9i22rmOFMmojQ)
+──────────────────────────────────────────────────────────────────────────────
+  ⚪     0  Cold Lead
+  ⚪     0  Contacted
+  ⚪     0  Replied
+  ⚪     0  Booked Call
+  ⚪     0  No Show
+  ⚪     0  Follow-Up Needed
+  ⚪     0  Closed - Won
+  ⚪     0  Closed - Lost
+  ⚪     0  Onboarded
+  ──────────────  Total in pipeline: 0
+
+Pipeline: The Ultimate Jiu-Jitsu Trial  (id=sWTeWog6VEjKLmN0Mlkp)
+──────────────────────────────────────────────────────────────────────────────
+  🟢   224  New Lead
+  ⚪     0  Contacted
+  ⚪     0  Proposal Sent
+  ⚪     0  Closed
+  ──────────────  Total in pipeline: 224
+
+Pipeline: Trial Conversion  (id=RxJkooNY7kA5sIyuOorI)
+──────────────────────────────────────────────────────────────────────────────
+  🟢     1  INTRO BOOKED
+  ⚪     0  TRIAL APPOINTMENT DONE
+  ⚪     0  NO-SHOW
+  ⚪     0  INTRO CLASS REBOOKING
+  🟢     1  TRIAL ACTIVE NURTURE
+  ⚪     0  TRIAL INACTIVE REACTIVATION
+  ⚪     0  STUDENT ENROLLED (WON)
+  ⚪     0  LOST / COLD
+  ──────────────  Total in pipeline: 2
+
+Pipeline: Trial Credit Monitoring  (id=orJdRIeRqRqZpVTDnZpO)
+──────────────────────────────────────────────────────────────────────────────
+  ⚪     0  CREDIT ACTIVE
+  🟢     1  ANOTHER TRIAL BOOKED
+  ⚪     0  APPOINTMENT TODAY
+  ⚪     0  ATTENDED APPOINTMENT
+  ⚪     0  NO-SHOW
+  ⚪     0  CREDITS EXHAUSTED
+  ⚪     0  REACTIVATION
+  ⚪     0  WON ENROLLED
+  ⚪     0  LOST
+  ──────────────  Total in pipeline: 1
+
+Pipeline: 🔨 Home Services New Customer Pipeline  (id=bU5FmPjvQA0xr0sNqp8G)
+──────────────────────────────────────────────────────────────────────────────
+  ⚪     0  New Lead
+  🟢   814  Scheduled Appointment
+  ⚪     0  Upgraded Service
+  ⚪     0  Did not book upgraded service (follow-Up)
+  ⚪     0  Does not want upgraded service
+  🟢     1  Job Done!!
+  ──────────────  Total in pipeline: 815
+
+══════════════════════════════════════════════════════════════════════════════
+  3. CUSTOM FIELDS
+══════════════════════════════════════════════════════════════════════════════
+
+CONTACT fields (9)
+──────────────────────────────────────────────────────────────────────────────
+  DATE             Back to the Mats Imported At                       contact.back_to_the_mats_imported_at
+  TEXT             Child Name                                         contact.single_line_14gyo
+  LARGE_TEXT       Household Trainee Keys                             contact.household_trainee_keys
+  DATE             Last Enagement Date                                contact.last_enagement_date
+  TEXT             Last Idempotency Key                               contact.last_idempotency_key
+  TEXT             Last Page                                          contact.last_page
+  TEXT             Last Trainee Key                                   contact.last_trainee_key
+  TEXT             Lead Source                                        contact.lead_source
+  DATE             Opt-In Date                                        contact.optin_date
+
+OPPORTUNITY fields (37)
+──────────────────────────────────────────────────────────────────────────────
+  LARGE_TEXT       Additional information                             opportunity.additional_information
+  SINGLE_OPTIONS   Age Group                                          opportunity.age_group
+  DATE             Appointment Date                                   opportunity.appointment_date
+  LARGE_TEXT       Appointment History                                opportunity.appointment_history
+  SINGLE_OPTIONS   BTM Entry Reason                                   opportunity.btm_entry_reason
+  DATE             Cancellation Date                                  opportunity.cancellation_date
+  SINGLE_OPTIONS   Cancellation Reason                                opportunity.cancellation_reason
+  TEXT             Class Type                                         opportunity.class_type
+  DATE             Credit Expiration Date                             opportunity.credit_expiration_date
+  NUMERICAL        Credits Remaining                                  opportunity.credits_remaining
+  DATE             Enrollment Date                                    opportunity.enrollment_date
+  SINGLE_OPTIONS   Enrollment Status                                  opportunity.enrollment_status
+  DATE             First Class Date                                   opportunity.first_class_date
+  DATE             Former Student Since                               opportunity.former_student_since
+  TEXT             Guardian                                           opportunity.guardian
+  NUMERICAL        Initial Trial Credit                               opportunity.initial_trial_credit
+  TEXT             Last Appointment ID                                opportunity.last_appointment_id
+  DATE             Last Appointment Start ISO                         opportunity.last_appointment_start_iso
+  DATE             Last Attendance ISO                                opportunity.last_attendance_iso
+  DATE             Last Decrement Trial Date                          opportunity.last_decrement_trial_date
+  DATE             Last Handoff Timestamp                             opportunity.last_handoff_timestamp
+  DATE             Last No-Show Date                                  opportunity.last_noshow_date
+  DATE             Last Trial Date                                    opportunity.last_trial_date
+  LARGE_TEXT       Medical Notes                                      opportunity.medical_notes
+  DATE             Membership Pause Date                              opportunity.membership_pause_date
+  SINGLE_OPTIONS   Membership Type                                    opportunity.membership_type
+  DATE             Next Trial Booked Date                             opportunity.next_trial_booked_date
+  TEXT             Program                                            opportunity.program
+  SINGLE_OPTIONS   Reactivation Cohort                                opportunity.reactivation_cohort
+  TEXT             Rebook Link Token                                  opportunity.rebook_link_token
+  NUMERICAL        Rebooking Attempts                                 opportunity.rebooking_attempts
+  SINGLE_OPTIONS   Rebooking Source Pipeline                          opportunity.rebooking_source_pipeline
+  SINGLE_OPTIONS   Relationship                                       opportunity.relationship
+  DATE             Trainee DOB                                        opportunity.trainee_dob
+  TEXT             Trainee First Name                                 opportunity.trainee_first_name
+  TEXT             Trainee Key                                        opportunity.trainee_key
+  NUMERICAL        Trial Credit                                       opportunity.trial_credit
+
+CF usage — sampling 100 contacts to see which fields have data
+──────────────────────────────────────────────────────────────────────────────
+  Sampled 100 contacts.
+  Populated CFs in sample (sorted by hit count):
+      2/100  (2%)  Last Page
+      2/100  (2%)  Lead Source
+      2/100  (2%)  Household Trainee Keys
+      2/100  (2%)  Last Trainee Key
+
+  Contact CFs with ZERO data in sample (5):
+    Back to the Mats Imported At
+    Child Name
+    Last Enagement Date
+    Opt-In Date 
+    Last Idempotency Key
+
+══════════════════════════════════════════════════════════════════════════════
+  4. CUSTOM VALUES
+══════════════════════════════════════════════════════════════════════════════
+
+Custom Values (55) — sorted by name
+──────────────────────────────────────────────────────────────────────────────
+  🟢 set    Academy Name                                             Gracie Barra Whittier
+  🟢 set    Back to the Mats Deadline                                2026-06-15T23:59:00-07:00
+  🟢 set    Back to the Mats Offer Name                              The Back to the Mats Special
+  🟢 set    Back to the Mats Page URL                                https://www.graciebarrawhittier.com/back-to-the...
+  🟢 set    Bit.ly Review link                                       https://bit.ly/3pHYCmg
+  🟢 set    Bonus                                                    Free Uniform Rental
+  🟢 set    Brand Kit: Darkest Background                            #222222
+  ⚪ empty  city                                                     
+  🟢 set    CREDIT ACTIVE → REACTIVATION timeout (days)              14
+  🟢 set    CREDIT REACTIVATION → LOST timeout (days)                21
+  🟢 set    Discount                                                 $100 Off Registration Fees
+  🟢 set    Email to Send Leads from                                 info@gbwhittier.com
+  🟢 set    Email to Send Leads to                                   info@gbwhittier.com
+  ⚪ empty  enrollment_url                                           
+  🟢 set    From Email                                               info@gbwhittier.com
+  🟢 set    Google Review Bitly                                      https://bit.ly/3pHYCmg
+  🟢 set    google_review_url                                        https://www.google.com/search?hl=en-PH&gl=ph&q=...
+  🟢 set    Hiro Bot Name                                            Hiro
+  🟢 set    Holiday Special 2022                                     holiday special 2022
+  🟢 set    INTRO CLASS REBOOKING → TRIAL INACTIVE REACTIVATION tim  14
+  🟢 set    Kickstart Page                                           https://bit.ly/3RyPYEk
+  ⚪ empty  kickstart_page_url                                       
+  🟢 set    Live Agent SOP                                           https://docs.google.com/document/d/1mudL1LfwPS9...
+  🟢 set    Logo Image URL                                           https://firebasestorage.googleapis.com/v0/b/hig...
+  🟢 set    Martial Arts Style                                       Brazilian Jiu-Jitsu
+  🟢 set    martial_art                                              Brazilian Jiu-Jitsu
+  🟢 set    NEW LEAD → TRIAL NURTURE timeout (hours)                 24
+  🟢 set    NO-SHOW → INTRO CLASS REBOOKING delay (minutes)          5
+  🟢 set    NURTURE CAMPAIGN → LOST/COLD timeout (days)              14
+  🟢 set    Offer Name                                               3 Class Pass
+  🟢 set    Offer Price                                              $0 For 3 Classes
+  🟢 set    Owner Name                                               Gracie Barra Whittier
+  🟢 set    Phone number to text leads to                            562-640-1400
+  🟢 set    Primary Color                                            #e2211c
+  🟢 set    Program Director Name                                    Alex
+  🟢 set    program_director_name                                    Alex
+  🟢 set    Public Phone Number                                      562-640-1400
+  🟢 set    Re-Start Offer                                           14 Day 
+  🟢 set    Sales Person Title                                       Program Director
+  🟢 set    Service 1                                                Brazilian Jiu-Jitsu Classes
+  🟢 set    Social Media (Facebook)                                  https://www.facebook.com/graciebarrawhittier
+  🟢 set    Social Media (Instagram)                                 https://www.instagram.com/graciebarrawhittier/
+  🟢 set    Social Media (Twitter)                                   https://twitter.com/gbwhittier?lang=en
+  🟢 set    studio_address                                           13595 Whittier Blvd. #104 Whittier, CA 90605
+  🟢 set    studio_phone                                             (562) 640-1400
+  ⚪ empty  Trial Active rebooking link                              
+  🟢 set    Trial Credits Default                                    3
+  🟢 set    TRIAL INACTIVE REACTIVATION → LOST timeout (days)        21
+  🟢 set    TRIAL NURTURE → NURTURE CAMPAIGN timeout (days)          7
+  ⚪ empty  trial_offer_name                                         
+  🟢 set    Twilio Number                                            562-502-1665
+  🟢 set    Twilio Number In link Form                               tel:562-502-1665
+  🟢 set    Website Webhook Base URL                                 https://www.graciebarrawhittier.com/api/webhook...
+  🟢 set    Website Webhook Secret                                   c11934db40e8b0e75916cc173321a992932500a88383cef...
+  🟢 set    Your App Login URL                                       hq.leadhustle.com
+
+══════════════════════════════════════════════════════════════════════════════
+  5. WORKFLOWS
+══════════════════════════════════════════════════════════════════════════════
+
+Workflows: 127 total  (28 published / 99 draft)
+──────────────────────────────────────────────────────────────────────────────
+  PUBLISHED (active):
+    🟢  [Backflow] Appointment status changed → website webhook
+    🟢  [Backflow] Trial Conversion stage changed → website webhook
+    🟢  [Backflow] Trial Credit Monitoring stage changed → website webhook
+    🟢  **EDIT USER** Appt Confirmation + Reminder
+    🟢  30-Day Drip
+    🟢  90-Day Review Campaign
+    🟢  Alert user
+    🟢  Another Trial Booking Campaign
+    🟢  BTM 30-Day Campaign
+    🟢  BTM Appointment Confirmation
+    🟢  BTM Re-Booking Campaign (no-show)
+    🟢  Credit-Pipeline No-Show Message
+    🟢  Credits Exhausted Notification
+    🟢  GoogleMyBusiness: MIssed Call Text-Back
+    🟢  Intro Class Rebooking Campaign
+    🟢  Last Chance Nurture Campaign
+    🟢  Live Agent
+    🟢  Opt in Message
+    🟢  Pre-Trial Reminders
+    🟢  Quarterly Reactivation Tag
+    🟢  Recipe - Appointment Confirmation + Reminder
+    🟢  Recipe - Review Request
+    🟢  Remove from email and SMS drip
+    🟢  SMS/EMAIL DRIP
+    🟢  Student Enrolled
+    🟢  Trial Active Reactivation Campaign
+    🟢  Trial Inactive Reactivation Campaign
+    🟢  Trial Nurture Campaign
+
+  DRAFT (inactive):
+    ⚪   GMB Business Message
+    ⚪  (2.0) Recipe - Appointment Confirmation + Reminder
+    ⚪  (2.0) Stage 1: Academy Launch Hot Lead
+    ⚪  **EDIT USER** Auto Missed Call Text-Back
+    ⚪  1. Night King Reactivation Campaign
+    ⚪  1.a: *EDIT* New Lead 
+    ⚪  1A Student Intent Chat (For Inbound Chat Requests) Workflow OM
+    ⚪  1A. Academy Launch NEW STUDENT INTENTION CAMPAIGN
+    ⚪  1B Academy Launch Hot Lead Campaign 30-60 day campaign OM
+    ⚪  1B. Academy Launch
+
+START YOUR TRIAL CAMPAIGN
+
+(14 Day Campaign)
+    ⚪  1B. Academy Launch START YOUR CHALLENGE CAMPAIGN 
+    ⚪  1B. Academy Launch START YOUR TRIAL CAMPAIGN (14 Day Campaign) 
+    ⚪  1C Nurture Campaign
+    ⚪  1C Nurture Campaign 
+    ⚪  1C. Academy Launch
+
+NURTURE CAMPAIGN
+    ⚪  2A Academy Launch Appointment Confirmation Campaign
+    ⚪  2A Appointment Confirmation Campaign
+    ⚪  2A Appointment Confirmation Campaign 
+    ⚪  2A. Academy Launch APPOINTMENT CONFIRMATION CAMPAIGN
+    ⚪  2B Academy Launch Trial Student Campaign
+    ⚪  2B Trial Campaign
+    ⚪  2B Trial Campaign
+    ⚪  2B. Academy Launch 30 DAY CHALLENGE CAMPAIGN
+    ⚪  2B. Academy Launch General/Generic Campaign
+    ⚪  2C Academy Re-Booking Campaign Workflow
+    ⚪  2C Re-booking Campaign
+    ⚪  2C Re-booking Campaign 
+    ⚪  2C. Academy Launch RE-BOOKING CAMPAIGN
+    ⚪  30 Day Jiu-Jitsu Challenge
+    ⚪  3A New Student Review Campaign
+    ⚪  3A New Student Review Campaign 
+    ⚪  3A. Academy Launch
+
+NEW STUDENT REVIEW CAMPAIGN
+    ⚪  3B 2nd Trial Campaign
+    ⚪  3B 2nd Trial Campaign 
+    ⚪  3B. Academy Launch  2ND 30 DAY CHALLENGE CAMPAIGN
+    ⚪  4A Academy Launch Lead Re-activation campaign -OM
+    ⚪  4A LEAD RE-ACTIVATION CAMPAIGN
+    ⚪  4B Academy Launch Student Restart campaign -OM
+    ⚪  Academy Launch 2.0 - Appointment Booking
+    ⚪  ai outreach workflow
+    ⚪  Appointment Booked + Tag
+    ⚪  Appointment Booked- has Tag "hot Lead" - OM
+    ⚪  Appointment No Show- General FB Form& Web form -OM
+    ⚪  Appointment Showed (General FB Form & Web Form)- OM
+    ⚪  Appointment Showed Old Students - OM
+    ⚪  Appointment Showed Prospect Workflow- OM
+    ⚪  Birthday Template ($100 Discount)
+    ⚪  Cold Outreach - 4 Email Drip Sequence
+    ⚪  Cold Outreach - 4 SMS Drip Sequence
+    ⚪  Cold Outreach - Voicemail Drop
+    ⚪  Customer Replied to FB Messenger Workflow- OM
+    ⚪  Customer Replied to GMB message workflow -OM
+    ⚪  Customer Replied to Website chat workflow- OM
+    ⚪  Database Reactivation: Discount Offer
+    ⚪  Did not Enroll
+    ⚪  Enroll to New Student
+    ⚪  FB Lead Form- New Lead- OM
+    ⚪  FB Messenger Workflow- OM
+    ⚪  Follow-Up (Did Not Close Sale)
+    ⚪  Form Submission Onboarding
+    ⚪  GMB message Workflow- OM
+    ⚪  If Appt Canceled Remove From Appt Reminders Workflow
+    ⚪  New Lead Nurture
+    ⚪  New Workflow : 1620090422358
+    ⚪  New Workflow : 1629244104270
+    ⚪  New Workflow : 1679506696737
+    ⚪  New Workflow : 1756513783427
+    ⚪  New Workflow : 1778510846456
+    ⚪  New Workflow : 1778604555616
+    ⚪  New Workflow : AI Test Workflow
+    ⚪  Night King Reactivation Campaign
+    ⚪  Night King Reactivation Campaign - copy
+    ⚪  No-Show Reactivation
+    ⚪  Old Lead Database - OM
+    ⚪  Old Lead Database Booked Appointment Workflow -OM
+    ⚪  Old Student Booked Appointment Workflow- OM
+    ⚪  Old Student Database - OM
+    ⚪  Re-booking Workflow -OM
+    ⚪  Rebooking Reminders
+    ⚪  Recipe - Appointment Booking
+    ⚪  Recipe - Appointment Booking
+    ⚪  Recipe - Appointment Booking
+    ⚪  Recipe - Send Review Request
+    ⚪  Replied to 1C Academy Launch Nurture Campaign
+    ⚪  Review Request GMB
+    ⚪  Send Review
+    ⚪  SNAPSHOT MINDMAP
+    ⚪  Stage 4: Trial Member
+    ⚪  test AI
+    ⚪  Ultimate Multi-Channel Outreach
+    ⚪  Website Chat Workflow- OM
+    ⚪  Website Form
+    ⚪  Website Form Appointment Showed - OM
+    ⚪  Website Form Submission (New Lead) -OM
+    ⚪  WF4 — BTM Re-Enrolled Handoff
+    ⚪  WhatsApp Cold Outreach Blitz
+    ⚪  Workflow- 1C Academy Launch Nurture Campaign (Forever Campaign) - OM
+    ⚪  Workflow- 3A Academy Launch New Student Review Campaign 5 day campaign -OM
+    ⚪  Workflow- 3B Academy Launch 2nd Trial Booking Campaign (Stale Opportunity) OM
+
+══════════════════════════════════════════════════════════════════════════════
+  6. CALENDARS
+══════════════════════════════════════════════════════════════════════════════
+
+Calendars (15)
+──────────────────────────────────────────────────────────────────────────────
+  🟢 active    Adults Brazilian Jiu-Jitsu (Ages 16+)          slot=60mins  team=1  id=4RhUDbyQ5OPuhSnzS7ct
+  🟢 active    Little Champions 1 (Ages 5-6)                  slot=60mins  team=1  id=6FIgxSTCWgwAVgjU6o17
+  🟢 active    BTM Adults Brazilian Jiu-Jitsu (Ages 16+)      slot=60mins  team=1  id=AW2ALCHqzVoWA3YekqsW
+  🟢 active    Tiny Champions (Ages 3-4)                      slot=60mins  team=1  id=CLrL9yoGvBHVJCfM8bZd
+  🟢 active    BTM Juniors Jiu-Jitsu (Ages 10-15)             slot=60mins  team=1  id=EcZa8uMOAdqtxMPbwqfU
+  🟢 active    Juniors Jiu-Jitsu (Ages 10-15)                 slot=60mins  team=1  id=MT0dN0HHiQtLdzDKGhiy
+  🟢 active    Little Champions 1 (Ages 5-6)                  slot=60mins  team=1  id=QxfuEuHM2IHRj9E10K0w
+  🟢 active    Tiny Champions (Ages 3-4)                      slot=60mins  team=1  id=TIhPPia4zE4U7SupbfUn
+  🟢 active    Little Champions 2 (Ages 7-9)                  slot=60mins  team=1  id=TeePptWlE0qobnF7HkAh
+  🟢 active    Little Champions 2 (Ages 7-9)                  slot=60mins  team=1  id=Wwgeoych6yOCTH8qkrTN
+  🟢 active    BTM Tiny Champions (Ages 3-4)                  slot=60mins  team=1  id=Yk9KsQsw1ByXOSH3a8yq
+  🟢 active    Juniors Jiu-Jitsu (Ages 10-15)                 slot=60mins  team=1  id=aCoE3pM2ARrJ3EHFhXqk
+  🟢 active    BTM Little Champions 2 (Ages 7-9)              slot=60mins  team=1  id=geLcscAuszrFKRHBwADP
+  🟢 active    BTM Little Champions 1 (Ages 5-6)              slot=60mins  team=1  id=ocOrKpAajHQGCjBEfWCU
+  🟢 active    Adults Brazilian Jiu-Jitsu (Ages 16+)          slot=60mins  team=1  id=q2hvawroQtScAtTk4NQL
+
+══════════════════════════════════════════════════════════════════════════════
+  7. TAGS
+══════════════════════════════════════════════════════════════════════════════
+
+Tags (53)
+──────────────────────────────────────────────────────────────────────────────
+  [appointment booked]
+  [appointment showed]
+  adult
+  adults classes
+  alert use
+  alert user
+  appointment booked
+  back-to-the-mats
+  booked
+  booking confirmed
+  did not enroll
+  don't include
+  dq
+  facebook ad
+  fallback_reached
+  fb optin
+  firstappointment
+  follow-up
+  gmb chat
+  hot lead
+  instagram lead
+  interested-in-adult-jiu-jitsu
+  interested-in-juniors-jiu-jitsu
+  interested-in-little-champions
+  interested-in-tiny-champions
+  kickstart-funnel
+  kids classes
+  kids martial arts
+  kids programs
+  lead - ultimate trial
+  little
+  messenger lead
+  missed call
+  mm-website-lead
+  mm-website-leads
+  new student
+  night king b1
+  no show
+  not a prospect
+  old student
+  pending-gmb-reply
+  prospect
+  quarterly-reactivation
+  return-class-booked
+  source-homepage-optin
+  source-kids-optin
+  spam
+  tiny
+  webchat
+  website chat
+  website chat
+  website form
+  workflow test
+
+══════════════════════════════════════════════════════════════════════════════
+  8. USERS / TEAM
+══════════════════════════════════════════════════════════════════════════════
+
+Users (2)
+──────────────────────────────────────────────────────────────────────────────
+  ?           Alex Costello                   alex@gbwhittier.com
+  ?           Eric Nostrand                   eric@gbwhittier.com
+
+══════════════════════════════════════════════════════════════════════════════
+  9. FORMS & SURVEYS
+══════════════════════════════════════════════════════════════════════════════
+
+Forms (4)
+──────────────────────────────────────────────────────────────────────────────
+  AISW Lead Form  (id=BBoHJMA8ZmjqAxbzeTP3)
+  Plumber form  (id=T2N7cQ1jDeiZxWNI8EcU)
+  Gracie Barra Whittier Form  (id=qlb0aDZGbcZVrHKJTqQx)
+  Website Pop-Up Form  (id=veEfqz4MmnwSLG8df4Io)
+
+Surveys (0)
+──────────────────────────────────────────────────────────────────────────────
+
+══════════════════════════════════════════════════════════════════════════════
+  10. APPLIED SNAPSHOTS
+══════════════════════════════════════════════════════════════════════════════
+  ⚠️  snapshots (may require agency-level token): 422: {"statusCode":422,"message":"companyId not provided."}
+
+══════════════════════════════════════════════════════════════════════════════
+  11. RAW VOLUME COUNTS
+══════════════════════════════════════════════════════════════════════════════
+  Total contacts: 6927
+
+══════════════════════════════════════════════════════════════════════════════
+  12. EMAIL & SMS TEMPLATES
+══════════════════════════════════════════════════════════════════════════════
+  ⚠️  email templates: 404: {"message":"Cannot GET /conversations/email/templates?locationId=eMHOrbrPAfFd2S1ORNKL","error":"Not Found","statusCode":404}
+
+══════════════════════════════════════════════════════════════════════════════
+  Inventory complete.
+══════════════════════════════════════════════════════════════════════════════

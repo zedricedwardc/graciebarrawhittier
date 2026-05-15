@@ -38,7 +38,12 @@ import { deriveTraineeKey } from './trainee-key';
 import { readEnv, GhlError, type OpportunityRecord } from './ghl';
 import { getStageId } from './ghl-pipelines';
 import { signRebookToken } from './rebook-token';
-import type { PipelineKey } from '../../config/ghl-schema';
+import {
+  APPOINTMENT_STATUS_TRANSITIONS,
+  type PipelineKey,
+  type ApptOutcome,
+  type ApptStatusTransition,
+} from '../../config/ghl-schema';
 
 /** Resolve `stageName` to its GHL ID and compare against the opp's current stage. */
 async function isAtStage(opp: OpportunityRecord, pipelineKey: PipelineKey, stageName: string): Promise<boolean> {
@@ -285,15 +290,17 @@ function formatTraineeLabel(firstName: string, age: number | undefined, isSelf: 
  */
 export async function exitNurtureWorkflows(
   contactId: string,
-  funnel: 'trial' | 'credit' | 'btm',
+  funnel: 'trial' | 'credit' | 'btm' | 'revival',
 ): Promise<void> {
   let envKeys: string[];
   if (funnel === 'trial') {
     envKeys = ['WORKFLOW_ID_TRIAL_NURTURE', 'WORKFLOW_ID_NURTURE_CAMPAIGN', 'WORKFLOW_ID_REBOOKING_CAMPAIGN', 'WORKFLOW_ID_INACTIVE_REACTIVATION'];
   } else if (funnel === 'credit') {
     envKeys = ['WORKFLOW_ID_ANOTHER_TRIAL_CAMPAIGN', 'WORKFLOW_ID_CREDIT_REACTIVATION'];
-  } else {
+  } else if (funnel === 'btm') {
     envKeys = ['WORKFLOW_ID_BTM_30DAY', 'WORKFLOW_ID_BTM_REBOOKING'];
+  } else {
+    envKeys = ['WORKFLOW_ID_REVIVAL_30DAY_DRIP'];
   }
   await Promise.all(envKeys.map(async (key) => {
     const wfId = readEnv(key);
@@ -304,6 +311,38 @@ export async function exitNurtureWorkflows(
       console.warn(`[exitNurtureWorkflows] ${key} removal failed (non-fatal)`, err);
     }
   }));
+}
+
+/**
+ * Move the contact's open Revival Protocol opp (if any) to BOOKED + mark won.
+ * No-op when the contact isn't in the revival funnel — graceful for any
+ * non-revival booking that still flows through the same booking handler.
+ *
+ * Best-effort: all failures are logged and swallowed. The downstream Trial
+ * Conversion opp is already created by handleTrialBooking — a stale Revival
+ * opp is recoverable, a thrown error here is not.
+ */
+export async function moveRevivalOppToBooked(contactId: string): Promise<void> {
+  if (!readEnv('PIPELINE_ID_REVIVAL')) return; // not provisioned yet
+  try {
+    const opps = await findOpps({
+      contactId,
+      pipelineKey: 'REVIVAL',
+      status: 'open',
+      limit: 5,
+    });
+    if (opps.length === 0) return;
+    for (const opp of opps) {
+      try {
+        await moveStage({ oppId: opp.id, pipelineKey: 'REVIVAL', stageName: 'BOOKED' });
+        await setOppStatus(opp.id, 'won');
+      } catch (err) {
+        console.warn('[moveRevivalOppToBooked] move/status failed (non-fatal)', { oppId: opp.id, err });
+      }
+    }
+  } catch (err) {
+    console.warn('[moveRevivalOppToBooked] lookup failed (non-fatal)', err);
+  }
 }
 
 // ─── handleBooking ─────────────────────────────────────────────────────────
@@ -893,4 +932,149 @@ export async function handleCancellation(input: HandleCancellationInput): Promis
   if (cancelWf) await addContactToWorkflow(input.contactId, cancelWf);
 
   return { contactId: input.contactId, trialConvOppId: matchingOpp?.id };
+}
+
+// ─── handleAppointmentStatusChange ─────────────────────────────────────────
+// Fired when an admin changes an appointment's status in the GHL calendar
+// (Appointment List View). Finds the opportunity that owns the appointment —
+// across all three appointment-bearing pipelines (TRIAL_CONV, CREDIT_MON,
+// BACK_TO_MATS) — and applies the mapped, stage-guarded transition declared
+// in APPOINTMENT_STATUS_TRANSITIONS.
+//
+// Downstream effects (credit decrement, rebooking campaigns) are NOT run
+// here: a stage move fires the existing GHL backflow webhooks, which dispatch
+// the STAGE_TRANSITIONS actions. This handler only does the move/abandon.
+
+/** Actionable GHL appointment statuses. `confirmed`/`new` are filtered upstream. */
+export type AppointmentStatus = 'showed' | 'noshow' | 'cancelled' | 'invalid';
+
+const APPT_STATUS_LABEL: Record<AppointmentStatus, string> = {
+  showed: 'Showed',
+  noshow: 'No Show',
+  cancelled: 'Cancelled',
+  invalid: 'Invalid',
+};
+
+export interface HandleAppointmentStatusInput {
+  contactId: string;
+  appointmentId: string;
+  /** Normalized status — one of the actionable values. */
+  status: AppointmentStatus;
+  /** Optional cancellation reason, surfaced in the audit note. */
+  reason?: string;
+}
+
+export interface HandleAppointmentStatusResult {
+  contactId: string;
+  appointmentId: string;
+  /** Owning opp, when one was found. */
+  oppId?: string;
+  pipelineKey?: PipelineKey;
+  /**
+   * What happened:
+   *   - 'moved'     — opp moved to a new stage
+   *   - 'abandoned' — opp status set to abandoned
+   *   - 'noop'      — the mapping says do nothing for this status/pipeline
+   *   - 'guarded'   — opp found but not in an awaiting-classification stage
+   *   - 'unmatched' — no open opp owns this appointment
+   */
+  outcome: 'moved' | 'abandoned' | 'noop' | 'guarded' | 'unmatched';
+  /** Stage the opp landed at (only when outcome === 'moved'). */
+  stage?: string;
+}
+
+export async function handleAppointmentStatusChange(
+  input: HandleAppointmentStatusInput,
+): Promise<HandleAppointmentStatusResult> {
+  const base = { contactId: input.contactId, appointmentId: input.appointmentId };
+
+  // Locate the owning opp. The opp that owns an appointment is the one whose
+  // `last_appointment_id` CF matches. Probe each appointment-bearing pipeline
+  // independently — a pipeline that isn't provisioned yet (no PIPELINE_ID_*
+  // env var) throws on lookup and is simply skipped.
+  let found: { opp: OpportunityRecord; rule: ApptStatusTransition } | undefined;
+
+  for (const rule of APPOINTMENT_STATUS_TRANSITIONS) {
+    let opps: OpportunityRecord[];
+    try {
+      opps = await findOpps({
+        contactId: input.contactId,
+        pipelineKey: rule.pipelineKey,
+        status: 'open',
+        limit: 20,
+      });
+    } catch (err) {
+      console.warn(
+        `[handleAppointmentStatusChange] ${rule.pipelineKey} lookup skipped`,
+        String(err).slice(0, 200),
+      );
+      continue;
+    }
+    for (const opp of opps) {
+      const apptId = await getOppCfValueByKey<string>(opp, 'last_appointment_id');
+      if (apptId === input.appointmentId) {
+        found = { opp, rule };
+        break;
+      }
+    }
+    if (found) break;
+  }
+
+  if (!found) {
+    console.warn('[handleAppointmentStatusChange] no open opp owns this appointment', base);
+    return { ...base, outcome: 'unmatched' };
+  }
+
+  const { opp, rule } = found;
+  const ctx = { ...base, oppId: opp.id, pipelineKey: rule.pipelineKey };
+
+  // Pick the outcome for this status (cancelled + invalid share onCancelled).
+  const outcome: ApptOutcome =
+    input.status === 'showed'
+      ? rule.onShowed
+      : input.status === 'noshow'
+        ? rule.onNoShow
+        : rule.onCancelled;
+
+  if (outcome.action === 'none') {
+    return { ...ctx, outcome: 'noop' };
+  }
+
+  // Stage guard — only act while the opp is still awaiting classification.
+  const guardIds = await Promise.all(
+    rule.whenInStages.map((s) => getStageId(rule.pipelineKey, s)),
+  );
+  if (!opp.pipelineStageId || !guardIds.includes(opp.pipelineStageId)) {
+    console.log('[handleAppointmentStatusChange] opp not in an awaiting stage — skipping', ctx);
+    return { ...ctx, outcome: 'guarded' };
+  }
+
+  const label = APPT_STATUS_LABEL[input.status];
+  const reasonSuffix = input.reason ? ` Reason: ${input.reason}` : '';
+
+  if (outcome.action === 'abandon') {
+    await setOppStatus(opp.id, 'abandoned');
+    await addContactNote(
+      input.contactId,
+      `Appointment marked ${label} in GHL — opportunity closed (abandoned).${reasonSuffix}`,
+    );
+    // Preserve the legacy admin-cancellation followup behavior.
+    const cancelWf = readEnv('WORKFLOW_ID_CANCEL_FOLLOWUP');
+    if (cancelWf) {
+      try {
+        await addContactToWorkflow(input.contactId, cancelWf);
+      } catch (err) {
+        console.warn('[handleAppointmentStatusChange] cancel-followup enroll failed (non-fatal)', err);
+      }
+    }
+    return { ...ctx, outcome: 'abandoned' };
+  }
+
+  // outcome.action === 'move'
+  await moveStage({ oppId: opp.id, pipelineKey: rule.pipelineKey, stageName: outcome.stage });
+  await addContactNote(
+    input.contactId,
+    `Appointment marked ${label} in GHL — opportunity moved to ${outcome.stage}.${reasonSuffix}`,
+  );
+  return { ...ctx, outcome: 'moved', stage: outcome.stage };
 }

@@ -19,9 +19,17 @@
  * Behavior:
  *   - Idempotent on (appointment_id, trainee_key) for 60s — replays no-op
  *   - Derives program from age (overrides whatever calendar the bot used)
+ *   - Alex (the SMS bot that fires this webhook) is Revival-only — it handles
+ *     manually-added cold leads in the Revival Protocol pipeline. After a
+ *     successful booking we (a) move the Revival opp to BOOKED + mark won, and
+ *     (b) remove the contact from the 30-Day Drip workflow. Both are no-ops
+ *     when the contact isn't in the revival funnel (graceful degradation).
  *   - If contact has `back-to-the-mats-import` tag: log warning + still
- *     orchestrate as trial (bot is trial-only; BTM bookings should go
- *     through the /back-to-the-mats page). Admin can manually clean up.
+ *     orchestrate as trial. BTM bookings should go through /back-to-the-mats,
+ *     not the bot. Admin can manually clean up.
+ *   - If contact has NO open Revival Protocol opp: log warning. Alex is
+ *     Revival-only, so this means the bot booked an off-segment contact.
+ *     Booking still completes; admin should investigate routing.
  *   - Tags the contact `source-agent-booking` for funnel attribution
  *
  * Always returns 200 with ok:false on logical errors so GHL doesn't retry
@@ -31,7 +39,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { verifyGhlWebhook } from '../../../../lib/webhook-secrets';
-import { handleBooking } from '../../../../lib/ghl-adapter';
+import { handleBooking, exitNurtureWorkflows, moveRevivalOppToBooked } from '../../../../lib/ghl-adapter';
 import { getContact, addContactTags } from '../../../../lib/ghl';
 import { findOpps } from '../../../../lib/ghl-opportunities';
 import { idempotency } from '../../../../lib/idempotency';
@@ -190,22 +198,47 @@ export const POST: APIRoute = async ({ request }) => {
     return ok({ ok: false, code: 'CONTACT_NOT_FOUND', contact_id: body.contact_id });
   }
 
-  // Safety check: if contact is a former student (BTM target), the bot
-  // shouldn't have booked them as a trial. Log + proceed — admin should
-  // manually clean up. Bot prompt should be updated to hand over to Alex
-  // when this tag is present.
+  // Safety checks — both are observational. Booking still completes either way;
+  // admin investigates the routing afterward.
   //
   // ContactRecord doesn't declare `tags` in its TS type (shared interface in
   // src/lib/ghl.ts focuses on the fields most callers read), but the GHL
   // response includes them. Read via cast rather than mutating the shared type.
   const rawTags = (contact as { tags?: unknown[] }).tags ?? [];
   const tags = rawTags.map((t: unknown) => String(t).toLowerCase());
+
+  // (1) Former student misroute: BTM bookings should flow through /back-to-the-mats,
+  //     not the bot. Warn if a BTM-tagged contact reached Alex.
   if (tags.includes('back-to-the-mats-import') || tags.includes('return-class-booked')) {
     console.warn('[agent-booking-completed] bot booked a former student as trial', {
       contactId: body.contact_id,
       appointmentId: body.appointment_id,
       tags,
     });
+  }
+
+  // (2) Off-segment booking: Alex is Revival-only. If the contact has no open
+  //     Revival Protocol opp, the bot is talking to someone outside its target
+  //     segment (e.g. a fresh website lead routed wrong, or a manual SMS thread
+  //     against a non-revival contact). Booking proceeds; admin should review.
+  if (process.env.PIPELINE_ID_REVIVAL) {
+    try {
+      const revivalOpps = await findOpps({
+        contactId: body.contact_id,
+        pipelineKey: 'REVIVAL',
+        status: 'open',
+        limit: 1,
+      });
+      if (revivalOpps.length === 0) {
+        console.warn('[agent-booking-completed] bot booked an off-segment contact (no open Revival opp)', {
+          contactId: body.contact_id,
+          appointmentId: body.appointment_id,
+        });
+      }
+    } catch (err) {
+      // Non-fatal — segment check is observability only.
+      console.warn('[agent-booking-completed] revival segment check failed (non-fatal)', err);
+    }
   }
 
   // Resolve trainee data. If is_self === true (or child_name matches the
@@ -242,6 +275,13 @@ export const POST: APIRoute = async ({ request }) => {
       slotEndISO,
       flow: 'trial',
     });
+
+    // Revival-pipeline followups. Both are best-effort and no-op when the
+    // contact isn't in the revival funnel. Run in parallel — they're independent.
+    await Promise.all([
+      moveRevivalOppToBooked(body.contact_id),
+      exitNurtureWorkflows(body.contact_id, 'revival'),
+    ]);
 
     // Audit tag for funnel attribution. addContactTags is idempotent in GHL.
     try {
