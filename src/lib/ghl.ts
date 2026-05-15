@@ -421,6 +421,37 @@ export async function createAppointment(args: CreateAppointmentArgs): Promise<st
   return id;
 }
 
+export interface AppointmentRecord {
+  id: string;
+  startTime?: string;
+  endTime?: string;
+  calendarId?: string;
+  contactId?: string;
+  appointmentStatus?: string;
+}
+
+/**
+ * Fetch an appointment by ID. The bot-booking webhook uses this to read the
+ * appointment's real ISO startTime/endTime: GHL's {{appointment.start_time}}
+ * merge tag renders a locale-formatted string ("Tuesday, May 19, 2026 5:00 PM")
+ * that is NOT a valid value for an opportunity DATE custom field.
+ */
+export async function getAppointment(appointmentId: string): Promise<AppointmentRecord | null> {
+  try {
+    const data = (await request(
+      `/calendars/events/appointments/${encodeURIComponent(appointmentId)}`,
+      { version: CALENDAR_VERSION },
+    )) as { event?: AppointmentRecord; appointment?: AppointmentRecord; id?: string; startTime?: string };
+    if (data.event?.startTime) return data.event;
+    if (data.appointment?.startTime) return data.appointment;
+    if (data.id && data.startTime) return data as AppointmentRecord;
+    return null;
+  } catch (err) {
+    if (err instanceof GhlError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 /**
  * Add a note to an appointment so it appears in the appointment's Notes tab.
  * Distinct from contact notes (which live on the contact, not the appointment).

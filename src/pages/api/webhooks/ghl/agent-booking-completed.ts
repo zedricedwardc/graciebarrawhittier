@@ -40,7 +40,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { verifyGhlWebhook } from '../../../../lib/webhook-secrets';
 import { handleBooking, exitNurtureWorkflows, moveRevivalOppToBooked } from '../../../../lib/ghl-adapter';
-import { getContact, addContactTags } from '../../../../lib/ghl';
+import { getContact, addContactTags, getAppointment } from '../../../../lib/ghl';
 import { findOpps } from '../../../../lib/ghl-opportunities';
 import { idempotency } from '../../../../lib/idempotency';
 import { GhlError } from '../../../../lib/ghl-rate-limit';
@@ -51,7 +51,13 @@ export const prerender = false;
 const AgentBookingPayload = z.object({
   appointment_id: z.string().min(1),
   contact_id: z.string().min(1),
-  appointment_start_iso: z.string().min(1),
+  /**
+   * No longer used — GHL's {{appointment.start_time}} merge tag renders a
+   * locale-formatted string, not ISO. The handler fetches the appointment by
+   * ID for real datetimes. Kept optional so a workflow still sending it (or
+   * one trimmed to drop it) both validate.
+   */
+  appointment_start_iso: z.string().optional(),
   /** Optional — only present if the bot booked for the contact themselves. */
   is_self: z.boolean().optional(),
   /** Trainee first name. For self-bookings, leave empty or set to contact's first name. */
@@ -252,7 +258,26 @@ export const POST: APIRoute = async ({ request }) => {
 
   const traineeFirstName = inferredSelf ? (contactFirst || 'Trainee') : childName;
   const program = programFromAge(age);
-  const slotEndISO = computeEndISO(body.appointment_start_iso, program);
+
+  // GHL's {{appointment.start_time}} merge tag renders a locale-formatted
+  // string ("Tuesday, May 19, 2026 5:00 PM"), not ISO — unusable as a DATE
+  // custom field value. Fetch the appointment by ID for the real datetimes.
+  let slotStartISO: string;
+  let slotEndISO: string;
+  try {
+    const appt = await getAppointment(body.appointment_id);
+    if (!appt?.startTime) {
+      return ok({ ok: false, code: 'APPOINTMENT_NOT_FOUND', appointment_id: body.appointment_id });
+    }
+    slotStartISO = appt.startTime;
+    slotEndISO = appt.endTime ?? computeEndISO(appt.startTime, program);
+  } catch (err) {
+    const detail = err instanceof GhlError
+      ? { status: err.status, message: err.message.slice(0, 200) }
+      : { err: String(err) };
+    console.error('[agent-booking-completed] getAppointment failed', detail);
+    return ok({ ok: false, code: 'GHL_FAILED', detail });
+  }
 
   try {
     await handleBooking({
@@ -271,7 +296,7 @@ export const POST: APIRoute = async ({ request }) => {
       },
       program,
       programName: PROGRAM_NAME[program],
-      slotStartISO: body.appointment_start_iso,
+      slotStartISO,
       slotEndISO,
       flow: 'trial',
     });
