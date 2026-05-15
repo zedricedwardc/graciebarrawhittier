@@ -13,6 +13,7 @@ export const SOURCES = [
   'kids-optin',
   'adults-optin',
   'contact-form',
+  'qr-offer-optin',
 ] as const;
 
 export type LeadSource = (typeof SOURCES)[number];

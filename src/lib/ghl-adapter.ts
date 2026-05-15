@@ -52,7 +52,12 @@ async function isAtStage(opp: OpportunityRecord, pipelineKey: PipelineKey, stage
   return opp.pipelineStageId === stageId;
 }
 
-export type OptInSource = 'homepage-optin' | 'kids-optin' | 'adults-optin' | 'contact-form';
+export type OptInSource =
+  | 'homepage-optin'
+  | 'kids-optin'
+  | 'adults-optin'
+  | 'contact-form'
+  | 'qr-offer-optin';
 
 export interface HandleOptInInput {
   firstName: string;
