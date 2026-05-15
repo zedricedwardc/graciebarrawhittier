@@ -21,7 +21,8 @@ export default defineConfig({
       filter: (page) =>
         !page.includes('/kickstart') &&
         !page.includes('/back-to-the-mats') &&
-        !page.includes('/rebook'),
+        !page.includes('/rebook') &&
+        !page.includes('/offer'),
     }),
   ],
   vite: {
