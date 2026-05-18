@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://graciebarrawhittier.com/sitemap-index.xml
+Sitemap: https://www.graciebarrawhittier.com/sitemap-index.xml

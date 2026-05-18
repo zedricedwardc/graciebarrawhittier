@@ -9,7 +9,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export default defineConfig({
-  site: 'https://graciebarrawhittier.com',
+  site: 'https://www.graciebarrawhittier.com',
   output: 'server',
   adapter: vercel({
     webAnalytics: {
