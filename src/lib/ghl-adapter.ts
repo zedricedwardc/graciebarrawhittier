@@ -34,6 +34,7 @@ import {
   getOppCfValueByKey,
 } from './ghl-opportunities';
 import { cfPayload } from './ghl-custom-fields';
+import { channelForSource } from './lead-types';
 import { deriveTraineeKey } from './trainee-key';
 import { readEnv, GhlError, type OpportunityRecord } from './ghl';
 import { getStageId } from './ghl-pipelines';
@@ -88,7 +89,8 @@ export interface HandleOptInResult {
  * Handle an opt-in form submission.
  *
  * Side effects (in order):
- *   1. Upsert Contact by email + phone
+ *   1. Upsert Contact by email + phone, setting the native `source` attribute
+ *      to the dashboard lead channel (Website) for the native Lead Source report
  *   2. PUT contact custom fields: lead_source (overwrite), last_page,
  *      last_trainee_key (if trainee data), credits_remaining (if empty),
  *      household_trainee_keys (append-if-new)
@@ -109,12 +111,15 @@ export async function handleOptIn(input: HandleOptInInput): Promise<HandleOptInR
       })
     : null;
 
-  // 1. Upsert contact
+  // 1. Upsert contact. The native `source` attribute is set to the dashboard
+  // lead channel so GHL's native Lead Source report attributes the contact
+  // correctly; the page-level slug is kept separately in the lead_source CF.
   const contactId = await upsertContact({
     firstName: input.firstName,
     lastName: input.lastName,
     email: input.email,
     phone: input.phone,
+    source: channelForSource(input.source),
   });
 
   // Read existing contact to detect whether household_trainee_keys needs an append.

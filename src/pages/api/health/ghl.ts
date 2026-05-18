@@ -19,6 +19,7 @@ import type { APIRoute } from 'astro';
 import { refreshPipelines, snapshotPipelines } from '../../../lib/ghl-pipelines';
 import { refreshContactCustomFields, snapshotCustomFields } from '../../../lib/ghl-custom-fields';
 import { currentRateLimit, GhlError } from '../../../lib/ghl-rate-limit';
+import { getCustomValue, _resetCache as resetCustomValuesCache } from '../../../lib/ghl-custom-values';
 import { readEnv } from '../../../lib/ghl';
 import { ENV_VARS } from '../../../../config/ghl-schema';
 
@@ -90,6 +91,28 @@ export const GET: APIRoute = async ({ url }) => {
     }
   } catch {
     // Non-fatal
+  }
+
+  // ─── 4b. Dashboard custom values ─────────────────────────────────────────
+  // The set_opp_value transition action reads `enrolled_student_value` to stamp
+  // revenue on WON enrollment opps. If it is unset the dashboard Revenue widgets
+  // silently fall back to 160 — surface it so the operator provisions it.
+  try {
+    resetCustomValuesCache(); // force a live fetch, not a warm-instance cache hit
+    const enrolledValue = await getCustomValue('enrolled_student_value');
+    result.customValues = { enrolled_student_value: enrolledValue };
+    if (!enrolledValue) {
+      drift.push(
+        'Custom value not set in GHL: enrolled_student_value ' +
+        '(dashboard Revenue widgets fall back to the 160 default until provisioned)',
+      );
+    }
+  } catch (err) {
+    const msg = err instanceof GhlError
+      ? `Custom value fetch failed: ${err.status} ${err.bodyText.slice(0, 100)}`
+      : `Custom value fetch failed: ${(err as Error).message}`;
+    result.customValues = { error: msg };
+    drift.push(msg);
   }
 
   // ─── 5. Env vars ─────────────────────────────────────────────────────────

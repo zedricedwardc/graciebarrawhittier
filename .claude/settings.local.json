@@ -70,7 +70,14 @@
       "WebFetch(domain:app.gohighlevel.com)",
       "PowerShell($docxPath = \"C:\\\\Users\\\\herna\\\\Downloads\\\\GB_Whittier_Website_Build_Brief \\(1\\).docx\"; $extractPath = \"$env:TEMP\\\\gb_brief_extract\"; if \\(Test-Path $extractPath\\) { Remove-Item $extractPath -Recurse -Force }; Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory\\($docxPath, $extractPath\\); $xml = Get-Content \"$extractPath\\\\word\\\\document.xml\" -Raw; $text = [System.Xml.Linq.XDocument]::Parse\\($xml\\); $ns = \"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"; $paras = $text.Descendants\\([System.Xml.Linq.XName]::Get\\(\"p\", $ns\\)\\); $out = foreach \\($p in $paras\\) { $runs = $p.Descendants\\([System.Xml.Linq.XName]::Get\\(\"t\", $ns\\)\\); \\($runs | ForEach-Object { $_.Value }\\) -join '' }; $out -join \"`n\")",
       "mcp__uxie-ghl-mcp__search_actions",
-      "mcp__uxie-ghl-mcp__execute_action"
+      "mcp__uxie-ghl-mcp__execute_action",
+      "mcp__uxie-ghl-mcp__list_categories",
+      "Bash(python -c \"import sys, json; d = json.load\\(sys.stdin\\); print\\(json.dumps\\({'ok': d.get\\('ok'\\), 'pipelines_missing': d.get\\('pipelines',{}\\).get\\('missing',[]\\), 'contact_cf_missing': d.get\\('contactCustomFields',{}\\).get\\('missing',[]\\), 'env_required_missing': d.get\\('env',{}\\).get\\('requiredMissing',[]\\)}, indent=2\\)\\)\")",
+      "Bash(node *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('ok:',d.get\\('ok'\\),'| pipelines missing:',d.get\\('pipelines',{}\\).get\\('missing',[]\\),'| env missing:',d.get\\('env',{}\\).get\\('requiredMissing',[]\\)\\)\")",
+      "Bash(python -c \"import docx\")",
+      "Bash(python -c ' *)",
+      "Skill(superpowers:brainstorming)"
     ]
   },
   "enabledPlugins": {

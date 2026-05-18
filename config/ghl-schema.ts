@@ -430,6 +430,20 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
   // the Wait + Update Stage steps are configured with literal day counts inside
   // the BTM workflows in GHL — no merge tag, nothing reads them at runtime. Edit
   // the day count inside the workflow if you need to change it.
+
+  // ─── Dashboard reporting ─────────────────────────────────────────────
+  {
+    fieldKey: 'enrolled_student_value',
+    name: 'Enrolled Student Value',
+    defaultValue: '160',
+    description:
+      'Dollar amount stamped on an opportunity\'s monetaryValue when it reaches a ' +
+      'WON enrollment stage (TRIAL_CONV STUDENT ENROLLED (WON), CREDIT_MON WON ENROLLED, ' +
+      'BACK_TO_MATS RE ENROLLED). Powers the studio dashboard Revenue + Conversion widgets. ' +
+      'Default 160 = one month average tuition (conservative); set to a 12-month LTV estimate ' +
+      '(e.g. 1920) to show full business impact. Read at request time via ' +
+      'src/lib/ghl-custom-values.ts — the set_opp_value transition action applies it.',
+  },
 ] as const;
 
 // ─── Workflows ──────────────────────────────────────────────────────────────
@@ -721,6 +735,26 @@ export type TransitionAction =
   | { type: 'fire_workflow'; workflowEnvVarKey: string }
   | { type: 'add_tag'; tagName: string }
   | { type: 'set_status'; status: 'won' | 'lost' | 'abandoned' }
+  /**
+   * Set the opportunity's `monetaryValue` from a GHL custom value so the studio
+   * dashboard Revenue + Conversion widgets report real dollars.
+   *
+   * Applied only on the *canonical* enrollment record per student, to avoid
+   * double-counting one enrollment across pipelines:
+   *   - TRIAL_CONV STUDENT ENROLLED (WON) — both the direct-conversion path and
+   *     the credit path end here (CREDIT_MON WON ENROLLED cross-marks the Trial
+   *     Conv opp won), so this is the single source of enrollment revenue.
+   *   - BACK_TO_MATS RE ENROLLED — a distinct re-enrollment sale, no overlap.
+   * CREDIT_MON WON ENROLLED deliberately does NOT carry it.
+   *
+   * Implemented in the stage-changed webhook handler (TRIAL_CONV) — fires
+   * whether the website or an admin moved the opp, since the backflow webhook
+   * triggers on any stage change. BACK_TO_MATS has NO backflow webhook, so an
+   * admin moving an opp to RE ENROLLED never reaches the website; its value
+   * must be set by a GHL workflow that triggers on entry to the RE ENROLLED
+   * stage (Update Opportunity → Monetary Value). See docs/ghl-dashboard-build-spec.md §4.
+   */
+  | { type: 'set_opp_value'; fromCustomValueKey: string }
   /** Set Contact.credits_remaining (canonical source of truth). */
   | { type: 'set_credits'; value: number | 'default' }
   /**
@@ -840,6 +874,7 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
     enterStage: 'STUDENT ENROLLED (WON)',
     actions: [
       { type: 'set_status', status: 'won' },
+      { type: 'set_opp_value', fromCustomValueKey: 'enrolled_student_value' },
       { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_90_DAY_REVIEW' },
     ],
   },
@@ -914,6 +949,10 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
     enterStage: 'WON ENROLLED',
     actions: [
       { type: 'set_status', status: 'won' },
+      // No set_opp_value here — this stage cross-marks the Trial Conv opp
+      // STUDENT ENROLLED (WON), which carries the revenue. Stamping a value
+      // here too would double-count the enrollment. See the set_opp_value
+      // TransitionAction doc above.
       { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_90_DAY_REVIEW' },
     ],
   },
@@ -959,6 +998,10 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
     enterStage: 'RE ENROLLED',
     actions: [
       { type: 'set_status', status: 'won' },
+      // No BTM backflow webhook — an admin moving an opp here never reaches the
+      // website. set_opp_value must be applied by a GHL workflow triggered on
+      // entry to RE ENROLLED (Update Opportunity → Monetary Value).
+      { type: 'set_opp_value', fromCustomValueKey: 'enrolled_student_value' },
       { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_90_DAY_REVIEW' },
     ],
   },

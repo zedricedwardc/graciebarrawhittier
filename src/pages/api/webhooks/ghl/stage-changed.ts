@@ -21,7 +21,14 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { verifyGhlWebhook } from '../../../../lib/webhook-secrets';
 import { handleAttendance } from '../../../../lib/ghl-adapter';
-import { findOpps, setOppStatus, moveStage, getOppCfValueByKey } from '../../../../lib/ghl-opportunities';
+import {
+  findOpps,
+  setOppStatus,
+  setOppValue,
+  enrolledStudentValue,
+  moveStage,
+  getOppCfValueByKey,
+} from '../../../../lib/ghl-opportunities';
 import { getOpportunity } from '../../../../lib/ghl';
 import { idempotency } from '../../../../lib/idempotency';
 import { GhlError } from '../../../../lib/ghl-rate-limit';
@@ -177,6 +184,8 @@ export const POST: APIRoute = async ({ request }) => {
       }
       case 'STUDENT ENROLLED (WON)': {
         await setOppStatus(body.opp_id, 'won');
+        // set_opp_value transition action — stamp revenue for the dashboard.
+        await setOppValue(body.opp_id, await enrolledStudentValue());
         // Close the matching Credit Mon opp as won, if any
         if (body.trainee_key) {
           const creditOpps = await findOpps({

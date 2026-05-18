@@ -89,6 +89,12 @@ export interface UpsertContactArgs {
   email: string;
   phone: string;
   marketingConsent?: boolean;
+  /**
+   * GHL native contact `source` attribute. Drives the native Lead Source
+   * report on the studio dashboard. Pass a `LeadChannel` value (e.g. "Website").
+   * Last-touch: an upsert of an existing contact overwrites their prior source.
+   */
+  source?: string;
 }
 
 export async function upsertContact(args: UpsertContactArgs): Promise<string> {
@@ -100,6 +106,7 @@ export async function upsertContact(args: UpsertContactArgs): Promise<string> {
       lastName: args.lastName,
       email: args.email,
       phone: args.phone,
+      ...(args.source ? { source: args.source } : {}),
       // Tag for source visibility in GHL UI:
       tags: ['kickstart-funnel'],
     }),

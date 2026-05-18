@@ -38,6 +38,29 @@ describe('ghl client', () => {
     expect(body.email).toBe('jane@x.com');
   });
 
+  it('upsertContact includes the native source attribute when provided', async () => {
+    (fetch as any).mockResolvedValueOnce(
+      new Response(JSON.stringify({ contact: { id: 'c_2' } }), { status: 200 }),
+    );
+    await ghl.upsertContact({
+      firstName: 'Jane', lastName: 'Doe', email: 'jane@x.com', phone: '+15551234567',
+      source: 'Website',
+    });
+    const [, init] = (fetch as any).mock.calls[0];
+    expect(JSON.parse(init.body as string).source).toBe('Website');
+  });
+
+  it('upsertContact omits source when not provided', async () => {
+    (fetch as any).mockResolvedValueOnce(
+      new Response(JSON.stringify({ contact: { id: 'c_3' } }), { status: 200 }),
+    );
+    await ghl.upsertContact({
+      firstName: 'Jane', lastName: 'Doe', email: 'jane@x.com', phone: '+15551234567',
+    });
+    const [, init] = (fetch as any).mock.calls[0];
+    expect('source' in JSON.parse(init.body as string)).toBe(false);
+  });
+
   it('createAppointment POSTs with calendarId, contactId, startTime', async () => {
     (fetch as any).mockResolvedValueOnce(
       new Response(JSON.stringify({ id: 'apt_42' }), { status: 200 }),

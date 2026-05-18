@@ -27,5 +27,9 @@ pnpm-debug.log*
 # scaffold artifacts
 _scaffold/
 
+# browser automation / scratch artifacts
+.playwright-mcp/
+ghl-current.jpeg
+
 .vercel
 .env*.local

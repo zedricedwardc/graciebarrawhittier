@@ -16,7 +16,15 @@ import {
 } from './ghl';
 import { getPipelineId, getStageId } from './ghl-pipelines';
 import { cacheOpportunityCustomFields, getCfId } from './ghl-custom-fields';
+import { getCustomValue } from './ghl-custom-values';
 import type { PipelineKey } from '../../config/ghl-schema';
+
+/**
+ * Fallback used when the `enrolled_student_value` GHL custom value is missing
+ * or unparseable. Mirrors the schema's declared defaultValue in
+ * config/ghl-schema.ts — keep the two in sync.
+ */
+const ENROLLED_STUDENT_VALUE_FALLBACK = 160;
 
 /**
  * Search a contact's opportunities in a specific pipeline.
@@ -179,6 +187,24 @@ export async function setOppStatus(
   status: 'open' | 'won' | 'lost' | 'abandoned',
 ): Promise<OpportunityRecord> {
   return updateOpportunity(oppId, { status });
+}
+
+/** Set an opportunity's monetary value (dashboard revenue reporting). */
+export async function setOppValue(oppId: string, monetaryValue: number): Promise<OpportunityRecord> {
+  return updateOpportunity(oppId, { monetaryValue });
+}
+
+/**
+ * Resolve the dollar value to stamp on a WON enrollment opportunity.
+ *
+ * Reads the studio-editable `enrolled_student_value` GHL custom value; falls
+ * back to {@link ENROLLED_STUDENT_VALUE_FALLBACK} when it is missing, empty, or
+ * not a positive number. Used by the `set_opp_value` transition action.
+ */
+export async function enrolledStudentValue(): Promise<number> {
+  const raw = await getCustomValue('enrolled_student_value');
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : ENROLLED_STUDENT_VALUE_FALLBACK;
 }
 
 /** Update opportunity custom fields. */

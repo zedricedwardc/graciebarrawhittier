@@ -19,6 +19,38 @@ export const SOURCES = [
 export type LeadSource = (typeof SOURCES)[number];
 
 /**
+ * Dashboard-facing lead channels — written to the GHL native contact `source`
+ * attribute so GHL's native Lead Source report (dashboard Section 5) groups by
+ * them directly. Coarser than the page-level `LeadSource` slugs above.
+ *
+ * Only `Website` is produced by this codebase's opt-in paths. `Walk-In` is set
+ * by the front-desk QR intake form, `Meta Ads` / `Google Ads` by future ad
+ * campaigns, and `Referral` is applied manually — all GHL-side, not here.
+ */
+export const LEAD_CHANNELS = ['Website', 'Walk-In', 'Meta Ads', 'Google Ads', 'Referral'] as const;
+export type LeadChannel = (typeof LEAD_CHANNELS)[number];
+
+/**
+ * Page-level opt-in source → dashboard lead channel.
+ *
+ * Every current opt-in path resolves to `Website`. Note `qr-offer-optin` is the
+ * `/offer` QR landing *web page* — it is still a website visit, distinct from
+ * the front-desk Walk-In intake form, so it maps to `Website`.
+ */
+export const SOURCE_TO_CHANNEL: Record<LeadSource, LeadChannel> = {
+  'homepage-optin': 'Website',
+  'kids-optin': 'Website',
+  'adults-optin': 'Website',
+  'contact-form': 'Website',
+  'qr-offer-optin': 'Website',
+};
+
+/** Resolve the dashboard lead channel for a page-level opt-in source. */
+export function channelForSource(source: LeadSource): LeadChannel {
+  return SOURCE_TO_CHANNEL[source];
+}
+
+/**
  * Either `name` (combined) or `firstName`+`lastName` must be provided.
  * Endpoint normalizes to firstName + lastName before calling handleOptIn.
  */
