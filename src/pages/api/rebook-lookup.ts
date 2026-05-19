@@ -130,15 +130,11 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  const facts: OppFacts[] = [];
-  for (const o of creditOpps) {
-    const f = await extractOppFacts(o, 'CREDIT_MON');
-    if (f) facts.push(f);
-  }
-  for (const o of trialOpps) {
-    const f = await extractOppFacts(o, 'TRIAL_CONV');
-    if (f) facts.push(f);
-  }
+  const factsArrays = await Promise.all([
+    ...creditOpps.map((o) => extractOppFacts(o, 'CREDIT_MON')),
+    ...trialOpps.map((o) => extractOppFacts(o, 'TRIAL_CONV')),
+  ]);
+  const facts: OppFacts[] = factsArrays.filter((f): f is OppFacts => f !== null);
 
   const resolved = resolveTraineeCards(facts);
   const trainees: TraineeCard[] = resolved.map((r) => ({
