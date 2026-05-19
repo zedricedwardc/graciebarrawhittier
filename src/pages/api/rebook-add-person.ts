@@ -51,8 +51,8 @@ const buckets = new Map<string, { count: number; firstSeen: number }>();
 const PROGRAM_KEYS: [ProgramKey, ...ProgramKey[]] = ['tiny', 'lc1', 'lc2', 'juniors', 'adults'];
 
 const AddPersonRequest = z.object({
-  contactId: z.string().min(1).max(100),
-  sessionToken: z.string().min(20).max(2000),
+  contactId: z.string().min(1).max(64),
+  sessionToken: z.string().min(20).max(512),
   program: z.enum(PROGRAM_KEYS),
   trainee: z.object({
     firstName: z.string().min(1).max(50),
