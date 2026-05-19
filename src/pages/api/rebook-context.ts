@@ -60,18 +60,14 @@ export const POST: APIRoute = async ({ request }) => {
   const { contactId, traineeKey: tokenTraineeKey } = verified.payload;
 
   let creditPipelineId: string;
-  try {
-    creditPipelineId = await getPipelineId('CREDIT_MON');
-  } catch (err) {
-    console.error('[rebook-context] could not resolve Credit Mon pipeline', err);
-    return json({ ok: false, code: 'GHL_FAILED' }, 502);
-  }
-
   let trialPipelineId: string;
   try {
-    trialPipelineId = await getPipelineId('TRIAL_CONV');
+    [creditPipelineId, trialPipelineId] = await Promise.all([
+      getPipelineId('CREDIT_MON'),
+      getPipelineId('TRIAL_CONV'),
+    ]);
   } catch (err) {
-    console.error('[rebook-context] could not resolve Trial Conversion pipeline', err);
+    console.error('[rebook-context] could not resolve pipelines', err);
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
