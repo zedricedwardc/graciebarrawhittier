@@ -7,25 +7,22 @@
  */
 
 import { z } from 'zod';
-import { LEAD_CHANNEL_LABELS, type LeadChannelLabel, type OptInPageLabel } from '../../config/ghl-schema';
+import type { OptInPageLabel } from '../../config/ghl-schema';
 
 /**
  * Dashboard-facing lead channels — the coarse top layer of lead-source
  * tracking. Written to the GHL native contact `source` attribute AND to the
- * `lead_channel` dropdown CF (the CF is what dashboard widgets group by).
+ * `lead_source` custom field (the CF is what dashboard widgets group by, since
+ * the native `source` attribute is not a widget group-by dimension).
  *
  * This codebase produces `Website Leads` (page opt-ins) and `Walk-In` (the
  * /offer QR landing page — see LEAD_SOURCES). `Walk-In` is also set GHL-side by
  * the front-desk QR intake form; both share the one bucket. `Referral` is
  * applied manually. `Meta Ads` / `Google Ads` activate when ad-funnel landing
  * pages are added as routes in this site (see LEAD_SOURCES below).
- *
- * The value list lives in config/ghl-schema.ts (LEAD_CHANNEL_LABELS) so it is
- * the single source of truth for both this type and the `lead_channel` CF's
- * dropdown options.
  */
-export const LEAD_CHANNELS = LEAD_CHANNEL_LABELS;
-export type LeadChannel = LeadChannelLabel;
+export const LEAD_CHANNELS = ['Website Leads', 'Walk-In', 'Meta Ads', 'Google Ads', 'Referral'] as const;
+export type LeadChannel = (typeof LEAD_CHANNELS)[number];
 
 /** Two reporting layers a page-level opt-in slug resolves to. */
 export interface LeadSourceDef {

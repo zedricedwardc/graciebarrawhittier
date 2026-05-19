@@ -151,22 +151,6 @@ export interface CustomFieldDef {
 }
 
 /**
- * Coarse lead-acquisition channels — the value of the native contact `source`
- * attribute AND of the `lead_channel` dropdown CF, which mirrors it so studio
- * dashboard widgets can group leads by channel (the native `source` attribute
- * is not exposed as a widget group-by dimension). lead-types.ts re-exports
- * this as LEAD_CHANNELS.
- */
-export const LEAD_CHANNEL_LABELS = [
-  'Website Leads',
-  'Walk-In',
-  'Meta Ads',
-  'Google Ads',
-  'Referral',
-] as const;
-export type LeadChannelLabel = (typeof LEAD_CHANNEL_LABELS)[number];
-
-/**
  * Human-readable opt-in page labels — the page-level sub-layer beneath the
  * lead channel. Written to the `optin_page` contact CF and used as that
  * dropdown's option set. src/lib/lead-types.ts's LEAD_SOURCES registry maps
@@ -204,16 +188,8 @@ export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     fieldKey: 'lead_source',
     label: 'Lead Source',
     type: 'TEXT',
-    description: 'Internal opt-in source slug (homepage-optin, kids-optin, adults-optin, contact-form, qr-offer-optin). Code-facing identifier — for human-readable reporting use the optin_page dropdown and the native contact Source attribute.',
+    description: 'Coarse acquisition channel — Website Leads / Walk-In / Meta Ads / Google Ads / Referral. Set on every opt-in; mirrors the native contact Source attribute so dashboard widgets can group leads by channel (the native Source is not a widget group-by dimension). The page-level sub-layer is the optin_page dropdown.',
     setBy: 'webhook',
-  },
-  {
-    fieldKey: 'lead_channel',
-    label: 'Lead Channel',
-    type: 'DROPDOWN_SINGLE',
-    description: 'Coarse acquisition channel (Website Leads / Walk-In / Meta Ads / Google Ads / Referral). Mirrors the native contact Source attribute as a custom field so studio dashboard widgets can group leads by channel — the native Source is not a widget group-by dimension. Set on every opt-in.',
-    setBy: 'webhook',
-    options: LEAD_CHANNEL_LABELS,
   },
   {
     fieldKey: 'optin_page',
