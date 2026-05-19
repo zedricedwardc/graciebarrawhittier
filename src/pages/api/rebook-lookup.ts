@@ -32,9 +32,14 @@ import {
   type ContactRecord,
   type OpportunityRecord,
 } from '../../lib/ghl';
-import { getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { getPipelineId } from '../../lib/ghl-pipelines';
 import { signRebookToken } from '../../lib/rebook-token';
+import {
+  extractOppFacts,
+  resolveTraineeCards,
+  CONTACT_SCOPED_TRAINEE_KEY,
+  type OppFacts,
+} from '../../lib/rebook-cards';
 
 export const prerender = false;
 
@@ -51,10 +56,16 @@ export interface TraineeCard {
   traineeName: string;
   traineeKey: string;
   program: string;
+  status: 'enrolled' | 'active' | 'exhausted' | 'pending';
   creditsRemaining: number;
   lastAttendanceISO: string | null;
-  /** 15-min token authorizing /api/book against this specific trainee. */
-  sessionToken: string;
+  /** Booked class start ISO — set only for `pending` cards. */
+  pendingClassISO: string | null;
+  /**
+   * 15-min token authorizing /api/book against this trainee. Present only on
+   * `active` / `exhausted` cards — `enrolled` / `pending` have no booking action.
+   */
+  sessionToken?: string;
 }
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
@@ -97,13 +108,21 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  let opps: OpportunityRecord[] = [];
+  let trialPipelineId: string;
   try {
-    opps = await searchOpportunities({
-      contactId: contact.id,
-      pipelineId: creditPipelineId,
-      status: 'open',
-    });
+    trialPipelineId = await getPipelineId('TRIAL_CONV');
+  } catch (err) {
+    console.error('[rebook-lookup] could not resolve Trial Conversion pipeline', err);
+    return json({ ok: false, code: 'GHL_FAILED' }, 502);
+  }
+
+  let creditOpps: OpportunityRecord[] = [];
+  let trialOpps: OpportunityRecord[] = [];
+  try {
+    [creditOpps, trialOpps] = await Promise.all([
+      searchOpportunities({ contactId: contact.id, pipelineId: creditPipelineId, status: 'open' }),
+      searchOpportunities({ contactId: contact.id, pipelineId: trialPipelineId, status: 'all' }),
+    ]);
   } catch (err) {
     console.error(
       '[rebook-lookup] searchOpportunities failed',
@@ -112,37 +131,45 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  const trainees = await opps.reduce(async (accP, o) => {
-    const acc = await accP;
-    const traineeKey = (await getOppCfValueByKey<string>(o, 'trainee_key')) ?? '';
-    const traineeName = (await getOppCfValueByKey<string>(o, 'trainee_first_name')) ?? '';
-    if (!traineeKey || !traineeName) return acc;
-    const program = (await getOppCfValueByKey<string>(o, 'program')) ?? 'adults';
-    const creditsRaw = await getOppCfValueByKey<string | number>(o, 'credits_remaining');
-    const creditsRemaining = Number(creditsRaw ?? 0);
-    const lastAttendanceISO = (await getOppCfValueByKey<string>(o, 'last_attendance_iso')) ?? null;
-    acc.push({
-      traineeName: traineeName.trim(),
-      traineeKey,
-      program,
-      creditsRemaining: Number.isFinite(creditsRemaining) ? creditsRemaining : 0,
-      lastAttendanceISO,
-      sessionToken: signRebookToken({
-        contactId: contact!.id,
-        traineeKey,
-        ttlDays: 1 / 96,
-      }),
-    });
-    return acc;
-  }, Promise.resolve([] as TraineeCard[]));
+  const facts: OppFacts[] = [];
+  for (const o of creditOpps) {
+    const f = await extractOppFacts(o, 'CREDIT_MON');
+    if (f) facts.push(f);
+  }
+  for (const o of trialOpps) {
+    const f = await extractOppFacts(o, 'TRIAL_CONV');
+    if (f) facts.push(f);
+  }
+
+  const resolved = resolveTraineeCards(facts);
+  const trainees: TraineeCard[] = resolved.map((r) => ({
+    traineeName: r.traineeName,
+    traineeKey: r.traineeKey,
+    program: r.program,
+    status: r.status,
+    creditsRemaining: r.creditsRemaining,
+    lastAttendanceISO: r.lastAttendanceISO,
+    pendingClassISO: r.pendingClassISO,
+    sessionToken:
+      r.status === 'active' || r.status === 'exhausted'
+        ? signRebookToken({ contactId: contact.id, traineeKey: r.traineeKey, ttlDays: 1 / 96 })
+        : undefined,
+  }));
 
   if (trainees.length === 0) {
     return json({ ok: false, code: 'NOT_FOUND' });
   }
 
+  const contactToken = signRebookToken({
+    contactId: contact.id,
+    traineeKey: CONTACT_SCOPED_TRAINEE_KEY,
+    ttlDays: 1 / 96,
+  });
+
   return json({
     ok: true,
     contactId: contact.id,
+    contactToken,
     trainees,
   });
 };
