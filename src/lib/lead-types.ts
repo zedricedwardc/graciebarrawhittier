@@ -7,17 +7,18 @@
  */
 
 import { z } from 'zod';
-import { OPTIN_PAGE_LABELS, type OptInPageLabel } from '../../config/ghl-schema';
+import type { OptInPageLabel } from '../../config/ghl-schema';
 
 /**
  * Dashboard-facing lead channels — written to the GHL native contact `source`
  * attribute so GHL's native Lead Source report (dashboard Section 5) groups by
  * them directly. The coarse top layer of lead-source tracking.
  *
- * Today only `Website Leads` is produced by this codebase. `Walk-In` is set by
- * the front-desk QR intake form and `Referral` is applied manually — both
- * GHL-side. `Meta Ads` / `Google Ads` activate when ad-funnel landing pages
- * are added as routes in this site (see LEAD_SOURCES below).
+ * This codebase produces `Website Leads` (page opt-ins) and `Walk-In` (the
+ * /offer QR landing page — see LEAD_SOURCES). `Walk-In` is also set GHL-side by
+ * the front-desk QR intake form; both share the one bucket. `Referral` is
+ * applied manually. `Meta Ads` / `Google Ads` activate when ad-funnel landing
+ * pages are added as routes in this site (see LEAD_SOURCES below).
  */
 export const LEAD_CHANNELS = ['Website Leads', 'Walk-In', 'Meta Ads', 'Google Ads', 'Referral'] as const;
 export type LeadChannel = (typeof LEAD_CHANNELS)[number];
@@ -45,8 +46,9 @@ export const LEAD_SOURCES = {
   'kids-optin':     { channel: 'Website Leads', pageLabel: 'Kids Page' },
   'adults-optin':   { channel: 'Website Leads', pageLabel: 'Adults Page' },
   'contact-form':   { channel: 'Website Leads', pageLabel: 'Contact Page' },
-  // /offer QR landing page is still a website visit, not a front-desk Walk-In.
-  'qr-offer-optin': { channel: 'Website Leads', pageLabel: 'Offer Page (QR)' },
+  // /offer QR landing page — scanned from in-person flyers/front-desk signage,
+  // so it lands in the Walk-In channel alongside the front-desk QR intake form.
+  'qr-offer-optin': { channel: 'Walk-In',       pageLabel: 'Offer Page (QR)' },
   // ─── FUTURE — ad-funnel landing pages (new routes in this site) ──────────
   // Uncomment + build the page + add the pageLabel to OPTIN_PAGE_LABELS:
   //   'meta-generic-optin':   { channel: 'Meta Ads',   pageLabel: 'Meta Ad — General' },

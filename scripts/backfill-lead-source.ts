@@ -4,14 +4,16 @@
  *
  * The old opt-in code wrote the GHL native contact `source` as "Website" and
  * stored only the page-level slug in the `lead_source` CF. The current model
- * uses "Website Leads" as the channel and a readable `optin_page` dropdown CF
- * as the page sub-layer (see src/lib/lead-types.ts LEAD_SOURCES).
+ * resolves the channel + readable `optin_page` page label per slug via the
+ * LEAD_SOURCES registry (see src/lib/lead-types.ts).
  *
  * For every contact whose native `source` is "Website" or "Website Leads",
  * this script:
- *   - sets `source` → "Website Leads"  (renames the legacy value)
- *   - sets the `optin_page` CF from the contact's stored `lead_source` slug,
- *     when that slug maps to a known LEAD_SOURCES registry entry
+ *   - sets `source` → the channel the contact's `lead_source` slug resolves to
+ *     (page opt-ins → "Website Leads"; the /offer QR page → "Walk-In"), or
+ *     "Website Leads" when the slug is missing/unmappable
+ *   - sets the `optin_page` CF from that same slug, when it maps to a known
+ *     LEAD_SOURCES registry entry
  *
  * It only writes the fields that actually differ, so it is idempotent and
  * safe to re-run. Contacts with any other `source` (Walk-In, Referral, BTM
@@ -35,9 +37,13 @@ const APPLY = process.argv.includes('--apply');
 
 /** Legacy + current native `source` values that this migration owns. */
 const WEBSITE_SOURCE_VALUES = new Set(['Website', 'Website Leads']);
-const TARGET_CHANNEL = 'Website Leads';
+/** Channel for contacts whose `lead_source` slug is missing or unmappable. */
+const DEFAULT_CHANNEL = 'Website Leads';
 
-// slug → readable page label, derived from the single-source-of-truth registry.
+// slug → { channel, pageLabel }, derived from the single-source-of-truth registry.
+const SLUG_TO_CHANNEL = new Map<string, string>(
+  Object.entries(LEAD_SOURCES).map(([slug, def]) => [slug, def.channel]),
+);
 const SLUG_TO_PAGE_LABEL = new Map<string, string>(
   Object.entries(LEAD_SOURCES).map(([slug, def]) => [slug, def.pageLabel]),
 );
@@ -149,7 +155,8 @@ async function main(): Promise<void> {
       const desiredLabel = slug ? SLUG_TO_PAGE_LABEL.get(slug) : undefined;
       if (slug && !desiredLabel) unknownSlug++;
 
-      const needsSource = c.source !== TARGET_CHANNEL;
+      const desiredChannel = (slug && SLUG_TO_CHANNEL.get(slug)) || DEFAULT_CHANNEL;
+      const needsSource = c.source !== desiredChannel;
       const needsOptinPage = Boolean(desiredLabel) && currentOptinPage !== desiredLabel;
       if (!needsSource && !needsOptinPage) {
         alreadyCorrect++;
@@ -159,7 +166,7 @@ async function main(): Promise<void> {
       if (needsOptinPage) optinPageSets++;
 
       const update: Record<string, unknown> = {};
-      if (needsSource) update.source = TARGET_CHANNEL;
+      if (needsSource) update.source = desiredChannel;
       if (needsOptinPage) {
         update.customFields = [{ id: optinPageCfId, field_value: desiredLabel }];
       }
@@ -167,7 +174,7 @@ async function main(): Promise<void> {
       const who = `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || c.id;
       if (!APPLY) {
         const parts: string[] = [];
-        if (needsSource) parts.push(`source "${c.source}" → "${TARGET_CHANNEL}"`);
+        if (needsSource) parts.push(`source "${c.source}" → "${desiredChannel}"`);
         if (needsOptinPage) parts.push(`optin_page → "${desiredLabel}" (from ${slug})`);
         console.log(`  · ${who}: ${parts.join('; ')}`);
       } else {

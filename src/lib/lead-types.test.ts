@@ -15,13 +15,15 @@ describe('lead source registry', () => {
     }
   });
 
-  it('routes all current website opt-in paths to the Website Leads channel', () => {
+  it('routes page opt-ins to the Website Leads channel', () => {
     expect(channelForSource('homepage-optin')).toBe('Website Leads');
     expect(channelForSource('kids-optin')).toBe('Website Leads');
     expect(channelForSource('adults-optin')).toBe('Website Leads');
     expect(channelForSource('contact-form')).toBe('Website Leads');
-    // /offer QR landing page is still a website visit, not a front-desk Walk-In.
-    expect(channelForSource('qr-offer-optin')).toBe('Website Leads');
+  });
+
+  it('routes the /offer QR landing page to the Walk-In channel', () => {
+    expect(channelForSource('qr-offer-optin')).toBe('Walk-In');
   });
 
   it('gives each website opt-in path a readable page label', () => {
