@@ -469,7 +469,7 @@ const renderTs = Date.now();
         collapseActive();
         return;
       }
-      collapseActive();
+      collapseAll();
 
       const t = state.trainees.find((x) => x.traineeKey === traineeKey);
       if (!t || !bookingFlow) return;
@@ -508,6 +508,12 @@ const renderTs = Date.now();
       void loadMonth(state.program, state.viewYear, state.viewMonth);
 
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /** Tear down whichever panel is currently open — active trainee card OR the add-person panel. */
+    function collapseAll() {
+      if (state.addPerson.open) closeAddPerson();
+      else collapseActive();
     }
 
     function collapseActive() {
@@ -561,7 +567,7 @@ const renderTs = Date.now();
         collapseActive();
         return;
       }
-      collapseActive();
+      collapseAll();
 
       const t = state.trainees.find((x) => x.traineeKey === traineeKey);
       if (!t) return;
@@ -901,8 +907,10 @@ const renderTs = Date.now();
     });
 
     backToLookupBtn?.addEventListener('click', () => {
-      collapseActive();
+      collapseAll();
+      if (bookingFlow && bookingFlowParking) bookingFlowParking.appendChild(bookingFlow);
       state.contactId = null;
+      state.contactToken = null;
       state.trainees = [];
       state.step = 'lookup';
       renderStep();
@@ -1010,7 +1018,16 @@ const renderTs = Date.now();
           }),
         });
         const data = await res.json();
-        if (!data.ok) throw new Error(data.code ?? 'unknown');
+        if (!data.ok) {
+          const code = data.code ?? 'unknown';
+          if (code === 'SLOT_TAKEN' && confirmError) {
+            confirmError.textContent = 'That slot just filled up — please pick another time.';
+          } else if (confirmError) {
+            // Restore the default message in case a previous SLOT_TAKEN customized it.
+            confirmError.textContent = 'Something went wrong booking. Please try again or call us at (562) 640-1400.';
+          }
+          throw new Error(code);
+        }
 
         const newTrainee: Trainee = {
           traineeName: data.trainee.traineeName,
