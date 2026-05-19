@@ -2,25 +2,28 @@
  * POST /api/rebook-lookup
  *
  * Email-only lookup for the multi-trainee rebook dashboard. Matches contact
- * by email, then returns ALL their open Trial Credit Monitoring opps (one
- * card per trainee) — the page renders a dashboard and the customer picks
- * which trainee to book for.
+ * by email, then returns ALL their trainee cards merged from both Trial Credit
+ * Monitoring and Trial Conversion pipelines (one card per trainee) — the page
+ * renders a dashboard and the customer picks which trainee to book for.
  *
- * Each returned trainee carries its own short-lived session token that the
- * /api/book rebook path verifies against the trainee_key on submission.
+ * Each trainee card carries a `status` (enrolled / active / exhausted / pending).
+ * Active and exhausted cards include a short-lived session token that /api/book
+ * verifies against the trainee_key on submission. The response includes a
+ * contact-scoped token authorizing the add-a-new-person action.
  *
  * Anti-enumeration:
  *   - Rate-limited to 20 requests / IP / hour
  *   - Generic NOT_FOUND on miss (no email-existence leak)
  *
  * Returns:
- *   { ok: true, contactId, trainees: [{ traineeName, traineeKey, program,
- *     creditsRemaining, lastAttendanceISO, sessionToken }, ...] }
+ *   { ok: true, contactId, contactToken, trainees: [{ traineeName, traineeKey,
+ *     program, status, creditsRemaining, lastAttendanceISO, pendingClassISO,
+ *     sessionToken? }, ...] }
  *   | { ok: false, code: 'INVALID_INPUT' | 'NOT_FOUND' | 'RATE_LIMITED' | 'GHL_FAILED' }
  *
  * NOT_FOUND fires when:
  *   - Contact doesn't exist for that email, OR
- *   - Contact exists but has no OPEN credit-pipeline opps (no active passes)
+ *   - Contact exists but has no resolvable trainee cards across either pipeline
  */
 
 import type { APIRoute } from 'astro';
