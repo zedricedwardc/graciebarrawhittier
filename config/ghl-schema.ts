@@ -151,10 +151,26 @@ export interface CustomFieldDef {
 }
 
 /**
+ * Coarse lead-acquisition channels — the value of the native contact `source`
+ * attribute AND of the `lead_channel` dropdown CF, which mirrors it so studio
+ * dashboard widgets can group leads by channel (the native `source` attribute
+ * is not exposed as a widget group-by dimension). lead-types.ts re-exports
+ * this as LEAD_CHANNELS.
+ */
+export const LEAD_CHANNEL_LABELS = [
+  'Website Leads',
+  'Walk-In',
+  'Meta Ads',
+  'Google Ads',
+  'Referral',
+] as const;
+export type LeadChannelLabel = (typeof LEAD_CHANNEL_LABELS)[number];
+
+/**
  * Human-readable opt-in page labels — the page-level sub-layer beneath the
- * native Lead Source channel. Written to the `optin_page` contact CF and used
- * as that dropdown's option set. src/lib/lead-types.ts's LEAD_SOURCES registry
- * maps each page slug to one of these.
+ * lead channel. Written to the `optin_page` contact CF and used as that
+ * dropdown's option set. src/lib/lead-types.ts's LEAD_SOURCES registry maps
+ * each page slug to one of these.
  *
  * Adding an ad-funnel landing page = add its label here + a registry entry in
  * lead-types.ts. Re-run the onboard script (or add the option in the GHL UI)
@@ -192,10 +208,18 @@ export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     setBy: 'webhook',
   },
   {
+    fieldKey: 'lead_channel',
+    label: 'Lead Channel',
+    type: 'DROPDOWN_SINGLE',
+    description: 'Coarse acquisition channel (Website Leads / Walk-In / Meta Ads / Google Ads / Referral). Mirrors the native contact Source attribute as a custom field so studio dashboard widgets can group leads by channel — the native Source is not a widget group-by dimension. Set on every opt-in.',
+    setBy: 'webhook',
+    options: LEAD_CHANNEL_LABELS,
+  },
+  {
     fieldKey: 'optin_page',
     label: 'Opt-In Page',
     type: 'DROPDOWN_SINGLE',
-    description: 'Human-readable page the contact opted in from (Homepage, Kids Page, Adults Page, ...). The page-level sub-layer beneath the native Lead Source channel; set alongside lead_source on every opt-in. Drives a page-level breakdown within each Lead Source bucket on the dashboard.',
+    description: 'Human-readable page the contact opted in from (Homepage, Kids Page, Adults Page, ...). The page-level sub-layer beneath the lead channel; set alongside lead_source on every opt-in. Drives a page-level breakdown within each channel on the dashboard.',
     setBy: 'webhook',
     options: OPTIN_PAGE_LABELS,
   },

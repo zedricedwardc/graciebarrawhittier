@@ -123,10 +123,13 @@ export async function handleOptIn(input: HandleOptInInput): Promise<HandleOptInR
   const isNewContact = !existing;
 
   // 2. Build CF patch (credits now live on Trial Credit Monitoring opp, not contact).
-  // lead_source = internal slug; optin_page = human-readable page sub-layer
-  // (the second reporting layer beneath the native `source` channel above).
+  // lead_source  = internal slug;
+  // lead_channel = coarse channel, mirrors native `source` so dashboard widgets
+  //                can group by it (the native attribute is not groupable);
+  // optin_page   = human-readable page sub-layer beneath the channel.
   const cfMap: Record<string, string | number | boolean | null> = {
     lead_source: input.source,
+    lead_channel: channelForSource(input.source),
     optin_page: pageLabelForSource(input.source),
     last_page: input.page,
   };

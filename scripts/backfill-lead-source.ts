@@ -5,11 +5,13 @@
  * Every opt-in stores a page-level slug in the `lead_source` custom field. The
  * current model also needs, per the LEAD_SOURCES registry (src/lib/lead-types.ts):
  *   - the native `source` attribute set to the channel (Website Leads / Walk-In)
+ *   - the `lead_channel` dropdown CF set to that same channel (so dashboard
+ *     widgets — which can't group by the native attribute — can group by it)
  *   - the readable `optin_page` dropdown CF set to the page label
  *
- * Early opt-ins are missing one or both: legacy code wrote `source` as
- * "Website", and `/contacts/upsert` never sets `source` on a contact that
- * already existed — so many opt-in contacts carry a blank native source.
+ * Early opt-ins are missing some or all: legacy code wrote `source` as
+ * "Website", `/contacts/upsert` never sets `source` on a contact that already
+ * existed, and `lead_channel` / `optin_page` did not exist yet.
  *
  * This script walks every contact and, for each one carrying a `lead_source`
  * slug that maps to a known registry entry:
@@ -17,6 +19,7 @@
  *     blank or a value this migration owns (blank / Website / Website Leads /
  *     Walk-In). A deliberate non-owned source (Referral, a GHL form name, ...)
  *     is left untouched.
+ *   - sets `lead_channel` → the slug's channel.
  *   - sets `optin_page` → the slug's page label.
  *
  * Only fields that actually differ are written, so it is idempotent and safe
@@ -125,13 +128,16 @@ async function main(): Promise<void> {
   console.log(`\n  Lead-source backfill — ${APPLY ? 'APPLY (writing)' : 'DRY RUN (no writes)'}\n`);
 
   const leadSourceCfId = await resolveCfId('lead_source');
+  const leadChannelCfId = await resolveCfId('lead_channel');
   const optinPageCfId = await resolveCfId('optin_page');
-  console.log(`  lead_source CF: ${leadSourceCfId}`);
-  console.log(`  optin_page  CF: ${optinPageCfId}\n`);
+  console.log(`  lead_source  CF: ${leadSourceCfId}`);
+  console.log(`  lead_channel CF: ${leadChannelCfId}`);
+  console.log(`  optin_page   CF: ${optinPageCfId}\n`);
 
   let scanned = 0;
   let optinContacts = 0;
   let sourceSets = 0;
+  let leadChannelSets = 0;
   let optinPageSets = 0;
   let unknownSlug = 0;
   let keptCustomSource = 0;
@@ -165,30 +171,35 @@ async function main(): Promise<void> {
       optinContacts++;
 
       const currentSource = String(c.source ?? '').trim();
+      const currentLeadChannel = String(cfById.get(leadChannelCfId) ?? '').trim();
       const currentOptinPage = String(cfById.get(optinPageCfId) ?? '').trim();
 
       const sourceOwned = OWNED_SOURCE_VALUES.has(currentSource);
       const needsSource = currentSource !== desiredChannel && sourceOwned;
+      const needsLeadChannel = currentLeadChannel !== desiredChannel;
       const needsOptinPage = currentOptinPage !== desiredLabel;
       if (currentSource !== desiredChannel && !sourceOwned) keptCustomSource++;
 
-      if (!needsSource && !needsOptinPage) {
+      if (!needsSource && !needsLeadChannel && !needsOptinPage) {
         noChange++;
         continue;
       }
       if (needsSource) sourceSets++;
+      if (needsLeadChannel) leadChannelSets++;
       if (needsOptinPage) optinPageSets++;
 
+      const cfUpdates: Array<{ id: string; field_value: string }> = [];
+      if (needsLeadChannel) cfUpdates.push({ id: leadChannelCfId, field_value: desiredChannel });
+      if (needsOptinPage) cfUpdates.push({ id: optinPageCfId, field_value: desiredLabel });
       const update: Record<string, unknown> = {};
       if (needsSource) update.source = desiredChannel;
-      if (needsOptinPage) {
-        update.customFields = [{ id: optinPageCfId, field_value: desiredLabel }];
-      }
+      if (cfUpdates.length) update.customFields = cfUpdates;
 
       const who = `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || c.id;
       if (!APPLY) {
         const parts: string[] = [];
         if (needsSource) parts.push(`source "${currentSource || '(none)'}" → "${desiredChannel}"`);
+        if (needsLeadChannel) parts.push(`lead_channel → "${desiredChannel}"`);
         if (needsOptinPage) parts.push(`optin_page → "${desiredLabel}" (from ${slug})`);
         console.log(`  · ${who}: ${parts.join('; ')}`);
       } else {
@@ -210,14 +221,16 @@ async function main(): Promise<void> {
   }
 
   console.log('\n');
+  const verb = APPLY ? 'set' : 'to set';
   console.log('  ──────────────────────────────────────────────');
-  console.log(`  Contacts scanned:            ${scanned}`);
-  console.log(`  Opt-in contacts (mappable):  ${optinContacts}`);
-  console.log(`  Already correct (skipped):   ${noChange}`);
-  console.log(`  source ${APPLY ? 'set' : 'sets planned'}:${' '.repeat(APPLY ? 16 : 9)}${sourceSets}`);
-  console.log(`  optin_page ${APPLY ? 'set' : 'sets planned'}:${' '.repeat(APPLY ? 12 : 5)}${optinPageSets}`);
-  console.log(`  Kept deliberate non-owned source: ${keptCustomSource}`);
-  console.log(`  Unmappable lead_source slug: ${unknownSlug} (left untouched)`);
+  console.log(`  ${'Contacts scanned:'.padEnd(34)}${scanned}`);
+  console.log(`  ${'Opt-in contacts (mappable):'.padEnd(34)}${optinContacts}`);
+  console.log(`  ${'Already correct (skipped):'.padEnd(34)}${noChange}`);
+  console.log(`  ${`native source ${verb}:`.padEnd(34)}${sourceSets}`);
+  console.log(`  ${`lead_channel CF ${verb}:`.padEnd(34)}${leadChannelSets}`);
+  console.log(`  ${`optin_page CF ${verb}:`.padEnd(34)}${optinPageSets}`);
+  console.log(`  ${'Kept deliberate non-owned source:'.padEnd(34)}${keptCustomSource}`);
+  console.log(`  ${'Unmappable lead_source slug:'.padEnd(34)}${unknownSlug} (left untouched)`);
   if (APPLY) {
     console.log(`  Contacts updated:            ${updated}`);
     console.log(`  Failed:                      ${failed}`);
