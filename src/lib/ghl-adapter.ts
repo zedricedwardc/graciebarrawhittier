@@ -138,8 +138,12 @@ export async function handleOptIn(input: HandleOptInInput): Promise<HandleOptInR
     );
   }
 
+  // Set the native `source` on this PUT too — `/contacts/upsert` only writes
+  // `source` when it *creates* a contact, so an existing contact (e.g. a family
+  // member already in GHL) would keep a stale/blank source otherwise. The PUT
+  // reliably overwrites it, guaranteeing the Lead Source report is correct.
   const customFields = await cfPayload('contact', cfMap);
-  await updateContact(contactId, { customFields });
+  await updateContact(contactId, { source: channelForSource(input.source), customFields });
 
   // 3. Tag for source attribution
   await addContactTags(contactId, ['kickstart-funnel', `source-${input.source}`]);

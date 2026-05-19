@@ -1,23 +1,26 @@
 /**
- * One-time backfill — migrate legacy website contacts to the two-layer
- * lead-source model.
+ * One-time backfill — apply the two-layer lead-source model to existing
+ * contacts.
  *
- * The old opt-in code wrote the GHL native contact `source` as "Website" and
- * stored only the page-level slug in the `lead_source` CF. The current model
- * resolves the channel + readable `optin_page` page label per slug via the
- * LEAD_SOURCES registry (see src/lib/lead-types.ts).
+ * Every opt-in stores a page-level slug in the `lead_source` custom field. The
+ * current model also needs, per the LEAD_SOURCES registry (src/lib/lead-types.ts):
+ *   - the native `source` attribute set to the channel (Website Leads / Walk-In)
+ *   - the readable `optin_page` dropdown CF set to the page label
  *
- * For every contact whose native `source` is "Website" or "Website Leads",
- * this script:
- *   - sets `source` → the channel the contact's `lead_source` slug resolves to
- *     (page opt-ins → "Website Leads"; the /offer QR page → "Walk-In"), or
- *     "Website Leads" when the slug is missing/unmappable
- *   - sets the `optin_page` CF from that same slug, when it maps to a known
- *     LEAD_SOURCES registry entry
+ * Early opt-ins are missing one or both: legacy code wrote `source` as
+ * "Website", and `/contacts/upsert` never sets `source` on a contact that
+ * already existed — so many opt-in contacts carry a blank native source.
  *
- * It only writes the fields that actually differ, so it is idempotent and
- * safe to re-run. Contacts with any other `source` (Walk-In, Referral, BTM
- * imports, ...) are left untouched.
+ * This script walks every contact and, for each one carrying a `lead_source`
+ * slug that maps to a known registry entry:
+ *   - sets `source` → the slug's channel, but only when the current source is
+ *     blank or a value this migration owns (blank / Website / Website Leads /
+ *     Walk-In). A deliberate non-owned source (Referral, a GHL form name, ...)
+ *     is left untouched.
+ *   - sets `optin_page` → the slug's page label.
+ *
+ * Only fields that actually differ are written, so it is idempotent and safe
+ * to re-run. Contacts with no `lead_source` slug are untouched.
  *
  * Dry-run by default — prints the plan and writes nothing. Pass `--apply` to
  * perform the updates.
@@ -35,12 +38,14 @@ const GHL_BASE = 'https://services.leadconnectorhq.com';
 const GHL_VERSION = '2021-07-28';
 const APPLY = process.argv.includes('--apply');
 
-/** Legacy + current native `source` values that this migration owns. */
-const WEBSITE_SOURCE_VALUES = new Set(['Website', 'Website Leads']);
-/** Channel for contacts whose `lead_source` slug is missing or unmappable. */
-const DEFAULT_CHANNEL = 'Website Leads';
+/**
+ * Native `source` values this migration is allowed to overwrite — blank, the
+ * legacy "Website", or either current channel. Any other value was set
+ * deliberately (manual Referral, a GHL form name) and is left alone.
+ */
+const OWNED_SOURCE_VALUES = new Set(['', 'Website', 'Website Leads', 'Walk-In']);
 
-// slug → { channel, pageLabel }, derived from the single-source-of-truth registry.
+// slug → channel / page label, derived from the single-source-of-truth registry.
 const SLUG_TO_CHANNEL = new Map<string, string>(
   Object.entries(LEAD_SOURCES).map(([slug, def]) => [slug, def.channel]),
 );
@@ -125,16 +130,17 @@ async function main(): Promise<void> {
   console.log(`  optin_page  CF: ${optinPageCfId}\n`);
 
   let scanned = 0;
-  let websiteContacts = 0;
-  let sourceRenames = 0;
+  let optinContacts = 0;
+  let sourceSets = 0;
   let optinPageSets = 0;
   let unknownSlug = 0;
-  let alreadyCorrect = 0;
+  let keptCustomSource = 0;
+  let noChange = 0;
   let updated = 0;
   let failed = 0;
 
   let searchAfter: unknown[] | undefined;
-  for (let page = 1; ; page++) {
+  for (;;) {
     const body: Record<string, unknown> = { locationId: locationId(), pageLimit: 100 };
     if (searchAfter) body.searchAfter = searchAfter;
     const data = await ghl<{ contacts: Contact[]; total: number }>('/contacts/search', {
@@ -146,23 +152,31 @@ async function main(): Promise<void> {
     scanned += contacts.length;
 
     for (const c of contacts) {
-      if (!c.source || !WEBSITE_SOURCE_VALUES.has(c.source)) continue;
-      websiteContacts++;
-
       const cfById = new Map((c.customFields ?? []).map((f) => [f.id, f.value]));
       const slug = String(cfById.get(leadSourceCfId) ?? '').trim();
-      const currentOptinPage = String(cfById.get(optinPageCfId) ?? '').trim();
-      const desiredLabel = slug ? SLUG_TO_PAGE_LABEL.get(slug) : undefined;
-      if (slug && !desiredLabel) unknownSlug++;
+      if (!slug) continue; // not an opt-in contact
 
-      const desiredChannel = (slug && SLUG_TO_CHANNEL.get(slug)) || DEFAULT_CHANNEL;
-      const needsSource = c.source !== desiredChannel;
-      const needsOptinPage = Boolean(desiredLabel) && currentOptinPage !== desiredLabel;
+      const desiredChannel = SLUG_TO_CHANNEL.get(slug);
+      const desiredLabel = SLUG_TO_PAGE_LABEL.get(slug);
+      if (!desiredChannel || !desiredLabel) {
+        unknownSlug++;
+        continue; // legacy/unknown slug — can't map, leave it alone
+      }
+      optinContacts++;
+
+      const currentSource = String(c.source ?? '').trim();
+      const currentOptinPage = String(cfById.get(optinPageCfId) ?? '').trim();
+
+      const sourceOwned = OWNED_SOURCE_VALUES.has(currentSource);
+      const needsSource = currentSource !== desiredChannel && sourceOwned;
+      const needsOptinPage = currentOptinPage !== desiredLabel;
+      if (currentSource !== desiredChannel && !sourceOwned) keptCustomSource++;
+
       if (!needsSource && !needsOptinPage) {
-        alreadyCorrect++;
+        noChange++;
         continue;
       }
-      if (needsSource) sourceRenames++;
+      if (needsSource) sourceSets++;
       if (needsOptinPage) optinPageSets++;
 
       const update: Record<string, unknown> = {};
@@ -174,7 +188,7 @@ async function main(): Promise<void> {
       const who = `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || c.id;
       if (!APPLY) {
         const parts: string[] = [];
-        if (needsSource) parts.push(`source "${c.source}" → "${desiredChannel}"`);
+        if (needsSource) parts.push(`source "${currentSource || '(none)'}" → "${desiredChannel}"`);
         if (needsOptinPage) parts.push(`optin_page → "${desiredLabel}" (from ${slug})`);
         console.log(`  · ${who}: ${parts.join('; ')}`);
       } else {
@@ -198,11 +212,12 @@ async function main(): Promise<void> {
   console.log('\n');
   console.log('  ──────────────────────────────────────────────');
   console.log(`  Contacts scanned:            ${scanned}`);
-  console.log(`  Website-channel contacts:    ${websiteContacts}`);
-  console.log(`  Already correct (skipped):   ${alreadyCorrect}`);
-  console.log(`  Source renames ${APPLY ? 'applied' : 'planned'}:      ${sourceRenames}`);
-  console.log(`  optin_page sets ${APPLY ? 'applied' : 'planned'}:     ${optinPageSets}`);
-  console.log(`  Unmappable lead_source slug: ${unknownSlug} (source still migrated, optin_page left blank)`);
+  console.log(`  Opt-in contacts (mappable):  ${optinContacts}`);
+  console.log(`  Already correct (skipped):   ${noChange}`);
+  console.log(`  source ${APPLY ? 'set' : 'sets planned'}:${' '.repeat(APPLY ? 16 : 9)}${sourceSets}`);
+  console.log(`  optin_page ${APPLY ? 'set' : 'sets planned'}:${' '.repeat(APPLY ? 12 : 5)}${optinPageSets}`);
+  console.log(`  Kept deliberate non-owned source: ${keptCustomSource}`);
+  console.log(`  Unmappable lead_source slug: ${unknownSlug} (left untouched)`);
   if (APPLY) {
     console.log(`  Contacts updated:            ${updated}`);
     console.log(`  Failed:                      ${failed}`);

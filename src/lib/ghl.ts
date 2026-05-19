@@ -285,6 +285,13 @@ export interface UpdateContactArgs {
   lastName?: string;
   email?: string;
   phone?: string;
+  /**
+   * GHL native contact `source` attribute. Unlike `/contacts/upsert` — which
+   * only sets `source` when *creating* a contact — this PUT reliably overwrites
+   * it on existing contacts too. Set it here to guarantee the native Lead
+   * Source value lands regardless of whether the contact already existed.
+   */
+  source?: string;
   customFields?: Array<{ id: string; field_value: string | number | boolean | null }>;
 }
 
