@@ -91,7 +91,7 @@ export interface UpsertContactArgs {
   marketingConsent?: boolean;
   /**
    * GHL native contact `source` attribute. Drives the native Lead Source
-   * report on the studio dashboard. Pass a `LeadChannel` value (e.g. "Website").
+   * report on the studio dashboard. Pass a `LeadChannel` value (e.g. "Website Leads").
    * Last-touch: an upsert of an existing contact overwrites their prior source.
    */
   source?: string;

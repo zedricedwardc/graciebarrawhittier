@@ -458,7 +458,7 @@ async function runProvision(): Promise<void> {
   };
 
   async function provisionCfBatch(
-    defs: readonly { fieldKey: string; label: string; type: string }[],
+    defs: readonly { fieldKey: string; label: string; type: string; options?: readonly string[] }[],
     model: 'contact' | 'opportunity',
   ): Promise<{ created: number; skipped: number; failed: number }> {
     let c = 0, s = 0, fc = 0;
@@ -475,10 +475,21 @@ async function runProvision(): Promise<void> {
         fc++;
         continue;
       }
+      // SINGLE_OPTIONS fields require their selectable options at create time.
+      if (dataType === 'SINGLE_OPTIONS' && (!def.options || def.options.length === 0)) {
+        console.error(`  ❌ [${model}] ${def.fieldKey}: DROPDOWN_SINGLE field has no options`);
+        fc++;
+        continue;
+      }
       try {
         await ghl(`/locations/${encodeURIComponent(locationId())}/customFields`, {
           method: 'POST',
-          body: { name: def.label, dataType, model },
+          body: {
+            name: def.label,
+            dataType,
+            model,
+            ...(def.options ? { options: [...def.options] } : {}),
+          },
         });
         console.log(`  ✅ [${model}] created ${def.fieldKey} (${dataType})`);
         c++;

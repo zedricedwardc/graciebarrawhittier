@@ -7,47 +7,69 @@
  */
 
 import { z } from 'zod';
-
-export const SOURCES = [
-  'homepage-optin',
-  'kids-optin',
-  'adults-optin',
-  'contact-form',
-  'qr-offer-optin',
-] as const;
-
-export type LeadSource = (typeof SOURCES)[number];
+import { OPTIN_PAGE_LABELS, type OptInPageLabel } from '../../config/ghl-schema';
 
 /**
  * Dashboard-facing lead channels — written to the GHL native contact `source`
  * attribute so GHL's native Lead Source report (dashboard Section 5) groups by
- * them directly. Coarser than the page-level `LeadSource` slugs above.
+ * them directly. The coarse top layer of lead-source tracking.
  *
- * Only `Website` is produced by this codebase's opt-in paths. `Walk-In` is set
- * by the front-desk QR intake form, `Meta Ads` / `Google Ads` by future ad
- * campaigns, and `Referral` is applied manually — all GHL-side, not here.
+ * Today only `Website Leads` is produced by this codebase. `Walk-In` is set by
+ * the front-desk QR intake form and `Referral` is applied manually — both
+ * GHL-side. `Meta Ads` / `Google Ads` activate when ad-funnel landing pages
+ * are added as routes in this site (see LEAD_SOURCES below).
  */
-export const LEAD_CHANNELS = ['Website', 'Walk-In', 'Meta Ads', 'Google Ads', 'Referral'] as const;
+export const LEAD_CHANNELS = ['Website Leads', 'Walk-In', 'Meta Ads', 'Google Ads', 'Referral'] as const;
 export type LeadChannel = (typeof LEAD_CHANNELS)[number];
 
-/**
- * Page-level opt-in source → dashboard lead channel.
- *
- * Every current opt-in path resolves to `Website`. Note `qr-offer-optin` is the
- * `/offer` QR landing *web page* — it is still a website visit, distinct from
- * the front-desk Walk-In intake form, so it maps to `Website`.
- */
-export const SOURCE_TO_CHANNEL: Record<LeadSource, LeadChannel> = {
-  'homepage-optin': 'Website',
-  'kids-optin': 'Website',
-  'adults-optin': 'Website',
-  'contact-form': 'Website',
-  'qr-offer-optin': 'Website',
-};
+/** Two reporting layers a page-level opt-in slug resolves to. */
+export interface LeadSourceDef {
+  /** Coarse channel → GHL native contact `source` (e.g. "Website Leads", "Meta Ads"). */
+  channel: LeadChannel;
+  /** Human-readable opt-in page → `optin_page` contact CF (e.g. "Kids Page"). */
+  pageLabel: OptInPageLabel;
+}
 
-/** Resolve the dashboard lead channel for a page-level opt-in source. */
+/**
+ * Opt-in source registry — the single source of truth mapping each page-level
+ * opt-in slug to its two reporting layers (channel + page). The slug itself is
+ * stored in the `lead_source` CF and a `source-<slug>` tag for internal use.
+ *
+ * Adding an ad-funnel landing page (a new route in this site) = add one entry
+ * here with its ad channel + page label, create the page, and add the label to
+ * OPTIN_PAGE_LABELS in config/ghl-schema.ts so the dropdown CF accepts it. The
+ * channel then flows automatically to the GHL native Lead Source report.
+ */
+export const LEAD_SOURCES = {
+  'homepage-optin': { channel: 'Website Leads', pageLabel: 'Homepage' },
+  'kids-optin':     { channel: 'Website Leads', pageLabel: 'Kids Page' },
+  'adults-optin':   { channel: 'Website Leads', pageLabel: 'Adults Page' },
+  'contact-form':   { channel: 'Website Leads', pageLabel: 'Contact Page' },
+  // /offer QR landing page is still a website visit, not a front-desk Walk-In.
+  'qr-offer-optin': { channel: 'Website Leads', pageLabel: 'Offer Page (QR)' },
+  // ─── FUTURE — ad-funnel landing pages (new routes in this site) ──────────
+  // Uncomment + build the page + add the pageLabel to OPTIN_PAGE_LABELS:
+  //   'meta-generic-optin':   { channel: 'Meta Ads',   pageLabel: 'Meta Ad — General' },
+  //   'meta-kids-optin':      { channel: 'Meta Ads',   pageLabel: 'Meta Ad — Kids' },
+  //   'meta-adults-optin':    { channel: 'Meta Ads',   pageLabel: 'Meta Ad — Adults' },
+  //   'google-generic-optin': { channel: 'Google Ads', pageLabel: 'Google Ad — General' },
+  //   'google-kids-optin':    { channel: 'Google Ads', pageLabel: 'Google Ad — Kids' },
+  //   'google-adults-optin':  { channel: 'Google Ads', pageLabel: 'Google Ad — Adults' },
+} as const satisfies Record<string, LeadSourceDef>;
+
+export type LeadSource = keyof typeof LEAD_SOURCES;
+
+/** All opt-in source slugs — non-empty tuple shape for z.enum + iteration. */
+export const SOURCES = Object.keys(LEAD_SOURCES) as [LeadSource, ...LeadSource[]];
+
+/** Resolve the dashboard lead channel (GHL native `source`) for an opt-in slug. */
 export function channelForSource(source: LeadSource): LeadChannel {
-  return SOURCE_TO_CHANNEL[source];
+  return LEAD_SOURCES[source].channel;
+}
+
+/** Resolve the human-readable opt-in page label (`optin_page` CF) for a slug. */
+export function pageLabelForSource(source: LeadSource): OptInPageLabel {
+  return LEAD_SOURCES[source].pageLabel;
 }
 
 /**

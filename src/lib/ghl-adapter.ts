@@ -34,7 +34,7 @@ import {
   getOppCfValueByKey,
 } from './ghl-opportunities';
 import { cfPayload } from './ghl-custom-fields';
-import { channelForSource } from './lead-types';
+import { channelForSource, pageLabelForSource, type LeadSource } from './lead-types';
 import { deriveTraineeKey } from './trainee-key';
 import { readEnv, GhlError, type OpportunityRecord } from './ghl';
 import { getStageId } from './ghl-pipelines';
@@ -53,19 +53,15 @@ async function isAtStage(opp: OpportunityRecord, pipelineKey: PipelineKey, stage
   return opp.pipelineStageId === stageId;
 }
 
-export type OptInSource =
-  | 'homepage-optin'
-  | 'kids-optin'
-  | 'adults-optin'
-  | 'contact-form'
-  | 'qr-offer-optin';
+/** Page-level opt-in source slug. Registry of values lives in lead-types.ts. */
+export type OptInSource = LeadSource;
 
 export interface HandleOptInInput {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  source: OptInSource;
+  source: LeadSource;
   message?: string;
   trainee?: {
     firstName: string;
@@ -126,9 +122,12 @@ export async function handleOptIn(input: HandleOptInInput): Promise<HandleOptInR
   const existing = await getContact(contactId);
   const isNewContact = !existing;
 
-  // 2. Build CF patch (credits now live on Trial Credit Monitoring opp, not contact)
+  // 2. Build CF patch (credits now live on Trial Credit Monitoring opp, not contact).
+  // lead_source = internal slug; optin_page = human-readable page sub-layer
+  // (the second reporting layer beneath the native `source` channel above).
   const cfMap: Record<string, string | number | boolean | null> = {
     lead_source: input.source,
+    optin_page: pageLabelForSource(input.source),
     last_page: input.page,
   };
   if (traineeKey) {

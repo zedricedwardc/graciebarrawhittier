@@ -113,7 +113,13 @@ These shipped so the dashboard reads real data (commit on branch `master`):
 
 - **Lead channel → native `source`.** `handleOptIn` sets the GHL native contact
   `source` attribute via `channelForSource()` (`src/lib/lead-types.ts`). Every
-  website opt-in resolves to `Website`. Powers widgets 4, 22, 23, 25.
+  website opt-in resolves to `Website Leads`. Powers widgets 4, 22, 23, 25.
+- **Opt-in page sub-layer → `optin_page` CF.** `handleOptIn` also sets the
+  `optin_page` dropdown CF (Homepage / Kids Page / Adults Page / Offer Page (QR)
+  / Contact Page) via `pageLabelForSource()` — the page-level breakdown within
+  each Lead Source channel. The `LEAD_SOURCES` registry in `lead-types.ts` is
+  the single place that maps an opt-in slug to its channel + page label; adding
+  a Meta/Google ad landing page is one registry entry there.
 - **Revenue on WON.** New `set_opp_value` transition action stamps an opp's
   `monetaryValue` when it reaches `Trial Conversion / STUDENT ENROLLED (WON)`,
   read from the `enrolled_student_value` GHL custom value. Powers widgets 8–10.
@@ -150,3 +156,50 @@ GHL subaccount with a Google account:
 5. **Build the dashboard.** Dashboard → Edit Dashboard → add the 31 widgets per
    §2, 6 sections / 13 rows, default date range Last 30 Days. GHL has no
    cross-subaccount dashboard clone, so this is a manual build.
+
+---
+
+## 5. Step-by-step — BTM `RE ENROLLED` revenue workflow (runbook item #1)
+
+Builds the workflow that stamps `monetaryValue` on a Back to the Mats
+opportunity when an admin moves it to `RE ENROLLED`. ~5 minutes in the GHL UI.
+
+**Prerequisite (already done):** the `enrolled_student_value` custom value
+exists in the subaccount (value `160`).
+
+1. **Open Workflows.** Left nav → **Automation → Workflows**.
+
+2. **Start the workflow.** A draft named **`WF4 — BTM Re-Enrolled Handoff`**
+   may already exist — if so, open it and skip to step 4. Otherwise click
+   **+ Create Workflow → Start from Scratch**.
+
+3. **Name it.** Top-left title → `BTM — Set Revenue on RE ENROLLED`.
+
+4. **Add the trigger.** Click **Add New Trigger** → search `stage` → choose
+   **Pipeline Stage Changed** (older GHL labels it *Opportunity Stage Changed*).
+   - Trigger name: `Moved to RE ENROLLED`
+   - **Add filter** → `In Pipeline` → **Back to the Mats**
+   - **Add filter** → `In Stage` → **RE ENROLLED**
+   - **Save Trigger**.
+
+5. **Add the action.** Click the **+** below the trigger → **Add Action** →
+   search `Update Opportunity` → select **Update Opportunity**.
+
+6. **Set the value.** In the Update Opportunity panel, leave Pipeline / Stage /
+   Status **blank** (don't change them). Find the **Lead Value** field
+   (a.k.a. *Opportunity Value* / *Monetary Value*):
+   - Click into it → click the merge-tag icon **`{}`**
+   - **Custom Values → Enrolled Student Value** — inserts
+     `{{ custom_values.enrolled_student_value }}`
+   - **Save Action**.
+
+7. **Publish.** Top-right toggle: switch from **Draft** to **Publish**.
+
+8. **Settings (optional).** The gear → defaults are fine. *Allow Re-Entry* can
+   stay off; re-stamping the same value on re-entry would be harmless anyway.
+
+9. **Test.** Move a test BTM opportunity into `RE ENROLLED`, then open the
+   opportunity card — **Lead Value** should now read `160`.
+
+**Note — no backfill needed.** The `RE ENROLLED` stage currently holds 0 opps,
+so there is nothing to retro-fix; the workflow covers every future move.

@@ -1,24 +1,38 @@
 import { describe, it, expect } from 'vitest';
-import { SOURCES, SOURCE_TO_CHANNEL, channelForSource, LEAD_CHANNELS } from './lead-types';
+import { SOURCES, LEAD_SOURCES, channelForSource, pageLabelForSource, LEAD_CHANNELS } from './lead-types';
+import { OPTIN_PAGE_LABELS } from '../../config/ghl-schema';
 
-describe('lead channel mapping', () => {
+describe('lead source registry', () => {
   it('maps every opt-in source to a valid dashboard channel', () => {
     for (const source of SOURCES) {
-      const channel = channelForSource(source);
-      expect(LEAD_CHANNELS).toContain(channel);
+      expect(LEAD_CHANNELS).toContain(channelForSource(source));
     }
   });
 
-  it('routes all current website opt-in paths to Website', () => {
-    expect(channelForSource('homepage-optin')).toBe('Website');
-    expect(channelForSource('kids-optin')).toBe('Website');
-    expect(channelForSource('adults-optin')).toBe('Website');
-    expect(channelForSource('contact-form')).toBe('Website');
-    // /offer QR landing page is still a website visit, not a front-desk Walk-In.
-    expect(channelForSource('qr-offer-optin')).toBe('Website');
+  it('maps every opt-in source to a valid optin_page label', () => {
+    for (const source of SOURCES) {
+      expect(OPTIN_PAGE_LABELS).toContain(pageLabelForSource(source));
+    }
   });
 
-  it('SOURCE_TO_CHANNEL has an entry for every source (no unmapped slug)', () => {
-    expect(Object.keys(SOURCE_TO_CHANNEL).sort()).toEqual([...SOURCES].sort());
+  it('routes all current website opt-in paths to the Website Leads channel', () => {
+    expect(channelForSource('homepage-optin')).toBe('Website Leads');
+    expect(channelForSource('kids-optin')).toBe('Website Leads');
+    expect(channelForSource('adults-optin')).toBe('Website Leads');
+    expect(channelForSource('contact-form')).toBe('Website Leads');
+    // /offer QR landing page is still a website visit, not a front-desk Walk-In.
+    expect(channelForSource('qr-offer-optin')).toBe('Website Leads');
+  });
+
+  it('gives each website opt-in path a readable page label', () => {
+    expect(pageLabelForSource('homepage-optin')).toBe('Homepage');
+    expect(pageLabelForSource('kids-optin')).toBe('Kids Page');
+    expect(pageLabelForSource('adults-optin')).toBe('Adults Page');
+    expect(pageLabelForSource('contact-form')).toBe('Contact Page');
+    expect(pageLabelForSource('qr-offer-optin')).toBe('Offer Page (QR)');
+  });
+
+  it('SOURCES matches the registry keys exactly (no unmapped slug)', () => {
+    expect([...SOURCES].sort()).toEqual(Object.keys(LEAD_SOURCES).sort());
   });
 });

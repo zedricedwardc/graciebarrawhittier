@@ -146,7 +146,28 @@ export interface CustomFieldDef {
   type: CustomFieldType;
   description: string;
   setBy: 'webhook' | 'workflow' | 'admin';
+  /** Selectable option labels — REQUIRED for DROPDOWN_SINGLE, omitted otherwise. */
+  options?: readonly string[];
 }
+
+/**
+ * Human-readable opt-in page labels — the page-level sub-layer beneath the
+ * native Lead Source channel. Written to the `optin_page` contact CF and used
+ * as that dropdown's option set. src/lib/lead-types.ts's LEAD_SOURCES registry
+ * maps each page slug to one of these.
+ *
+ * Adding an ad-funnel landing page = add its label here + a registry entry in
+ * lead-types.ts. Re-run the onboard script (or add the option in the GHL UI)
+ * so the dropdown accepts the new value.
+ */
+export const OPTIN_PAGE_LABELS = [
+  'Homepage',
+  'Kids Page',
+  'Adults Page',
+  'Offer Page (QR)',
+  'Contact Page',
+] as const;
+export type OptInPageLabel = (typeof OPTIN_PAGE_LABELS)[number];
 
 export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
   {
@@ -167,8 +188,16 @@ export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     fieldKey: 'lead_source',
     label: 'Lead Source',
     type: 'TEXT',
-    description: 'Most recent form source (homepage-optin, kids-optin, adults-optin, contact-form).',
+    description: 'Internal opt-in source slug (homepage-optin, kids-optin, adults-optin, contact-form, qr-offer-optin). Code-facing identifier — for human-readable reporting use the optin_page dropdown and the native contact Source attribute.',
     setBy: 'webhook',
+  },
+  {
+    fieldKey: 'optin_page',
+    label: 'Opt-In Page',
+    type: 'DROPDOWN_SINGLE',
+    description: 'Human-readable page the contact opted in from (Homepage, Kids Page, Adults Page, ...). The page-level sub-layer beneath the native Lead Source channel; set alongside lead_source on every opt-in. Drives a page-level breakdown within each Lead Source bucket on the dashboard.',
+    setBy: 'webhook',
+    options: OPTIN_PAGE_LABELS,
   },
   {
     fieldKey: 'last_page',
