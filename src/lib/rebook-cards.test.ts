@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTraineeCards, type OppFacts } from './rebook-cards';
+import { resolveTraineeCards, CONTACT_SCOPED_TRAINEE_KEY, type OppFacts } from './rebook-cards';
 
 function fact(over: Partial<OppFacts>): OppFacts {
   return {
@@ -73,5 +73,9 @@ describe('resolveTraineeCards', () => {
     ]);
     expect(cards).toHaveLength(2);
     expect(new Set(cards.map((c) => c.status))).toEqual(new Set(['active', 'pending']));
+  });
+
+  it('exports the sentinel value for contact-scoped tokens', () => {
+    expect(CONTACT_SCOPED_TRAINEE_KEY).toBe('__contact__');
   });
 });

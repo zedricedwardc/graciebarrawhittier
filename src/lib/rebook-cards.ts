@@ -60,7 +60,10 @@ export async function extractOppFacts(
   const lastAttendanceISO = (await getOppCfValueByKey<string>(opp, 'last_attendance_iso')) ?? null;
   const lastAppointmentStartISO =
     (await getOppCfValueByKey<string>(opp, 'last_appointment_start_iso')) ?? null;
-  const status = (opp.status as OppFacts['status']) ?? 'open';
+  const RAW_STATUSES: ReadonlyArray<OppFacts['status']> = ['open', 'won', 'lost', 'abandoned'];
+  const status: OppFacts['status'] = RAW_STATUSES.includes(opp.status as OppFacts['status'])
+    ? (opp.status as OppFacts['status'])
+    : 'open';
   return {
     pipeline,
     status,
