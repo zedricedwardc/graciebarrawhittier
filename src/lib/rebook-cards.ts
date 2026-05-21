@@ -43,7 +43,8 @@ export interface ResolvedTrainee {
   status: TraineeStatus;
   creditsRemaining: number;
   lastAttendanceISO: string | null;
-  pendingClassISO: string | null;
+  /** Next/most-recent appointment ISO datetime, or null if the opp has none. */
+  nextClassISO: string | null;
 }
 
 /** Read one opportunity into normalized OppFacts (async — reads custom fields). */
@@ -108,7 +109,7 @@ export function resolveTraineeCards(facts: OppFacts[]): ResolvedTrainee[] {
         status: 'enrolled',
         creditsRemaining: 0,
         lastAttendanceISO: enrolled.lastAttendanceISO,
-        pendingClassISO: null,
+        nextClassISO: enrolled.lastAppointmentStartISO,
       });
     } else if (credit) {
       cards.push({
@@ -118,7 +119,7 @@ export function resolveTraineeCards(facts: OppFacts[]): ResolvedTrainee[] {
         status: credit.creditsRemaining > 0 ? 'active' : 'exhausted',
         creditsRemaining: credit.creditsRemaining,
         lastAttendanceISO: credit.lastAttendanceISO,
-        pendingClassISO: null,
+        nextClassISO: credit.lastAppointmentStartISO,
       });
     } else if (pendingTrial) {
       cards.push({
@@ -128,7 +129,7 @@ export function resolveTraineeCards(facts: OppFacts[]): ResolvedTrainee[] {
         status: 'pending',
         creditsRemaining: 0,
         lastAttendanceISO: pendingTrial.lastAttendanceISO,
-        pendingClassISO: pendingTrial.lastAppointmentStartISO,
+        nextClassISO: pendingTrial.lastAppointmentStartISO,
       });
     }
   }
