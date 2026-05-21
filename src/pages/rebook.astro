@@ -411,13 +411,7 @@ const renderTs = Date.now();
           }
           <h3 class="text-lg md:text-xl font-extrabold text-gb-navy truncate">${escapeHtml(t.traineeName)}</h3>
           <p class="text-sm text-gb-text-muted">${escapeHtml(programLabel)}</p>
-          ${
-            t.status === 'pending' && t.pendingClassISO
-              ? `<p class="mt-1 text-xs text-gb-text-muted">Trial class: ${formatDate(t.pendingClassISO)}</p>`
-              : t.lastAttendanceISO
-                ? `<p class="mt-1 text-xs text-gb-text-muted">Last attended: ${formatDate(t.lastAttendanceISO)}</p>`
-                : ''
-          }
+          ${appointmentLine(t)}
         </div>
         ${statusBadge(t)}
       `;
@@ -494,11 +488,6 @@ const renderTs = Date.now();
     function escapeHtml(s: string): string {
       return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
     }
-    function formatDate(iso: string): string {
-      const d = new Date(iso);
-      if (Number.isNaN(d.getTime())) return iso;
-      return new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric' }).format(d);
-    }
     /** "Thu, May 28 · 4:00 PM" in America/Los_Angeles. */
     function formatDateTime(iso: string): string {
       const d = new Date(iso);
@@ -515,6 +504,18 @@ const renderTs = Date.now();
     function isFuture(iso: string): boolean {
       const d = new Date(iso);
       return !Number.isNaN(d.getTime()) && d.getTime() > Date.now();
+    }
+    /**
+     * The persistent under-the-program-name line for a card:
+     *   - future appointment → navy semibold "Next class" / "Trial class" line
+     *   - no future appointment → muted "No upcoming class booked" note
+     */
+    function appointmentLine(t: Trainee): string {
+      if (t.nextClassISO && isFuture(t.nextClassISO)) {
+        const label = t.status === 'pending' ? 'Trial class' : 'Next class';
+        return `<p class="mt-1 text-sm font-semibold text-gb-navy">${label}: ${escapeHtml(formatDateTime(t.nextClassISO))}</p>`;
+      }
+      return `<p class="mt-1 text-xs text-gb-text-muted">No upcoming class booked</p>`;
     }
 
     // ─── Card expand/collapse — moves the shared #booking-flow DOM ──────
