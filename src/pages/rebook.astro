@@ -311,8 +311,13 @@ const renderTs = Date.now();
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.dataset.addPersonOpen = '';
-      btn.className = 'flex-1 w-full text-gb-navy font-bold text-base flex items-center justify-center gap-2 min-h-[7rem] hover:text-gb-red transition-colors';
-      btn.textContent = '+ Add a new person';
+      btn.className = 'flex-1 w-full text-gb-navy font-bold text-base flex flex-col items-center justify-center gap-2 min-h-[7rem] opacity-50 hover:opacity-100 hover:text-gb-red transition-all';
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" class="w-9 h-9" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+          <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span>Add a new person</span>`;
       btn.addEventListener('click', () => openAddPerson());
       tile.appendChild(btn);
       const area = document.createElement('div');
@@ -332,7 +337,7 @@ const renderTs = Date.now();
 
     function statusBadge(t: Trainee): string {
       if (t.status === 'enrolled') {
-        return `<div class="text-right shrink-0"><span class="inline-block bg-gb-bg-light text-gb-navy text-[10px] font-bold tracking-wider px-2 py-1 rounded uppercase whitespace-nowrap">Enrolled</span></div>`;
+        return `<div class="text-right shrink-0"><span class="inline-block bg-gb-green/10 text-gb-green text-[10px] font-bold tracking-wider px-2 py-1 rounded uppercase whitespace-nowrap">Enrolled</span></div>`;
       }
       if (t.status === 'pending') {
         return `<div class="text-right shrink-0"><span class="inline-block bg-gb-bg-light text-gb-navy text-[10px] font-bold tracking-wider px-2 py-1 rounded uppercase whitespace-nowrap">Trial booked</span></div>`;
