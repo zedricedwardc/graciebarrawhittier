@@ -15,7 +15,7 @@
  *
  * Returns:
  *   { ok: true, trainee: { traineeName, traineeKey, program,
- *                          status: 'pending', pendingClassISO } }
+ *                          status: 'pending', nextClassISO } }
  *   | { ok: false, code: 'INVALID_INPUT' | 'INVALID_TOKEN' | 'NOT_FOUND'
  *                       | 'SLOT_TAKEN' | 'RATE_LIMITED' | 'GHL_FAILED',
  *       alternates?, message? }
@@ -188,13 +188,13 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       traineeKey,
       program: body.program,
       status: 'pending' as const,
-      pendingClassISO: body.slotStartISO,
+      nextClassISO: body.slotStartISO,
     },
   });
 };
 
 function spamTrainee(program: ProgramKey) {
-  return { traineeName: '', traineeKey: 'spam-discarded', program, status: 'pending' as const, pendingClassISO: null };
+  return { traineeName: '', traineeKey: 'spam-discarded', program, status: 'pending' as const, nextClassISO: null };
 }
 
 function checkRate(ip: string): boolean {
