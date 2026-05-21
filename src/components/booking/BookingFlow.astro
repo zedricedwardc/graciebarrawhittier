@@ -28,6 +28,11 @@ export interface Props {
    * pipeline routing when applicable. Default 'trial' preserves /kickstart.
    */
   flow?: 'trial' | 'btm';
+  /**
+   * When set, ProgramSurvey renders an "Already have an appointment?" link
+   * inside the survey card footer pointing here (e.g. '/rebook/').
+   */
+  returningHref?: string;
 }
 
 const {
@@ -36,6 +41,7 @@ const {
   bareSurvey,
   maxWidthClass = 'max-w-3xl',
   flow = 'trial',
+  returningHref,
 } = Astro.props;
 
 const renderTs = Date.now();
@@ -48,7 +54,7 @@ const renderTs = Date.now();
   data-flow={flow}
 >
   <div data-step="survey">
-    <ProgramSurvey heading={surveyHeading} description={surveyDescription} bare={bareSurvey} />
+    <ProgramSurvey heading={surveyHeading} description={surveyDescription} bare={bareSurvey} returningHref={returningHref} />
   </div>
   <div data-step="date" hidden>
     <DatePicker />

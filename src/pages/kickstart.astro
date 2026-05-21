@@ -29,14 +29,10 @@ import BookingFlow from '../components/booking/BookingFlow.astro';
     </p>
   </section>
 
-  <!-- Section 2: BookingFlow (replaces former iframe block) -->
-  <BookingFlow />
-
-  <!-- Returning-customer link: route active-trial-pass holders to /rebook -->
-  <p data-hide-on-success class="text-center text-sm text-gb-text-muted px-4 pt-4 pb-2">
-    Already have an appointment?
-    <a href="/rebook/" class="underline font-semibold text-gb-navy hover:text-gb-red transition-colors">View it here</a>
-  </p>
+  <!-- Section 2: BookingFlow (replaces former iframe block).
+       returningHref renders the "Already have an appointment?" link inside
+       the survey gold card — routes returning trial-pass holders to /rebook. -->
+  <BookingFlow returningHref="/rebook/" />
 
   <!-- Section 3: Age routing guide -->
   <section data-hide-on-success class="max-w-3xl mx-auto px-4 md:px-6 pb-8">

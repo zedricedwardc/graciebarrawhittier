@@ -21,12 +21,19 @@ export interface Props {
    * inside their own gold container — avoids nested gold cards.
    */
   bare?: boolean;
+  /**
+   * When set, renders an "Already have an appointment? View it here" link
+   * inside the gold card footer (non-bare only). Used on /kickstart to route
+   * returning active-trial-pass holders to the rebook dashboard.
+   */
+  returningHref?: string;
 }
 
 const {
   heading = 'Pick Your First Class',
   description = "Answer two quick questions and we'll show you the right calendar.",
   bare = false,
+  returningHref,
 } = Astro.props;
 ---
 
@@ -75,6 +82,13 @@ const {
         ))}
       </div>
     </fieldset>
+
+    {returningHref && (
+      <p class="text-center text-sm text-gb-text-muted mt-6 pt-5 border-t border-gb-bg-light">
+        Already have an appointment?
+        <a href={returningHref} class="underline font-semibold text-gb-navy hover:text-gb-red transition-colors">View it here</a>
+      </p>
+    )}
   </div>
 )}
 
