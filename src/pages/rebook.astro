@@ -222,7 +222,7 @@ const renderTs = Date.now();
     status: TraineeStatus;
     creditsRemaining: number;
     lastAttendanceISO: string | null;
-    pendingClassISO: string | null;
+    nextClassISO: string | null;
     sessionToken?: string;
   }
 
@@ -498,6 +498,23 @@ const renderTs = Date.now();
       const d = new Date(iso);
       if (Number.isNaN(d.getTime())) return iso;
       return new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric' }).format(d);
+    }
+    /** "Thu, May 28 · 4:00 PM" in America/Los_Angeles. */
+    function formatDateTime(iso: string): string {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      const tz = 'America/Los_Angeles';
+      const datePart = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, weekday: 'short', month: 'short', day: 'numeric',
+      }).format(d);
+      const timePart = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hour: 'numeric', minute: '2-digit',
+      }).format(d);
+      return `${datePart} · ${timePart}`;
+    }
+    function isFuture(iso: string): boolean {
+      const d = new Date(iso);
+      return !Number.isNaN(d.getTime()) && d.getTime() > Date.now();
     }
 
     // ─── Card expand/collapse — moves the shared #booking-flow DOM ──────
