@@ -32,12 +32,33 @@ describe('resolveTraineeCards', () => {
       fact({ pipeline: 'TRIAL_CONV', status: 'open', lastAppointmentStartISO: '2026-05-24T16:00:00-07:00' }),
     ]);
     expect(card!.status).toBe('pending');
-    expect(card!.pendingClassISO).toBe('2026-05-24T16:00:00-07:00');
+    expect(card!.nextClassISO).toBe('2026-05-24T16:00:00-07:00');
   });
 
   it('renders an enrolled card for a won trial-conv opp', () => {
     const [card] = resolveTraineeCards([fact({ pipeline: 'TRIAL_CONV', status: 'won' })]);
     expect(card!.status).toBe('enrolled');
+  });
+
+  it('populates nextClassISO for an active card from the credit opp', () => {
+    const [card] = resolveTraineeCards([
+      fact({ creditsRemaining: 2, lastAppointmentStartISO: '2026-06-01T18:00:00-07:00' }),
+    ]);
+    expect(card!.status).toBe('active');
+    expect(card!.nextClassISO).toBe('2026-06-01T18:00:00-07:00');
+  });
+
+  it('populates nextClassISO for an enrolled card from the won trial-conv opp', () => {
+    const [card] = resolveTraineeCards([
+      fact({ pipeline: 'TRIAL_CONV', status: 'won', lastAppointmentStartISO: '2026-06-05T17:00:00-07:00' }),
+    ]);
+    expect(card!.status).toBe('enrolled');
+    expect(card!.nextClassISO).toBe('2026-06-05T17:00:00-07:00');
+  });
+
+  it('leaves nextClassISO null when the opp has no last appointment', () => {
+    const [card] = resolveTraineeCards([fact({ creditsRemaining: 1 })]);
+    expect(card!.nextClassISO).toBeNull();
   });
 
   it('credit opp beats a pending trial-conv opp for the same trainee_key', () => {

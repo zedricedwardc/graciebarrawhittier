@@ -17,7 +17,7 @@
  *
  * Returns:
  *   { ok: true, contactId, contactToken, trainees: [{ traineeName, traineeKey,
- *     program, status, creditsRemaining, lastAttendanceISO, pendingClassISO,
+ *     program, status, creditsRemaining, lastAttendanceISO, nextClassISO,
  *     sessionToken? }, ...] }
  *   | { ok: false, code: 'INVALID_INPUT' | 'NOT_FOUND' | 'RATE_LIMITED' | 'GHL_FAILED' }
  *
@@ -62,8 +62,8 @@ export interface TraineeCard {
   status: 'enrolled' | 'active' | 'exhausted' | 'pending';
   creditsRemaining: number;
   lastAttendanceISO: string | null;
-  /** Booked class start ISO — set only for `pending` cards. */
-  pendingClassISO: string | null;
+  /** Next/most-recent appointment start ISO for this trainee, or null. */
+  nextClassISO: string | null;
   /**
    * 15-min token authorizing /api/book against this trainee. Present only on
    * `active` / `exhausted` cards — `enrolled` / `pending` have no booking action.
@@ -144,7 +144,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     status: r.status,
     creditsRemaining: r.creditsRemaining,
     lastAttendanceISO: r.lastAttendanceISO,
-    pendingClassISO: r.pendingClassISO,
+    nextClassISO: r.nextClassISO,
     sessionToken:
       r.status === 'active' || r.status === 'exhausted'
         ? signRebookToken({ contactId: contact.id, traineeKey: r.traineeKey, ttlDays: 1 / 96 })

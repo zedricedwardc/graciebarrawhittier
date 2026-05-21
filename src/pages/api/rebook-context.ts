@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request }) => {
     status: r.status,
     creditsRemaining: r.creditsRemaining,
     lastAttendanceISO: r.lastAttendanceISO,
-    pendingClassISO: r.pendingClassISO,
+    nextClassISO: r.nextClassISO,
     sessionToken:
       r.status === 'active' || r.status === 'exhausted'
         ? signRebookToken({ contactId, traineeKey: r.traineeKey, ttlDays: 1 / 96 })
