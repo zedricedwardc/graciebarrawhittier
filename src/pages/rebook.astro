@@ -340,7 +340,7 @@ const renderTs = Date.now();
         return `<div class="text-right shrink-0"><span class="inline-block bg-gb-green/10 text-gb-green text-[10px] font-bold tracking-wider px-2 py-1 rounded uppercase whitespace-nowrap">Enrolled</span></div>`;
       }
       if (t.status === 'pending') {
-        return `<div class="text-right shrink-0"><span class="inline-block bg-gb-bg-light text-gb-navy text-[10px] font-bold tracking-wider px-2 py-1 rounded uppercase whitespace-nowrap">Trial booked</span></div>`;
+        return `<div class="text-right shrink-0"><span class="inline-block bg-gb-red/10 text-gb-red text-[10px] font-bold tracking-wider px-2 py-1 rounded uppercase whitespace-nowrap">Trial booked</span></div>`;
       }
       return `<div class="text-right shrink-0">
           <p class="text-2xl md:text-3xl font-extrabold text-gb-red leading-none">${t.creditsRemaining}</p>
@@ -356,17 +356,25 @@ const renderTs = Date.now();
       const card = document.createElement('article');
       card.dataset.traineeCard = '';
       card.dataset.traineeKey = t.traineeKey;
-      // Border / bg priorities: active > exhausted > default.
-      // Exhausted gets red border + soft red tint to draw attention to the
-      // "trial complete, enroll next" call-to-action.
+      // Border / bg keyed off trainee status:
+      //   enrolled  — green tint + green border (settled student)
+      //   active    — white + gold border (trial running)
+      //   exhausted — red tint + red border ("trial complete, enroll next")
+      //   pending   — white + light border (trial booked, not yet activated)
       const baseClass = 'rounded-2xl shadow-md border-2 p-5 md:p-6 transition-colors';
-      if (isActive) {
-        card.className = `bg-gb-white ${baseClass} border-gb-gold ${ACTIVE_SPAN_CLASSES.join(' ')}`;
+      let stateClass: string;
+      if (t.status === 'enrolled') {
+        stateClass = 'bg-gb-green/5 border-gb-green';
       } else if (isExhausted) {
-        card.className = `bg-gb-red/5 ${baseClass} border-gb-red`;
+        stateClass = 'bg-gb-red/5 border-gb-red';
+      } else if (t.status === 'active') {
+        stateClass = 'bg-gb-white border-gb-gold';
       } else {
-        card.className = `bg-gb-white ${baseClass} border-gb-bg-light`;
+        stateClass = 'bg-gb-white border-gb-bg-light';
       }
+      card.className = isActive
+        ? `${baseClass} ${stateClass} ${ACTIVE_SPAN_CLASSES.join(' ')}`
+        : `${baseClass} ${stateClass}`;
 
       const header = document.createElement('div');
       header.className = 'flex items-start justify-between gap-4';
