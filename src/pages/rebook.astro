@@ -385,7 +385,10 @@ const renderTs = Date.now();
       //   active    — white + gold border (trial running)
       //   exhausted — red tint + red border ("trial complete, enroll next")
       //   pending   — white + light border (trial booked, not yet activated)
-      const baseClass = 'rounded-2xl shadow-md border-2 p-5 md:p-6 transition-colors';
+      // flex flex-col + mt-auto on the actions block bottom-aligns the
+      // button / note across cards in a row, regardless of how many lines
+      // the trainee name or program label wraps to.
+      const baseClass = 'rounded-2xl shadow-md border-2 p-5 md:p-6 transition-colors flex flex-col';
       let stateClass: string;
       if (t.status === 'enrolled') {
         stateClass = 'bg-gb-green/5 border-gb-green';
@@ -418,7 +421,7 @@ const renderTs = Date.now();
       card.appendChild(header);
 
       const actions = document.createElement('div');
-      actions.className = 'mt-5';
+      actions.className = 'mt-auto pt-5';
 
       if (t.status === 'pending' || t.status === 'enrolled') {
         const note = document.createElement('p');
