@@ -96,6 +96,15 @@ const renderTs = Date.now();
         Pick a trainee below to book their next class.
       </p>
       <div data-trainee-list class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"></div>
+
+      {/* Enrolled students — settled members, no booking action; kept apart
+          from the active-trial cards so the booking call-to-action stays clear. */}
+      <div data-enrolled-section hidden class="mt-10 pt-8 border-t border-gb-bg-light">
+        <h2 class="text-sm font-bold tracking-wider uppercase text-gb-text-muted text-center mb-5">
+          Enrolled students
+        </h2>
+        <div data-enrolled-list class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"></div>
+      </div>
       {/*
         Tailwind safelist: these classes are toggled on the active card via JS
         in toggleCard()/collapseActive(). Tailwind only compiles classes it
@@ -275,6 +284,8 @@ const renderTs = Date.now();
 
     const dashboardEl = root.querySelector<HTMLElement>('[data-step="dashboard"]');
     const traineeList = root.querySelector<HTMLElement>('[data-trainee-list]');
+    const enrolledSection = root.querySelector<HTMLElement>('[data-enrolled-section]');
+    const enrolledList = root.querySelector<HTMLElement>('[data-enrolled-list]');
     const backToLookupBtn = root.querySelector<HTMLButtonElement>('[data-back-to-lookup]');
 
     const bookingFlow = document.getElementById('booking-flow') as HTMLElement | null;
@@ -297,11 +308,24 @@ const renderTs = Date.now();
 
     function renderCards() {
       if (!traineeList) return;
+      // Split: active-trial cards (bookable) go in the main grid with the
+      // add-person tile; enrolled students drop into their own section.
+      const bookable = state.trainees.filter((t) => t.status !== 'enrolled');
+      const enrolled = state.trainees.filter((t) => t.status === 'enrolled');
+
       traineeList.innerHTML = '';
-      for (const t of state.trainees) {
+      for (const t of bookable) {
         traineeList.appendChild(buildCard(t));
       }
       traineeList.appendChild(buildAddPersonTile());
+
+      if (enrolledList) {
+        enrolledList.innerHTML = '';
+        for (const t of enrolled) {
+          enrolledList.appendChild(buildCard(t));
+        }
+      }
+      if (enrolledSection) enrolledSection.hidden = enrolled.length === 0;
     }
 
     function buildAddPersonTile(): HTMLElement {
