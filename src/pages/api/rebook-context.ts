@@ -1,21 +1,21 @@
 /**
  * POST /api/rebook-context
  *
- * Magic-link entry path for /rebook. Accepts a long-lived rebook token
- * (minted at trial activation in Phase 4 and stored on the Trial Credit
- * Monitoring opportunity's `rebook_link_token` custom field), verifies it,
- * fetches fresh credit context from GHL, and returns the multi-trainee
- * dashboard payload — same shape as /api/rebook-lookup, plus a
- * `tokenTraineeKey` flag pointing at the trainee the magic link was minted
- * for (so the page can pre-expand that card).
+ * Magic-link entry path for /rebook. Accepts a long-lived rebook token,
+ * verifies it, fetches fresh context from GHL, and returns the multi-trainee
+ * dashboard payload merged from BOTH the Trial Credit Monitoring and Trial
+ * Conversion pipelines — one card per trainee with a `status`
+ * (`enrolled` / `active` / `exhausted` / `pending`).
+ *
+ * The response includes a `contactToken` (15-min contact-scoped token for the
+ * add-a-new-person action) plus `tokenTraineeKey` pointing at the trainee the
+ * magic link was minted for (so the page can pre-expand that card). Each
+ * active/exhausted card also carries its own short-lived session token for
+ * /api/book — keeps the magic-link token out of subsequent request bodies.
  *
  * Returns:
- *   { ok: true, contactId, tokenTraineeKey, trainees: [...] }
+ *   { ok: true, contactId, contactToken, tokenTraineeKey, trainees: [...] }
  *   | { ok: false, code: 'INVALID_TOKEN' | 'NOT_FOUND' | 'GHL_FAILED' }
- *
- * Each trainee in the response carries its own short-lived (15-min) session
- * token used by /api/book — keeps the magic-link token out of subsequent
- * request bodies after the initial validation.
  */
 
 import type { APIRoute } from 'astro';
@@ -25,9 +25,14 @@ import {
   GhlError,
   type OpportunityRecord,
 } from '../../lib/ghl';
-import { getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { getPipelineId } from '../../lib/ghl-pipelines';
 import { signRebookToken, verifyRebookToken } from '../../lib/rebook-token';
+import {
+  extractOppFacts,
+  resolveTraineeCards,
+  CONTACT_SCOPED_TRAINEE_KEY,
+  type OppFacts,
+} from '../../lib/rebook-cards';
 import type { TraineeCard } from './rebook-lookup';
 
 export const prerender = false;
@@ -55,20 +60,24 @@ export const POST: APIRoute = async ({ request }) => {
   const { contactId, traineeKey: tokenTraineeKey } = verified.payload;
 
   let creditPipelineId: string;
+  let trialPipelineId: string;
   try {
-    creditPipelineId = await getPipelineId('CREDIT_MON');
+    [creditPipelineId, trialPipelineId] = await Promise.all([
+      getPipelineId('CREDIT_MON'),
+      getPipelineId('TRIAL_CONV'),
+    ]);
   } catch (err) {
-    console.error('[rebook-context] could not resolve Credit Mon pipeline', err);
+    console.error('[rebook-context] could not resolve pipelines', err);
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  let opps: OpportunityRecord[] = [];
+  let creditOpps: OpportunityRecord[] = [];
+  let trialOpps: OpportunityRecord[] = [];
   try {
-    opps = await searchOpportunities({
-      contactId,
-      pipelineId: creditPipelineId,
-      status: 'open',
-    });
+    [creditOpps, trialOpps] = await Promise.all([
+      searchOpportunities({ contactId, pipelineId: creditPipelineId, status: 'open' }),
+      searchOpportunities({ contactId, pipelineId: trialPipelineId, status: 'all' }),
+    ]);
   } catch (err) {
     console.error(
       '[rebook-context] searchOpportunities failed',
@@ -77,39 +86,40 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  // Build a card for every open Credit-Monitoring opp; the page will pre-expand
-  // the one matching the token's traineeKey.
-  const trainees = await opps.reduce(async (accP, o) => {
-    const acc = await accP;
-    const tk = (await getOppCfValueByKey<string>(o, 'trainee_key')) ?? '';
-    const tn = (await getOppCfValueByKey<string>(o, 'trainee_first_name')) ?? '';
-    if (!tk || !tn) return acc;
-    const program = (await getOppCfValueByKey<string>(o, 'program')) ?? 'adults';
-    const creditsRaw = await getOppCfValueByKey<string | number>(o, 'credits_remaining');
-    const creditsRemaining = Number(creditsRaw ?? 0);
-    const lastAttendanceISO = (await getOppCfValueByKey<string>(o, 'last_attendance_iso')) ?? null;
-    acc.push({
-      traineeName: tn.trim(),
-      traineeKey: tk,
-      program,
-      creditsRemaining: Number.isFinite(creditsRemaining) ? creditsRemaining : 0,
-      lastAttendanceISO,
-      sessionToken: signRebookToken({
-        contactId,
-        traineeKey: tk,
-        ttlDays: 1 / 96,
-      }),
-    });
-    return acc;
-  }, Promise.resolve([] as TraineeCard[]));
+  const factsArrays = await Promise.all([
+    ...creditOpps.map((o) => extractOppFacts(o, 'CREDIT_MON')),
+    ...trialOpps.map((o) => extractOppFacts(o, 'TRIAL_CONV')),
+  ]);
+  const facts: OppFacts[] = factsArrays.filter((f): f is OppFacts => f !== null);
+
+  const trainees: TraineeCard[] = resolveTraineeCards(facts).map((r) => ({
+    traineeName: r.traineeName,
+    traineeKey: r.traineeKey,
+    program: r.program,
+    status: r.status,
+    creditsRemaining: r.creditsRemaining,
+    lastAttendanceISO: r.lastAttendanceISO,
+    pendingClassISO: r.pendingClassISO,
+    sessionToken:
+      r.status === 'active' || r.status === 'exhausted'
+        ? signRebookToken({ contactId, traineeKey: r.traineeKey, ttlDays: 1 / 96 })
+        : undefined,
+  }));
 
   if (trainees.length === 0) {
     return json({ ok: false, code: 'NOT_FOUND' });
   }
 
+  const contactToken = signRebookToken({
+    contactId,
+    traineeKey: CONTACT_SCOPED_TRAINEE_KEY,
+    ttlDays: 1 / 96,
+  });
+
   return json({
     ok: true,
     contactId,
+    contactToken,
     tokenTraineeKey,
     trainees,
   });

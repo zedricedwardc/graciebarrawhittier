@@ -102,7 +102,9 @@ const renderTs = Date.now();
         sees in source, so without this hidden marker the dynamic classes
         wouldn't make it into the CSS bundle.
       */}
-      <span hidden class="sm:col-span-2 lg:col-span-3 order-first"></span>
+      <span hidden class="sm:col-span-2 lg:col-span-3 order-first
+        border-dashed border-gb-text-muted text-gb-text-muted
+        bg-gb-bg-light text-gb-navy"></span>
 
       <button
         type="button"
@@ -203,13 +205,16 @@ const renderTs = Date.now();
   type CardStep = 'idle' | 'change-program' | 'date' | 'slot' | 'confirm' | 'success' | 'error';
 
   interface Slot { startISO: string; endISO: string; label: string; }
+  type TraineeStatus = 'enrolled' | 'active' | 'exhausted' | 'pending';
   interface Trainee {
     traineeName: string;
     traineeKey: string;
     program: string;
+    status: TraineeStatus;
     creditsRemaining: number;
     lastAttendanceISO: string | null;
-    sessionToken: string;
+    pendingClassISO: string | null;
+    sessionToken?: string;
   }
 
   const PROGRAM_NAME: Record<ProgramKey, string> = {
@@ -235,6 +240,7 @@ const renderTs = Date.now();
     const state = {
       step: 'lookup' as Step,
       contactId: null as string | null,
+      contactToken: null as string | null,
       trainees: [] as Trainee[],
       activeTraineeKey: null as string | null,
       cardStep: 'idle' as CardStep,
@@ -253,6 +259,12 @@ const renderTs = Date.now();
       submitting: false,
       pageRenderTs: Number(root.dataset.renderTs ?? Date.now()),
       lastError: '',
+      addPerson: {
+        open: false,
+        step: 'details' as 'details' | 'date' | 'slot' | 'confirm' | 'error',
+        firstName: '',
+        age: 0,
+      },
     };
 
     const lookupLoading = root.querySelector<HTMLElement>('[data-lookup-loading]');
@@ -289,6 +301,25 @@ const renderTs = Date.now();
       for (const t of state.trainees) {
         traineeList.appendChild(buildCard(t));
       }
+      traineeList.appendChild(buildAddPersonTile());
+    }
+
+    function buildAddPersonTile(): HTMLElement {
+      const tile = document.createElement('article');
+      tile.dataset.addPersonTile = '';
+      tile.className = 'rounded-2xl border-2 border-dashed border-gb-text-muted p-5 md:p-6 flex flex-col';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.addPersonOpen = '';
+      btn.className = 'flex-1 w-full text-gb-navy font-bold text-base flex items-center justify-center gap-2 min-h-[7rem] hover:text-gb-red transition-colors';
+      btn.textContent = '+ Add a new person';
+      btn.addEventListener('click', () => openAddPerson());
+      tile.appendChild(btn);
+      const area = document.createElement('div');
+      area.dataset.addPersonArea = '';
+      area.hidden = true;
+      tile.appendChild(area);
+      return tile;
     }
 
     /**
@@ -299,9 +330,22 @@ const renderTs = Date.now();
      */
     const ACTIVE_SPAN_CLASSES = ['sm:col-span-2', 'lg:col-span-3', 'order-first'];
 
+    function statusBadge(t: Trainee): string {
+      if (t.status === 'enrolled') {
+        return `<div class="text-right shrink-0"><span class="inline-block bg-gb-bg-light text-gb-navy text-[10px] font-bold tracking-wider px-2 py-1 rounded uppercase whitespace-nowrap">Enrolled</span></div>`;
+      }
+      if (t.status === 'pending') {
+        return `<div class="text-right shrink-0"><span class="inline-block bg-gb-bg-light text-gb-navy text-[10px] font-bold tracking-wider px-2 py-1 rounded uppercase whitespace-nowrap">Trial booked</span></div>`;
+      }
+      return `<div class="text-right shrink-0">
+          <p class="text-2xl md:text-3xl font-extrabold text-gb-red leading-none">${t.creditsRemaining}</p>
+          <p class="text-xs text-gb-text-muted">${t.creditsRemaining === 1 ? 'class left' : 'classes left'}</p>
+        </div>`;
+    }
+
     function buildCard(t: Trainee): HTMLElement {
       const isActive = state.activeTraineeKey === t.traineeKey;
-      const isExhausted = t.creditsRemaining <= 0;
+      const isExhausted = t.status === 'exhausted';
       const programLabel = PROGRAM_NAME[t.program as ProgramKey] ?? t.program;
 
       const card = document.createElement('article');
@@ -331,20 +375,36 @@ const renderTs = Date.now();
           <h3 class="text-lg md:text-xl font-extrabold text-gb-navy truncate">${escapeHtml(t.traineeName)}</h3>
           <p class="text-sm text-gb-text-muted">${escapeHtml(programLabel)}</p>
           ${
-            t.lastAttendanceISO
-              ? `<p class="mt-1 text-xs text-gb-text-muted">Last attended: ${formatDate(t.lastAttendanceISO)}</p>`
-              : ''
+            t.status === 'pending' && t.pendingClassISO
+              ? `<p class="mt-1 text-xs text-gb-text-muted">Trial class: ${formatDate(t.pendingClassISO)}</p>`
+              : t.lastAttendanceISO
+                ? `<p class="mt-1 text-xs text-gb-text-muted">Last attended: ${formatDate(t.lastAttendanceISO)}</p>`
+                : ''
           }
         </div>
-        <div class="text-right shrink-0">
-          <p class="text-2xl md:text-3xl font-extrabold text-gb-red leading-none">${t.creditsRemaining}</p>
-          <p class="text-xs text-gb-text-muted">${t.creditsRemaining === 1 ? 'class left' : 'classes left'}</p>
-        </div>
+        ${statusBadge(t)}
       `;
       card.appendChild(header);
 
       const actions = document.createElement('div');
       actions.className = 'mt-5';
+
+      if (t.status === 'pending' || t.status === 'enrolled') {
+        const note = document.createElement('p');
+        note.className = 'text-sm text-gb-text-muted';
+        note.textContent = t.status === 'pending'
+          ? "We'll see them in class — booking opens once they've attended."
+          : 'Enrolled student.';
+        actions.appendChild(note);
+        card.appendChild(actions);
+        const successArea = document.createElement('div');
+        successArea.dataset.cardSuccess = '';
+        successArea.hidden = true;
+        successArea.className = 'mt-5 pt-5 border-t border-gb-bg-light text-sm text-gb-text-muted font-semibold';
+        card.appendChild(successArea);
+        return card;
+      }
+
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.dataset.bookHere = '';
@@ -409,7 +469,7 @@ const renderTs = Date.now();
         collapseActive();
         return;
       }
-      collapseActive();
+      collapseAll();
 
       const t = state.trainees.find((x) => x.traineeKey === traineeKey);
       if (!t || !bookingFlow) return;
@@ -450,6 +510,12 @@ const renderTs = Date.now();
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    /** Tear down whichever panel is currently open — active trainee card OR the add-person panel. */
+    function collapseAll() {
+      if (state.addPerson.open) closeAddPerson();
+      else collapseActive();
+    }
+
     function collapseActive() {
       if (!state.activeTraineeKey) return;
 
@@ -467,7 +533,7 @@ const renderTs = Date.now();
         area.hidden = true;
       }
       const t = state.trainees.find((x) => x.traineeKey === state.activeTraineeKey);
-      const isExhausted = t ? t.creditsRemaining <= 0 : false;
+      const isExhausted = t ? t.status === 'exhausted' : false;
       if (card) {
         card.classList.remove('border-gb-gold', 'border-gb-bg-light', 'border-gb-red', 'bg-gb-red/5', 'bg-gb-white', ...ACTIVE_SPAN_CLASSES);
         if (isExhausted) {
@@ -501,7 +567,7 @@ const renderTs = Date.now();
         collapseActive();
         return;
       }
-      collapseActive();
+      collapseAll();
 
       const t = state.trainees.find((x) => x.traineeKey === traineeKey);
       if (!t) return;
@@ -525,6 +591,111 @@ const renderTs = Date.now();
 
       renderChangeProgramPicker(area, t);
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    const AGE_TO_PROGRAM: Array<{ age: number; program: ProgramKey }> = [
+      { age: 3, program: 'tiny' }, { age: 5, program: 'lc1' }, { age: 7, program: 'lc2' },
+      { age: 10, program: 'juniors' }, { age: 16, program: 'adults' },
+    ];
+
+    function openAddPerson() {
+      if (state.addPerson.open) { closeAddPerson(); return; }
+      collapseActive();
+      state.addPerson = { open: true, step: 'details', firstName: '', age: 0 };
+      const tile = traineeList?.querySelector<HTMLElement>('[data-add-person-tile]');
+      const openBtn = tile?.querySelector<HTMLButtonElement>('[data-add-person-open]');
+      const area = tile?.querySelector<HTMLElement>('[data-add-person-area]');
+      if (!tile || !area || !openBtn) return;
+      tile.classList.add('border-gb-gold', ...ACTIVE_SPAN_CLASSES);
+      tile.classList.remove('border-dashed', 'border-gb-text-muted');
+      openBtn.hidden = true;
+      area.hidden = false;
+      renderAddPersonDetails(area);
+      tile.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeAddPerson() {
+      state.addPerson.open = false;
+      if (bookingFlow && bookingFlowParking) bookingFlowParking.appendChild(bookingFlow);
+      renderCards();
+    }
+
+    function renderAddPersonDetails(area: HTMLElement) {
+      area.innerHTML = `
+        <h4 class="text-base md:text-lg font-bold text-gb-navy mb-1">Add a new person</h4>
+        <p class="text-sm text-gb-text-muted mb-4">Enter the new student's name and age. We'll use the account details we already have.</p>
+        <div class="space-y-3">
+          <label class="block">
+            <span class="text-sm font-medium text-gb-text">Student first name</span>
+            <input data-ap-first type="text" maxlength="50"
+              class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red" />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-gb-text">Student age</span>
+            <select data-ap-age
+              class="mt-1 w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gb-red focus:border-gb-red bg-white">
+              <option value="">Select age range</option>
+              <option value="3">Ages 3–4</option>
+              <option value="5">Ages 5–6</option>
+              <option value="7">Ages 7–9</option>
+              <option value="10">Ages 10–15</option>
+              <option value="16">Ages 16+</option>
+            </select>
+          </label>
+        </div>
+        <p data-ap-error class="hidden mt-3 text-sm text-gb-red" role="alert"></p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+          <button type="button" data-ap-cancel
+            class="h-12 rounded-full bg-gb-white border-2 border-gb-navy text-gb-navy font-bold hover:bg-gb-bg-light transition-colors">Cancel</button>
+          <button type="button" data-ap-continue
+            class="h-12 rounded-full bg-gb-red text-gb-white font-bold hover:bg-gb-red-dark transition-colors">Continue</button>
+        </div>
+      `;
+      const firstEl = area.querySelector<HTMLInputElement>('[data-ap-first]');
+      const ageEl = area.querySelector<HTMLSelectElement>('[data-ap-age]');
+      const errEl = area.querySelector<HTMLElement>('[data-ap-error]');
+      area.querySelector('[data-ap-cancel]')?.addEventListener('click', () => closeAddPerson());
+      area.querySelector('[data-ap-continue]')?.addEventListener('click', () => {
+        const firstName = (firstEl?.value ?? '').trim();
+        const age = Number(ageEl?.value ?? '');
+        if (!firstName || !age) {
+          if (errEl) { errEl.textContent = 'Please enter a name and pick an age range.'; errEl.classList.remove('hidden'); }
+          return;
+        }
+        state.addPerson.firstName = firstName;
+        state.addPerson.age = age;
+        startAddPersonBooking();
+      });
+    }
+
+    function addPersonProgram(): ProgramKey {
+      const sorted = [...AGE_TO_PROGRAM].sort((a, b) => b.age - a.age);
+      return (sorted.find((m) => state.addPerson.age >= m.age)?.program) ?? 'adults';
+    }
+
+    function startAddPersonBooking() {
+      const tile = traineeList?.querySelector<HTMLElement>('[data-add-person-tile]');
+      const area = tile?.querySelector<HTMLElement>('[data-add-person-area]');
+      if (!tile || !area || !bookingFlow) return;
+      area.innerHTML = '';
+      area.appendChild(bookingFlow);
+
+      state.activeTraineeKey = null;
+      state.program = addPersonProgram();
+      state.programName = PROGRAM_NAME[state.program] ?? state.program;
+      state.selectedDate = null;
+      state.selectedSlot = null;
+      state.slots = [];
+      state.slotsByDate = {};
+      state.loadedMonths = new Set<string>();
+      const today = todayInTZ();
+      state.viewYear = today.year;
+      state.viewMonth = today.month;
+      state.cardStep = 'date';
+      state.addPerson.step = 'date';
+
+      renderBookingFlow();
+      void loadMonth(state.program, state.viewYear, state.viewMonth);
     }
 
     function renderChangeProgramPicker(area: HTMLElement, t: Trainee) {
@@ -660,8 +831,9 @@ const renderTs = Date.now();
         const slot = (e as CustomEvent).detail as Slot;
         state.selectedSlot = slot;
         const t = activeTrainee();
-        if (confirmSummary && state.selectedSlot && t) {
-          confirmSummary.textContent = `Booking ${state.programName} for ${t.traineeName} on ${state.selectedSlot.label}.`;
+        const who = t ? t.traineeName : state.addPerson.firstName;
+        if (confirmSummary && state.selectedSlot && who) {
+          confirmSummary.textContent = `Booking ${state.programName} for ${who} on ${state.selectedSlot.label}.`;
         }
         state.cardStep = 'confirm';
         renderBookingFlow();
@@ -682,7 +854,11 @@ const renderTs = Date.now();
       });
 
       confirmSubmit?.addEventListener('click', async () => {
-        await submitBooking();
+        if (state.addPerson.open && !state.activeTraineeKey) {
+          await submitAddPerson();
+        } else {
+          await submitBooking();
+        }
       });
 
       errorRetry?.addEventListener('click', () => {
@@ -719,7 +895,7 @@ const renderTs = Date.now();
           lookupError?.classList.remove('hidden');
           return;
         }
-        applyLookupContext({ contactId: json.contactId, trainees: json.trainees, autoExpandTraineeKey: null });
+        applyLookupContext({ contactId: json.contactId, contactToken: json.contactToken, trainees: json.trainees, autoExpandTraineeKey: null });
       } catch {
         lookupError?.classList.remove('hidden');
       } finally {
@@ -731,8 +907,10 @@ const renderTs = Date.now();
     });
 
     backToLookupBtn?.addEventListener('click', () => {
-      collapseActive();
+      collapseAll();
+      if (bookingFlow && bookingFlowParking) bookingFlowParking.appendChild(bookingFlow);
       state.contactId = null;
+      state.contactToken = null;
       state.trainees = [];
       state.step = 'lookup';
       renderStep();
@@ -756,6 +934,7 @@ const renderTs = Date.now();
         if (!data.ok) throw new Error(data.code ?? 'unknown');
         applyLookupContext({
           contactId: data.contactId,
+          contactToken: data.contactToken,
           trainees: data.trainees,
           autoExpandTraineeKey: data.tokenTraineeKey ?? null,
         });
@@ -767,16 +946,16 @@ const renderTs = Date.now();
       }
     }
 
-    function applyLookupContext(ctx: { contactId: string; trainees: Trainee[]; autoExpandTraineeKey: string | null }) {
+    function applyLookupContext(ctx: { contactId: string; contactToken: string; trainees: Trainee[]; autoExpandTraineeKey: string | null }) {
       state.contactId = ctx.contactId;
+      state.contactToken = ctx.contactToken;
       state.trainees = ctx.trainees;
       state.step = 'dashboard';
       renderStep();
       renderCards();
-
       if (ctx.autoExpandTraineeKey) {
         const found = ctx.trainees.find((x) => x.traineeKey === ctx.autoExpandTraineeKey);
-        if (found && found.creditsRemaining > 0) {
+        if (found && found.status === 'active') {
           toggleCard(found.traineeKey);
         }
       }
@@ -813,6 +992,68 @@ const renderTs = Date.now();
       } finally {
         state.monthLoading = false;
         renderBookingFlow();
+      }
+    }
+
+    async function submitAddPerson() {
+      if (state.submitting) return;
+      if (!state.contactId || !state.contactToken || !state.selectedSlot) return;
+      state.submitting = true;
+      if (confirmSubmit) { confirmSubmit.disabled = true; confirmSubmit.textContent = 'Booking…'; }
+      confirmError?.classList.add('hidden');
+
+      const slot = state.selectedSlot;
+      try {
+        const res = await fetch('/api/rebook-add-person', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contactId: state.contactId,
+            sessionToken: state.contactToken,
+            program: addPersonProgram(),
+            trainee: { firstName: state.addPerson.firstName, age: state.addPerson.age },
+            slotStartISO: slot.startISO,
+            ts: state.pageRenderTs,
+            website: '',
+          }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          const code = data.code ?? 'unknown';
+          if (code === 'SLOT_TAKEN' && confirmError) {
+            confirmError.textContent = 'That slot just filled up — please pick another time.';
+          } else if (confirmError) {
+            // Restore the default message in case a previous SLOT_TAKEN customized it.
+            confirmError.textContent = 'Something went wrong booking. Please try again or call us at (562) 640-1400.';
+          }
+          throw new Error(code);
+        }
+
+        const newTrainee: Trainee = {
+          traineeName: data.trainee.traineeName,
+          traineeKey: data.trainee.traineeKey,
+          program: data.trainee.program,
+          status: 'pending',
+          creditsRemaining: 0,
+          lastAttendanceISO: null,
+          pendingClassISO: data.trainee.pendingClassISO,
+        };
+        state.trainees.unshift(newTrainee);
+        if (bookingFlow && bookingFlowParking) bookingFlowParking.appendChild(bookingFlow);
+        state.addPerson.open = false;
+        renderCards();
+        const card = traineeList?.querySelector<HTMLElement>(`[data-trainee-key="${cssEscape(newTrainee.traineeKey)}"]`);
+        const successEl = card?.querySelector<HTMLElement>('[data-card-success]');
+        if (successEl) {
+          successEl.hidden = false;
+          successEl.textContent = `✓ Trial booked for ${slot.label}. We'll send a reminder before class.`;
+        }
+      } catch (err) {
+        console.warn('[rebook] add-person failed', err);
+        confirmError?.classList.remove('hidden');
+      } finally {
+        state.submitting = false;
+        if (confirmSubmit) { confirmSubmit.disabled = false; confirmSubmit.textContent = 'Confirm Booking'; }
       }
     }
 

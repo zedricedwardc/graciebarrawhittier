@@ -2,25 +2,28 @@
  * POST /api/rebook-lookup
  *
  * Email-only lookup for the multi-trainee rebook dashboard. Matches contact
- * by email, then returns ALL their open Trial Credit Monitoring opps (one
- * card per trainee) — the page renders a dashboard and the customer picks
- * which trainee to book for.
+ * by email, then returns ALL their trainee cards merged from both Trial Credit
+ * Monitoring and Trial Conversion pipelines (one card per trainee) — the page
+ * renders a dashboard and the customer picks which trainee to book for.
  *
- * Each returned trainee carries its own short-lived session token that the
- * /api/book rebook path verifies against the trainee_key on submission.
+ * Each trainee card carries a `status` (enrolled / active / exhausted / pending).
+ * Active and exhausted cards include a short-lived session token that /api/book
+ * verifies against the trainee_key on submission. The response includes a
+ * contact-scoped token authorizing the add-a-new-person action.
  *
  * Anti-enumeration:
  *   - Rate-limited to 20 requests / IP / hour
  *   - Generic NOT_FOUND on miss (no email-existence leak)
  *
  * Returns:
- *   { ok: true, contactId, trainees: [{ traineeName, traineeKey, program,
- *     creditsRemaining, lastAttendanceISO, sessionToken }, ...] }
+ *   { ok: true, contactId, contactToken, trainees: [{ traineeName, traineeKey,
+ *     program, status, creditsRemaining, lastAttendanceISO, pendingClassISO,
+ *     sessionToken? }, ...] }
  *   | { ok: false, code: 'INVALID_INPUT' | 'NOT_FOUND' | 'RATE_LIMITED' | 'GHL_FAILED' }
  *
  * NOT_FOUND fires when:
  *   - Contact doesn't exist for that email, OR
- *   - Contact exists but has no OPEN credit-pipeline opps (no active passes)
+ *   - Contact exists but has no resolvable trainee cards across either pipeline
  */
 
 import type { APIRoute } from 'astro';
@@ -32,9 +35,14 @@ import {
   type ContactRecord,
   type OpportunityRecord,
 } from '../../lib/ghl';
-import { getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { getPipelineId } from '../../lib/ghl-pipelines';
 import { signRebookToken } from '../../lib/rebook-token';
+import {
+  extractOppFacts,
+  resolveTraineeCards,
+  CONTACT_SCOPED_TRAINEE_KEY,
+  type OppFacts,
+} from '../../lib/rebook-cards';
 
 export const prerender = false;
 
@@ -51,10 +59,16 @@ export interface TraineeCard {
   traineeName: string;
   traineeKey: string;
   program: string;
+  status: 'enrolled' | 'active' | 'exhausted' | 'pending';
   creditsRemaining: number;
   lastAttendanceISO: string | null;
-  /** 15-min token authorizing /api/book against this specific trainee. */
-  sessionToken: string;
+  /** Booked class start ISO — set only for `pending` cards. */
+  pendingClassISO: string | null;
+  /**
+   * 15-min token authorizing /api/book against this trainee. Present only on
+   * `active` / `exhausted` cards — `enrolled` / `pending` have no booking action.
+   */
+  sessionToken?: string;
 }
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
@@ -90,20 +104,24 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 
   let creditPipelineId: string;
+  let trialPipelineId: string;
   try {
-    creditPipelineId = await getPipelineId('CREDIT_MON');
+    [creditPipelineId, trialPipelineId] = await Promise.all([
+      getPipelineId('CREDIT_MON'),
+      getPipelineId('TRIAL_CONV'),
+    ]);
   } catch (err) {
-    console.error('[rebook-lookup] could not resolve Credit Mon pipeline', err);
+    console.error('[rebook-lookup] could not resolve pipelines', err);
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  let opps: OpportunityRecord[] = [];
+  let creditOpps: OpportunityRecord[] = [];
+  let trialOpps: OpportunityRecord[] = [];
   try {
-    opps = await searchOpportunities({
-      contactId: contact.id,
-      pipelineId: creditPipelineId,
-      status: 'open',
-    });
+    [creditOpps, trialOpps] = await Promise.all([
+      searchOpportunities({ contactId: contact.id, pipelineId: creditPipelineId, status: 'open' }),
+      searchOpportunities({ contactId: contact.id, pipelineId: trialPipelineId, status: 'all' }),
+    ]);
   } catch (err) {
     console.error(
       '[rebook-lookup] searchOpportunities failed',
@@ -112,37 +130,41 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED' }, 502);
   }
 
-  const trainees = await opps.reduce(async (accP, o) => {
-    const acc = await accP;
-    const traineeKey = (await getOppCfValueByKey<string>(o, 'trainee_key')) ?? '';
-    const traineeName = (await getOppCfValueByKey<string>(o, 'trainee_first_name')) ?? '';
-    if (!traineeKey || !traineeName) return acc;
-    const program = (await getOppCfValueByKey<string>(o, 'program')) ?? 'adults';
-    const creditsRaw = await getOppCfValueByKey<string | number>(o, 'credits_remaining');
-    const creditsRemaining = Number(creditsRaw ?? 0);
-    const lastAttendanceISO = (await getOppCfValueByKey<string>(o, 'last_attendance_iso')) ?? null;
-    acc.push({
-      traineeName: traineeName.trim(),
-      traineeKey,
-      program,
-      creditsRemaining: Number.isFinite(creditsRemaining) ? creditsRemaining : 0,
-      lastAttendanceISO,
-      sessionToken: signRebookToken({
-        contactId: contact!.id,
-        traineeKey,
-        ttlDays: 1 / 96,
-      }),
-    });
-    return acc;
-  }, Promise.resolve([] as TraineeCard[]));
+  const factsArrays = await Promise.all([
+    ...creditOpps.map((o) => extractOppFacts(o, 'CREDIT_MON')),
+    ...trialOpps.map((o) => extractOppFacts(o, 'TRIAL_CONV')),
+  ]);
+  const facts: OppFacts[] = factsArrays.filter((f): f is OppFacts => f !== null);
+
+  const resolved = resolveTraineeCards(facts);
+  const trainees: TraineeCard[] = resolved.map((r) => ({
+    traineeName: r.traineeName,
+    traineeKey: r.traineeKey,
+    program: r.program,
+    status: r.status,
+    creditsRemaining: r.creditsRemaining,
+    lastAttendanceISO: r.lastAttendanceISO,
+    pendingClassISO: r.pendingClassISO,
+    sessionToken:
+      r.status === 'active' || r.status === 'exhausted'
+        ? signRebookToken({ contactId: contact.id, traineeKey: r.traineeKey, ttlDays: 1 / 96 })
+        : undefined,
+  }));
 
   if (trainees.length === 0) {
     return json({ ok: false, code: 'NOT_FOUND' });
   }
 
+  const contactToken = signRebookToken({
+    contactId: contact.id,
+    traineeKey: CONTACT_SCOPED_TRAINEE_KEY,
+    ttlDays: 1 / 96,
+  });
+
   return json({
     ok: true,
     contactId: contact.id,
+    contactToken,
     trainees,
   });
 };
