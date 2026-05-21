@@ -224,6 +224,8 @@ const renderTs = Date.now();
     lastAttendanceISO: string | null;
     nextClassISO: string | null;
     sessionToken?: string;
+    /** Session-only: set after a booking in this visit to show the confirmation badge. */
+    justBooked?: boolean;
   }
 
   const PROGRAM_NAME: Record<ProgramKey, string> = {
@@ -415,15 +417,22 @@ const renderTs = Date.now();
           <h3 class="text-lg md:text-xl font-extrabold text-gb-navy truncate">${escapeHtml(t.traineeName)}</h3>
           <p class="text-sm text-gb-text-muted">${escapeHtml(programLabel)}</p>
           ${appointmentLine(t)}
+          ${
+            t.justBooked && t.status !== 'pending' && t.status !== 'enrolled'
+              ? `<span class="inline-block mt-2 bg-gb-green/10 text-gb-green text-[10px] font-bold tracking-wider px-2 py-1 rounded uppercase whitespace-nowrap">✓ Class booked</span>`
+              : ''
+          }
         </div>
         ${statusBadge(t)}
       `;
       card.appendChild(header);
 
       const actions = document.createElement('div');
-      actions.className = 'mt-auto pt-5';
 
       if (t.status === 'pending' || t.status === 'enrolled') {
+        // Note-only cards: bottom-align the note (mt-auto) so it lines up
+        // across cards in a row regardless of how far the header wraps.
+        actions.className = 'mt-auto pt-5';
         const note = document.createElement('p');
         note.className = 'text-sm text-gb-text-muted';
         note.textContent = t.status === 'pending'
@@ -431,13 +440,12 @@ const renderTs = Date.now();
           : 'Enrolled student.';
         actions.appendChild(note);
         card.appendChild(actions);
-        const successArea = document.createElement('div');
-        successArea.dataset.cardSuccess = '';
-        successArea.hidden = true;
-        successArea.className = 'mt-5 pt-5 border-t border-gb-bg-light text-sm text-gb-text-muted font-semibold';
-        card.appendChild(successArea);
         return card;
       }
+
+      // Bookable cards: the button sits a fixed gap under the header — no
+      // mt-auto, so it never floats away from the card content.
+      actions.className = 'mt-5';
 
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -477,12 +485,6 @@ const renderTs = Date.now();
       bookingArea.hidden = !isActive;
       bookingArea.className = 'mt-5 pt-5 border-t border-gb-bg-light';
       card.appendChild(bookingArea);
-
-      const successArea = document.createElement('div');
-      successArea.dataset.cardSuccess = '';
-      successArea.hidden = true;
-      successArea.className = 'mt-5 pt-5 border-t border-gb-bg-light text-sm text-gb-text-muted font-semibold';
-      card.appendChild(successArea);
 
       btn.addEventListener('click', () => toggleCard(t.traineeKey));
       return card;
@@ -1096,16 +1098,13 @@ const renderTs = Date.now();
           lastAttendanceISO: null,
           nextClassISO: data.trainee.nextClassISO,
         };
+        // The new card renders at the top of the grid already carrying the
+        // "Trial booked" badge + "Trial class: <date>" line — that is the
+        // confirmation, so no separate success banner is needed here.
         state.trainees.unshift(newTrainee);
         if (bookingFlow && bookingFlowParking) bookingFlowParking.appendChild(bookingFlow);
         state.addPerson.open = false;
         renderCards();
-        const card = traineeList?.querySelector<HTMLElement>(`[data-trainee-key="${cssEscape(newTrainee.traineeKey)}"]`);
-        const successEl = card?.querySelector<HTMLElement>('[data-card-success]');
-        if (successEl) {
-          successEl.hidden = false;
-          successEl.textContent = `✓ Trial booked for ${slot.label}. We'll send a reminder before class.`;
-        }
       } catch (err) {
         console.warn('[rebook] add-person failed', err);
         confirmError?.classList.remove('hidden');
@@ -1149,12 +1148,13 @@ const renderTs = Date.now();
         const data = await res.json();
         if (!data.ok) throw new Error(data.code ?? 'unknown');
 
-        // Update in-memory trainee credits + next-class + show success.
+        // Update in-memory trainee credits + next-class, flag the booking
+        // so the re-rendered card shows the "Class booked" confirmation badge.
         t.creditsRemaining = Math.max(0, t.creditsRemaining - 1);
         t.nextClassISO = slotForSuccess.startISO;
+        t.justBooked = true;
         collapseActive();
         renderCards();
-        showCardSuccess(t, slotForSuccess);
       } catch (err) {
         confirmError?.classList.remove('hidden');
         console.warn('[rebook] /api/book failed', err);
@@ -1164,17 +1164,6 @@ const renderTs = Date.now();
           confirmSubmit.disabled = false;
           confirmSubmit.textContent = 'Confirm Booking';
         }
-      }
-    }
-
-    function showCardSuccess(t: Trainee, slot: Slot) {
-      // renderCards() in submitBooking() rewrote the card DOM. Find the freshly-rendered
-      // success area and populate it.
-      const card = traineeList?.querySelector<HTMLElement>(`[data-trainee-key="${cssEscape(t.traineeKey)}"]`);
-      const successEl = card?.querySelector<HTMLElement>('[data-card-success]');
-      if (successEl) {
-        successEl.hidden = false;
-        successEl.textContent = `✓ Booked for ${slot.label}. We'll send a reminder before class.`;
       }
     }
 
