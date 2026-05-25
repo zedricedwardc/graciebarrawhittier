@@ -37,4 +37,16 @@ describe('lead source registry', () => {
   it('SOURCES matches the registry keys exactly (no unmapped slug)', () => {
     expect([...SOURCES].sort()).toEqual(Object.keys(LEAD_SOURCES).sort());
   });
+
+  it('routes chat-widget to the Website Chat channel', () => {
+    expect(channelForSource('chat-widget')).toBe('Website Chat');
+  });
+
+  it('gives chat-widget a readable page label', () => {
+    expect(pageLabelForSource('chat-widget')).toBe('Chat Widget');
+  });
+
+  it('includes Website Chat in the LEAD_CHANNELS enum', () => {
+    expect(LEAD_CHANNELS).toContain('Website Chat');
+  });
 });

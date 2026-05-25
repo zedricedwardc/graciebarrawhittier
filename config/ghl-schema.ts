@@ -166,6 +166,7 @@ export const OPTIN_PAGE_LABELS = [
   'Adults Page',
   'Offer Page (QR)',
   'Contact Page',
+  'Chat Widget',
 ] as const;
 export type OptInPageLabel = (typeof OPTIN_PAGE_LABELS)[number];
 
