@@ -51,14 +51,26 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: true, contactId: 'spam-discarded', opportunityId: null, isReplay: false });
   }
 
-  // Min dwell time
-  if (Date.now() - body.ts < MIN_DWELL_MS) {
-    return json({ ok: true, contactId: 'spam-discarded', opportunityId: null, isReplay: false });
-  }
+  // Trusted-caller short-circuit: a server-to-server call from a GHL
+  // workflow can present X-GBW-Secret to skip the browser-targeted abuse
+  // checks (per-IP rate limit + min-dwell). Honeypot, schema validation,
+  // and idempotency still apply to everyone.
+  const expectedSecret = process.env.GHL_WEBHOOK_SECRET;
+  const trustedCaller =
+    typeof expectedSecret === 'string' &&
+    expectedSecret.length > 0 &&
+    request.headers.get('X-GBW-Secret') === expectedSecret;
 
-  // Per-IP rate limit
-  const ip = clientAddress || 'unknown';
-  if (!checkRate(ip)) return json({ ok: false, code: 'RATE_LIMITED' });
+  if (!trustedCaller) {
+    // Min dwell time
+    if (Date.now() - body.ts < MIN_DWELL_MS) {
+      return json({ ok: true, contactId: 'spam-discarded', opportunityId: null, isReplay: false });
+    }
+
+    // Per-IP rate limit
+    const ip = clientAddress || 'unknown';
+    if (!checkRate(ip)) return json({ ok: false, code: 'RATE_LIMITED' });
+  }
 
   // Idempotency
   const traineeKey = body.trainee
