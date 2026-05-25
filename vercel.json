@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/kids-jiu-jitsu",
+      "destination": "/kids-martial-arts/",
+      "permanent": true
+    },
+    {
+      "source": "/kids-jiu-jitsu/",
+      "destination": "/kids-martial-arts/",
+      "permanent": true
+    },
+    {
+      "source": "/Reviews",
+      "destination": "/reviews/",
+      "permanent": true
+    },
+    {
+      "source": "/Reviews/",
+      "destination": "/reviews/",
+      "permanent": true
+    }
+  ]
+}
