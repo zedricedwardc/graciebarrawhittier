@@ -189,7 +189,7 @@ export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     fieldKey: 'lead_source',
     label: 'Lead Source',
     type: 'TEXT',
-    description: 'Coarse acquisition channel — Website Leads / Walk-In / Meta Ads / Google Ads / Referral. Set on every opt-in; mirrors the native contact Source attribute so dashboard widgets can group leads by channel (the native Source is not a widget group-by dimension). The page-level sub-layer is the optin_page dropdown.',
+    description: 'Coarse acquisition channel — Website Leads / Walk-In / Meta Ads / Google Ads / Referral / Website Chat. Set on every opt-in; mirrors the native contact Source attribute so dashboard widgets can group leads by channel (the native Source is not a widget group-by dimension). The page-level sub-layer is the optin_page dropdown.',
     setBy: 'webhook',
   },
   {
@@ -670,6 +670,7 @@ export const TAGS: readonly { name: string; description: string }[] = [
   { name: 'source-kids-optin', description: 'Opted in via /kids-martial-arts.' },
   { name: 'source-adults-optin', description: 'Opted in via /adults-jiu-jitsu.' },
   { name: 'source-contact-form', description: 'Submitted the /contact form (not an opt-in but tagged for source attribution).' },
+  { name: 'source-chat-widget', description: 'Opted in via the bottom-right chat widget.' },
   { name: 'quarterly-reactivation', description: 'LOST/COLD lead — picked up by quarterly winback campaign.' },
   { name: 'back-to-the-mats-import', description: 'Bulk-imported via CSV into the Back to the Mats campaign. Source attribution.' },
   { name: 'source-agent-booking', description: 'Set on the contact by the agent-booking-completed webhook after the SMS bot books an appointment. Differentiates bot-driven bookings from page-driven ones in reporting.' },
