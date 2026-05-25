@@ -15,13 +15,14 @@ export interface Props {
   description: string;
   canonical?: string;
   ogImage?: string;
+  ogImageAlt?: string;
   /** Optional inline JSON-LD schema (string or object). */
   schema?: object | string;
   /** Hide the StickyMobileCTA on pages where it doesn't apply (e.g. legal pages). */
   hideStickyCTA?: boolean;
 }
 
-const { title, description, canonical, ogImage, schema, hideStickyCTA = false } =
+const { title, description, canonical, ogImage, ogImageAlt, schema, hideStickyCTA = false } =
   Astro.props;
 ---
 
@@ -46,6 +47,7 @@ const { title, description, canonical, ogImage, schema, hideStickyCTA = false } 
       description={description}
       canonical={canonical}
       ogImage={ogImage}
+      ogImageAlt={ogImageAlt}
     />
 
     <GTM />
