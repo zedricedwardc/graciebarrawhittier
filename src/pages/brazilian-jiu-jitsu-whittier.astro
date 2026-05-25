@@ -1,0 +1,502 @@
+---
+export const prerender = true;
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CTAButton from '../components/cta/CTAButton.astro';
+import OptInForm from '../components/form/OptInForm.astro';
+import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
+import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
+import type { FAQItemData } from '../content/faqs';
+import { nap } from '../content/nap';
+import guideHero from '../assets/images/home/homepage-hero-girl.jpg';
+
+const pageUrl = 'https://www.graciebarrawhittier.com/brazilian-jiu-jitsu-whittier/';
+const pageTitle = "Brazilian Jiu-Jitsu in Whittier: The Complete Beginner's Guide | Gracie Barra Whittier";
+const pageDescription =
+  "The complete beginner's guide to Brazilian Jiu-Jitsu in Whittier, CA. What BJJ is, why it works, who can train, what to expect at your first class, and how to start.";
+
+const breadcrumb = [
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'BJJ in Whittier Guide', url: pageUrl },
+];
+
+const whyMattersCards = [
+  {
+    title: 'Real self-defense that works',
+    body:
+      "Brazilian Jiu-Jitsu is the only martial art where a smaller person can reliably control and neutralize a larger, untrained attacker. It's why law enforcement, military, and federal agencies train it worldwide. You learn what actually works — not flashy techniques, but proven leverage and positioning.",
+  },
+  {
+    title: 'Fitness without the gym grind',
+    body:
+      "An hour on the mat builds cardio, strength, mobility, and coordination at the same time. You'll be too focused on solving problems with another human to notice you're working out. Most adults drop weight, sleep better, and feel stronger within the first month.",
+  },
+  {
+    title: 'Mental toughness under pressure',
+    body:
+      'BJJ teaches you to stay calm when someone is actively trying to control you. That ability — breathing through pressure, thinking clearly when uncomfortable — transfers directly to your job, your relationships, and every hard moment in your life.',
+  },
+  {
+    title: 'A community that shows up',
+    body:
+      'Your training partners become some of the most trusted people in your life. The community at Gracie Barra Whittier spans ages, professions, and backgrounds. Everyone helps everyone else get better. Nobody trains BJJ alone.',
+  },
+];
+
+const debunkCards = [
+  {
+    myth: "I'm too old to start.",
+    truth:
+      "We have white belts who started in their 40s, 50s, and 60s. BJJ is a technique-based art — leverage beats strength, and timing beats speed. Many of our most consistent adult students started after 40. The Fundamentals program is built to scale to your body and your pace.",
+  },
+  {
+    myth: "I'm out of shape.",
+    truth:
+      'Training is how you get in shape. You will not be the only person in class catching your breath. Our Fundamentals classes are taught at a sustainable pace, and you decide how hard you push on any given day. Show up consistently and your body changes — fast.',
+  },
+  {
+    myth: "I'm a woman — I'll be the only one.",
+    truth:
+      'You will not. Gracie Barra Whittier has a steady, growing group of female students at every level, from white belt through brown belt, and BJJ is one of the most empowering martial arts a woman can train. Leverage-based technique is purpose-built for someone defending against a larger opponent.',
+  },
+  {
+    myth: "I'm nervous about getting hurt or looking foolish.",
+    truth:
+      "Everybody on the mat felt that way on day one. There is no striking in BJJ, our Fundamentals classes do not start with live sparring, and the culture at GB Whittier is welcoming and ego-free. You will be coached, partnered with someone at your level, and never thrown into something you're not ready for.",
+  },
+];
+
+const firstClassSteps = [
+  'Arrive 10 minutes early. Meet the front desk and your instructor. You will sign a quick waiver and get a short tour of the academy.',
+  'Get fitted for a free uniform rental. We provide a clean Gracie Barra gi in your size. Wear comfortable athletic clothes underneath.',
+  'Warm up with the class. Light movement, joint mobility, and a few basic drills. Nothing surprising or extreme.',
+  'Technique block. The instructor demonstrates the move of the day step-by-step, then walks the room while you practice. Questions are encouraged.',
+  'Partner practice. You drill the technique with a training partner at your level. Slow, controlled, low-pressure. Fundamentals classes do not include live sparring on day one.',
+  'Debrief with Program Director Coach Alex. After class, a short conversation about how it went and what to do next. No pressure, no commitment.',
+];
+
+const kidsPrograms = [
+  { name: 'Tiny Champions', age: 'Ages 3-4', focus: 'Coordination, listening skills, and confidence through playful BJJ-based games.' },
+  { name: 'Little Champions 1', age: 'Ages 5-6', focus: 'Foundational movement, partner work, and the first real Jiu-Jitsu techniques.' },
+  { name: 'Little Champions 2', age: 'Ages 7-9', focus: 'Structured curriculum, real technique, and stripe-based progression toward grey belt.' },
+  { name: 'Juniors Jiu-Jitsu', age: 'Ages 10-15', focus: 'Full Jiu-Jitsu curriculum, controlled live training, and competition-ready skills for teens.' },
+];
+
+const adultPrograms = [
+  { name: 'GB1 Fundamentals', who: 'Beginners and all levels', focus: 'Core positions, escapes, and self-defense via the structured 16-week GB curriculum.' },
+  { name: 'GB2 Advanced', who: 'Students who have completed GB1', focus: 'Live rolling, no-gi, and complex technique chains for students ready to build a real game.' },
+  { name: 'GB3 Competition', who: 'Blue belts and above', focus: 'High-intensity training, advanced guard systems, and competition preparation.' },
+];
+
+const guideFaqs: FAQItemData[] = [
+  {
+    question: 'What is Brazilian Jiu-Jitsu in simple terms?',
+    answer:
+      "Brazilian Jiu-Jitsu is a grappling-based martial art focused on controlling an opponent on the ground using leverage, positioning, and joint locks rather than strikes. It was developed by the Gracie family in Brazil and proven against every other martial art in the early days of mixed martial arts. The core idea: a smaller, trained person can defeat a larger, untrained attacker through technique alone.",
+  },
+  {
+    question: 'How is BJJ different from karate, taekwondo, or boxing?',
+    answer:
+      'Karate, taekwondo, and boxing are striking arts — you train to hit and avoid being hit while standing. Brazilian Jiu-Jitsu is the opposite: there is no striking, and most of the art happens on the ground. BJJ assumes a real fight will end up grappling and trains you for that reality. It is also one of the few martial arts you can train at full intensity with a resisting partner without getting injured, which is why progress in BJJ is so much faster than in traditional striking arts.',
+  },
+  {
+    question: 'Why is Gracie Barra considered a top BJJ school?',
+    answer:
+      'Gracie Barra was founded in 1986 by Master Carlos Gracie Jr. and has grown into one of the largest Jiu-Jitsu organizations in the world, with more than 1,000 schools and 400,000-plus students across the globe. Every Gracie Barra instructor is certified through the same official curriculum, which means a beginner walking into Gracie Barra Whittier learns the same Fundamentals taught at Gracie Barra academies in Brazil, Europe, and across the United States. That consistency and quality control is rare in martial arts.',
+  },
+  {
+    question: 'How long does it take to get good at Brazilian Jiu-Jitsu?',
+    answer:
+      "You will feel real progress in 3-4 weeks of consistent training. White belt to blue belt typically takes 1.5 to 3 years of regular training (two to three classes a week). Black belt is a 10-15 year journey. But the great thing about BJJ is that you get useful, real-world ability long before you're 'advanced' — most students can effectively defend themselves within their first year of training.",
+  },
+  {
+    question: 'Is Brazilian Jiu-Jitsu good for weight loss?',
+    answer:
+      "Yes. A typical BJJ class burns 600-900 calories, and unlike a treadmill, you're too engaged solving problems with a partner to notice the effort. Combined with the strength, mobility, and consistency it builds, BJJ is one of the most sustainable ways adults lose weight and keep it off. Most students see meaningful body composition changes within the first 60 to 90 days of training two to three times a week.",
+  },
+  {
+    question: 'Do I need a gi to start training?',
+    answer:
+      'No. Gracie Barra Whittier provides a free uniform rental for your first three classes. That gives you time to try the art before deciding whether to invest in your own gi. When you are ready, your instructor can recommend the right size and brand.',
+  },
+  {
+    question: 'How often should I train as a beginner?',
+    answer:
+      'Two to three classes a week is the sweet spot for steady progress without burning out. Beginners who train three times a week move through the Fundamentals curriculum quickly and feel meaningful improvement within their first month. One class a week is enough to enjoy the art but progress will be slower. More than four classes a week is usually unnecessary at the start — recovery matters as much as mat time.',
+  },
+  {
+    question: 'How do I choose the right BJJ school near Whittier?',
+    answer:
+      'Look for a school with certified instructors, a written curriculum, a clean and well-supervised mat, and a culture that welcomes beginners. Drop in for a class before signing anything. Gracie Barra Whittier offers a free 3-class trial with a free uniform rental specifically so you can see the academy, meet the coaches, and feel the culture before making any decision. We are located at ' +
+      nap.address +
+      ' and serve students from Whittier, La Habra, La Mirada, and Pico Rivera.',
+  },
+];
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: "Brazilian Jiu-Jitsu in Whittier: The Complete Beginner's Guide",
+  description: pageDescription,
+  author: {
+    '@type': 'Organization',
+    name: 'Gracie Barra Whittier',
+    url: 'https://www.graciebarrawhittier.com',
+  },
+  publisher: {
+    '@type': 'MartialArtsSchool',
+    '@id': 'https://www.graciebarrawhittier.com/#academy',
+    name: 'Gracie Barra Whittier',
+    logo: {
+      '@type': 'ImageObject',
+      url: 'https://www.graciebarrawhittier.com/logo/gb-whittier-logo.webp',
+    },
+  },
+  datePublished: '2026-05-25',
+  dateModified: '2026-05-25',
+  mainEntityOfPage: pageUrl,
+  image: 'https://www.graciebarrawhittier.com/og/home.jpg',
+};
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  canonical={pageUrl}
+  ogImage="/og/home.jpg"
+  ogImageAlt="Young student smiling in a blue Gracie Barra gi at Gracie Barra Whittier in Whittier, CA"
+>
+  <div class="bg-gb-bg-light">
+    {/* HERO */}
+    <section class="px-4 md:px-6 pt-6 md:pt-8">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+        <Image
+          src={guideHero}
+          alt="Brazilian Jiu-Jitsu student in a Gracie Barra gi at Gracie Barra Whittier, Whittier, CA"
+          widths={[768, 1280, 1920]}
+          sizes="100vw"
+          format="webp"
+          quality={82}
+          loading="eager"
+          class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
+        />
+        <div class="absolute inset-0 -z-10 bg-gradient-to-r from-gb-navy/95 via-gb-navy/40 to-gb-navy/85"></div>
+        <div class="absolute inset-0 -z-10 bg-gradient-to-t from-gb-navy/90 via-transparent to-transparent md:hidden"></div>
+
+        <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            The Complete Beginner's Guide
+          </p>
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+            Brazilian Jiu-Jitsu in Whittier: Everything You Need to Know Before You Start
+          </h1>
+          <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+            If you've been curious about Brazilian Jiu-Jitsu — what it is, whether it's right for you, and how to start training in Whittier — this guide will answer every question. Written by the coaches at Gracie Barra Whittier, an official Gracie Barra academy serving Whittier, La Habra, La Mirada, and Pico Rivera.
+          </p>
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" />
+        </div>
+      </div>
+    </section>
+
+    {/* OPT-IN */}
+    <OptInForm
+      id="trial"
+      variant="navy"
+      source="bjj-guide-optin"
+      header="UNLOCK YOUR FREE 3-CLASS PASS"
+      subheader="+ VIEW OUR FULL CLASS SCHEDULE INSTANTLY"
+      description="Enter your info below to claim your Free 3-Class Pass and access our full class schedule."
+      offerLabel="FREE 3-CLASS PASS"
+      riskLine="No Risk. No Pressure. Free Uniform Rental Included."
+      submitLabel="CLAIM MY FREE 3-CLASS PASS"
+    />
+
+    {/* WHAT IS BJJ */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4" aria-labelledby="what-is-bjj">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 id="what-is-bjj" class="text-2xl md:text-4xl font-extrabold text-gb-navy">What Is Brazilian Jiu-Jitsu?</h2>
+        <p class="mt-5 text-base text-gb-text leading-relaxed">
+          Brazilian Jiu-Jitsu — BJJ for short — is a grappling-based martial art that focuses on controlling an opponent through positioning, leverage, and submission holds rather than punches or kicks. It is most often trained on the ground, where size and strength matter less and technique matters most.
+        </p>
+        <p class="mt-4 text-base text-gb-text leading-relaxed">
+          The art traces back to the Gracie family in Brazil. In the early 1900s, Carlos and Helio Gracie adapted classical Japanese Jiu-Jitsu and Judo into a system specifically designed so a smaller person could defeat a larger, stronger attacker. Helio Gracie, who weighed about 140 pounds his whole life, refined the techniques so they would work for someone with no athletic advantage at all. That practical, no-nonsense focus is why BJJ spread worldwide.
+        </p>
+        <p class="mt-4 text-base text-gb-text leading-relaxed">
+          In the 1990s, Royce Gracie famously won the early Ultimate Fighting Championship tournaments against much larger opponents trained in karate, kickboxing, and wrestling. Those events forced the entire martial arts world to take Brazilian Jiu-Jitsu seriously, and within a decade BJJ had become a required skill for any serious mixed martial artist, law enforcement officer, or military special operator.
+        </p>
+        <p class="mt-4 text-base text-gb-text leading-relaxed">
+          Four things make BJJ different from almost every other martial art:
+        </p>
+        <ul class="mt-4 space-y-3">
+          <li class="flex gap-3 text-base text-gb-text leading-relaxed">
+            <span class="shrink-0 mt-1 w-2 h-2 rounded-full bg-gb-red"></span>
+            <span><strong class="text-gb-navy">No striking.</strong> You will not be punched, kicked, or hit in class. Training is safe enough to do at full intensity with a fully resisting partner — which is what makes progress so fast.</span>
+          </li>
+          <li class="flex gap-3 text-base text-gb-text leading-relaxed">
+            <span class="shrink-0 mt-1 w-2 h-2 rounded-full bg-gb-red"></span>
+            <span><strong class="text-gb-navy">Leverage beats strength.</strong> Every technique is engineered so that a smaller person, applying it correctly, can control a larger person. Strength helps. It is not required.</span>
+          </li>
+          <li class="flex gap-3 text-base text-gb-text leading-relaxed">
+            <span class="shrink-0 mt-1 w-2 h-2 rounded-full bg-gb-red"></span>
+            <span><strong class="text-gb-navy">Pressure-tested.</strong> Unlike traditional arts that practice in choreographed forms, BJJ is trained against partners actively trying to stop you. Everything you learn has been tested against resistance.</span>
+          </li>
+          <li class="flex gap-3 text-base text-gb-text leading-relaxed">
+            <span class="shrink-0 mt-1 w-2 h-2 rounded-full bg-gb-red"></span>
+            <span><strong class="text-gb-navy">Lifelong.</strong> BJJ rewards technical understanding over athleticism. People train it into their 60s and 70s. The journey from white belt to black belt typically takes 10 to 15 years.</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    {/* WHY BJJ MATTERS */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4" aria-labelledby="why-bjj-matters">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10 md:mb-12 max-w-3xl mx-auto">
+          <h2 id="why-bjj-matters" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Why Brazilian Jiu-Jitsu Matters</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+            BJJ is one of the few activities adults pick up that genuinely changes how they move, think, and carry themselves. Here is what you actually get out of consistent training.
+          </p>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-5 md:gap-6">
+          {whyMattersCards.map((c) => (
+            <div class="bg-gb-white rounded-2xl p-6 md:p-8 shadow-sm">
+              <h3 class="text-lg md:text-xl font-extrabold text-gb-navy">{c.title}</h3>
+              <p class="mt-3 text-sm md:text-base text-gb-text-muted leading-relaxed">{c.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    {/* WHO CAN TRAIN */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4" aria-labelledby="who-can-train">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10 md:mb-12 max-w-3xl mx-auto">
+          <h2 id="who-can-train" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Who Can Train Brazilian Jiu-Jitsu?</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+            Short answer: almost anyone. Here are the four objections we hear most often from people standing on the curb outside the academy, and the honest truth behind each one.
+          </p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5 md:gap-6">
+          {debunkCards.map((d) => (
+            <div class="bg-gb-white rounded-2xl p-6 md:p-8 shadow-sm">
+              <p class="text-xs font-bold tracking-widest text-gb-red uppercase">The Myth</p>
+              <p class="mt-2 text-lg md:text-xl font-extrabold text-gb-navy">{d.myth}</p>
+              <p class="mt-5 text-xs font-bold tracking-widest text-gb-red uppercase">The Reality</p>
+              <p class="mt-2 text-sm md:text-base text-gb-text-muted leading-relaxed">{d.truth}</p>
+            </div>
+          ))}
+        </div>
+        <p class="mt-8 text-center text-sm md:text-base text-gb-text-muted leading-relaxed max-w-3xl mx-auto">
+          Kids as young as 3 train in our Tiny Champions program. Adults in their 60s train in our Fundamentals classes. The art scales to the person. If you can walk into the academy, you can train.
+        </p>
+      </div>
+    </section>
+
+    {/* HOW GB DIFFERS */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4" aria-labelledby="how-gb-differs">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 id="how-gb-differs" class="text-2xl md:text-4xl font-extrabold text-gb-navy">How Gracie Barra Differs From Other BJJ Schools</h2>
+        <p class="mt-5 text-base text-gb-text leading-relaxed">
+          There are dozens of Brazilian Jiu-Jitsu schools in Southern California, and most are excellent. What makes Gracie Barra different is the system behind every academy.
+        </p>
+        <div class="mt-6 grid sm:grid-cols-2 gap-5">
+          <div class="bg-gb-bg-light rounded-xl p-5">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Founded 1986</p>
+            <p class="mt-2 text-sm text-gb-text leading-relaxed">Gracie Barra was founded by Master Carlos Gracie Jr., son of Carlos Gracie and one of the most influential figures in modern BJJ. Nearly 40 years of refinement stand behind every class.</p>
+          </div>
+          <div class="bg-gb-bg-light rounded-xl p-5">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">1,000+ Schools</p>
+            <p class="mt-2 text-sm text-gb-text leading-relaxed">Gracie Barra has more than 1,000 academies worldwide and 400,000-plus active students. It is the largest Brazilian Jiu-Jitsu organization on the planet.</p>
+          </div>
+          <div class="bg-gb-bg-light rounded-xl p-5">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Certified Instructors</p>
+            <p class="mt-2 text-sm text-gb-text leading-relaxed">Every Gracie Barra instructor must complete the official Gracie Barra Instructor Certification Program. That credential is not handed out — it is earned, and it is required to teach under the Gracie Barra name.</p>
+          </div>
+          <div class="bg-gb-bg-light rounded-xl p-5">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Structured Curriculum</p>
+            <p class="mt-2 text-sm text-gb-text leading-relaxed">The GB1 Fundamentals program is a 16-week rotating curriculum, so every student covers every core position, escape, and submission on a predictable schedule. No randomness, no gaps.</p>
+          </div>
+        </div>
+        <p class="mt-6 text-base text-gb-text leading-relaxed">
+          The practical effect: a beginner who walks into Gracie Barra Whittier today is learning the same Fundamentals taught at Gracie Barra academies in Rio de Janeiro, London, and across the United States. If you ever travel, move, or relocate, your Gracie Barra membership transfers to any Gracie Barra academy in the world — and you pick up right where you left off.
+        </p>
+      </div>
+    </section>
+
+    {/* WHAT TO EXPECT */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4" aria-labelledby="what-to-expect">
+      <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <div class="text-center mb-8 max-w-3xl mx-auto">
+          <h2 id="what-to-expect" class="text-2xl md:text-4xl font-extrabold text-gb-navy">What to Expect at Your First Class</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+            Showing up the first time is the hardest part. Here is exactly what happens — step by step — so there are no surprises.
+          </p>
+        </div>
+        <ol class="grid md:grid-cols-2 gap-4 md:gap-5">
+          {firstClassSteps.map((step, idx) => (
+            <li class="flex gap-4 bg-gb-bg-light rounded-xl p-4 md:p-5">
+              <span class="shrink-0 w-9 h-9 rounded-full bg-gb-red text-gb-white font-bold inline-flex items-center justify-center" aria-hidden="true">
+                {idx + 1}
+              </span>
+              <p class="text-sm md:text-base text-gb-text leading-relaxed">{step}</p>
+            </li>
+          ))}
+        </ol>
+        <p class="mt-6 text-center text-sm text-gb-text-muted leading-relaxed">
+          Total time on the mat: about an hour. Total time including the debrief: about 90 minutes. Bring water, wear comfortable athletic clothes, and arrive ready to learn.
+        </p>
+      </div>
+    </section>
+
+    {/* PROGRAMS */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4" aria-labelledby="programs">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10 md:mb-12 max-w-3xl mx-auto">
+          <h2 id="programs" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Programs at Gracie Barra Whittier</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+            Every age and every level has a home at our academy. All programs run the same structured Gracie Barra curriculum used worldwide.
+          </p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 md:gap-8">
+          {/* KIDS */}
+          <div class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-8">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Kids Programs</p>
+            <h3 class="mt-2 text-xl md:text-2xl font-extrabold text-gb-navy">Ages 3 through 15</h3>
+            <p class="mt-3 text-sm md:text-base text-gb-text-muted leading-relaxed">
+              Four age-grouped classes built around the Gracie Barra kids curriculum. Each tier is designed for the physical and emotional development of that age range — not a watered-down adult class.
+            </p>
+            <ul class="mt-5 space-y-3">
+              {kidsPrograms.map((k) => (
+                <li class="bg-gb-bg-light rounded-xl p-4">
+                  <div class="flex items-baseline justify-between gap-3">
+                    <p class="text-sm md:text-base font-bold text-gb-navy">{k.name}</p>
+                    <p class="text-xs font-semibold text-gb-red uppercase tracking-wide whitespace-nowrap">{k.age}</p>
+                  </div>
+                  <p class="mt-1 text-sm text-gb-text-muted leading-relaxed">{k.focus}</p>
+                </li>
+              ))}
+            </ul>
+            <div class="mt-6">
+              <a href="/kids-martial-arts/" class="inline-flex items-center gap-1 text-sm font-semibold text-gb-red hover:text-gb-red-dark">
+                See full kids program details →
+              </a>
+            </div>
+          </div>
+
+          {/* ADULTS */}
+          <div class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-8">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Adult Programs</p>
+            <h3 class="mt-2 text-xl md:text-2xl font-extrabold text-gb-navy">Ages 16 and up</h3>
+            <p class="mt-3 text-sm md:text-base text-gb-text-muted leading-relaxed">
+              Three progressive programs that take you from your first day on the mat to competition-ready, all using the official Gracie Barra adult curriculum.
+            </p>
+            <ul class="mt-5 space-y-3">
+              {adultPrograms.map((a) => (
+                <li class="bg-gb-bg-light rounded-xl p-4">
+                  <div class="flex items-baseline justify-between gap-3">
+                    <p class="text-sm md:text-base font-bold text-gb-navy">{a.name}</p>
+                    <p class="text-xs font-semibold text-gb-red uppercase tracking-wide whitespace-nowrap">{a.who}</p>
+                  </div>
+                  <p class="mt-1 text-sm text-gb-text-muted leading-relaxed">{a.focus}</p>
+                </li>
+              ))}
+            </ul>
+            <div class="mt-6 flex flex-wrap gap-x-5 gap-y-2">
+              <a href="/adults-jiu-jitsu/" class="inline-flex items-center gap-1 text-sm font-semibold text-gb-red hover:text-gb-red-dark">
+                See full adults program details →
+              </a>
+              <a href="/schedule/" class="inline-flex items-center gap-1 text-sm font-semibold text-gb-red hover:text-gb-red-dark">
+                View the full class schedule →
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* COST AND COMMITMENT */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4" aria-labelledby="cost">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 id="cost" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Cost and Commitment: What It Actually Takes to Start</h2>
+        <p class="mt-5 text-base text-gb-text leading-relaxed">
+          Here is the straightforward version, with no high-pressure sales pitch attached.
+        </p>
+        <div class="mt-6 grid sm:grid-cols-2 gap-5">
+          <div class="bg-gb-bg-light rounded-xl p-5">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">First Three Classes</p>
+            <p class="mt-2 text-base text-gb-text leading-relaxed"><strong class="text-gb-navy">Free.</strong> Our Free 3-Class Pass includes a free uniform rental. You try the academy, train with the coaches, and decide for yourself.</p>
+          </div>
+          <div class="bg-gb-bg-light rounded-xl p-5">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Monthly Membership</p>
+            <p class="mt-2 text-base text-gb-text leading-relaxed">Memberships typically start around <strong class="text-gb-navy">$160 per month</strong> depending on program and training frequency. Coach Alex confirms exact pricing after your free trial.</p>
+          </div>
+          <div class="bg-gb-bg-light rounded-xl p-5">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Contracts</p>
+            <p class="mt-2 text-base text-gb-text leading-relaxed"><strong class="text-gb-navy">None required.</strong> We do not lock you in. Train because you love it, not because you signed something.</p>
+          </div>
+          <div class="bg-gb-bg-light rounded-xl p-5">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Time Commitment</p>
+            <p class="mt-2 text-base text-gb-text leading-relaxed">Two to three classes a week is the sweet spot for steady progress. Each class runs about an hour.</p>
+          </div>
+        </div>
+        <p class="mt-6 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          The best way to find out if Gracie Barra Whittier is right for you is to come train. That is what the Free 3-Class Pass is for. No commitment, no contract, no pressure — show up, train, decide.
+        </p>
+      </div>
+    </section>
+
+    {/* FAQ */}
+    <section class="px-4 md:px-6 pt-6 md:pt-10 pb-12 md:pb-16" aria-labelledby="guide-faq-heading">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-8 md:mb-10 max-w-3xl mx-auto">
+          <h2 id="guide-faq-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Brazilian Jiu-Jitsu: Frequently Asked Questions</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+            The most common questions we get from people researching Brazilian Jiu-Jitsu for the first time.
+          </p>
+        </div>
+        <div class="space-y-2">
+          {guideFaqs.map((item) => (
+            <details class="group border-b border-gb-navy/15 py-4">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-navy">
+                <span class="flex items-center gap-3">
+                  <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span>{item.question}</span>
+                </span>
+              </summary>
+              <p class="mt-3 ml-7 text-sm text-gb-text-muted leading-relaxed">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    {/* CTA */}
+    <section class="px-4 md:px-6 pt-2 pb-6 md:pt-4 md:pb-8">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-2xl md:text-4xl font-extrabold">Ready to Try Brazilian Jiu-Jitsu in Whittier?</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+            Claim your Free 3-Class Pass. We provide the uniform. You bring yourself and an open mind. See for yourself why Gracie Barra is the most trusted name in Brazilian Jiu-Jitsu — right here in Whittier.
+          </p>
+          <div class="mt-7 flex justify-center">
+            <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" />
+          </div>
+          <p class="mt-4 text-xs text-gb-white/70">3 free classes • No experience needed • Free uniform • No contracts</p>
+          <p class="mt-6 text-xs text-gb-white/60">{nap.name} • {nap.address} • {nap.phone}</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <SchemaBreadcrumb items={breadcrumb} />
+  <SchemaFAQ items={guideFaqs} />
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(articleSchema)}
+  />
+</BaseLayout>

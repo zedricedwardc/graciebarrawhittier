@@ -11,7 +11,10 @@ import CTAButton from '../components/cta/CTAButton.astro';
 import OptInForm from '../components/form/OptInForm.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
+import SchemaCourse from '../components/seo/SchemaCourse.astro';
+import SchemaPerson from '../components/seo/SchemaPerson.astro';
 import { kidsFaqs } from '../content/kids-faqs';
+import { instructors } from '../content/instructors';
 import kidsHero from '../assets/images/kids/kids-hero.jpg';
 
 const programs = [
@@ -77,6 +80,15 @@ const breadcrumb = [
   { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
   { name: 'Kids Martial Arts', url: 'https://www.graciebarrawhittier.com/kids-martial-arts/' },
 ];
+
+const kidsPageUrl = 'https://www.graciebarrawhittier.com/kids-martial-arts/';
+
+const courseItems = programs.map((p) => ({
+  name: p.name,
+  description: `${p.ages} — ${p.blurb}`,
+  audience: `Kids ${p.ages.replace(/Ages /i, '')}`,
+  url: kidsPageUrl,
+}));
 ---
 
 <BaseLayout
@@ -267,4 +279,6 @@ const breadcrumb = [
 
   <SchemaFAQ items={kidsFaqs} />
   <SchemaBreadcrumb items={breadcrumb} />
+  <SchemaCourse items={courseItems} pageUrl={kidsPageUrl} />
+  <SchemaPerson items={instructors} />
 </BaseLayout>

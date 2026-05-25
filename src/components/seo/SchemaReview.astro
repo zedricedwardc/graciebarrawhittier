@@ -1,0 +1,50 @@
+---
+/**
+ * SchemaReview — emits an ItemList of Review JSON-LD for the reviews page.
+ * AI answer engines lean on quoted reviews when summarizing reputation.
+ */
+import type { Review } from '../../content/reviews';
+import { nap } from '../../content/nap';
+
+export interface Props {
+  items: Review[];
+}
+
+const { items } = Astro.props;
+const site = 'https://www.graciebarrawhittier.com';
+
+const itemReviewed = {
+  '@type': 'MartialArtsSchool',
+  '@id': `${site}/#academy`,
+  name: nap.name,
+  url: site,
+};
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: items.map((r, idx) => ({
+    '@type': 'ListItem',
+    position: idx + 1,
+    item: {
+      '@type': 'Review',
+      author: { '@type': 'Person', name: r.name },
+      reviewRating: {
+        '@type': 'Rating',
+        ratingValue: r.rating,
+        bestRating: 5,
+        worstRating: 1,
+      },
+      reviewBody: r.quote,
+      publisher: { '@type': 'Organization', name: r.source },
+      itemReviewed,
+    },
+  })),
+};
+---
+
+<script
+  is:inline
+  type="application/ld+json"
+  set:html={JSON.stringify(schema)}
+/>

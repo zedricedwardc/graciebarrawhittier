@@ -15,6 +15,44 @@ const gtmId = import.meta.env.PUBLIC_GTM_ID as string | undefined;
 ---
 
 {
+  !body && (
+    <script
+      is:inline
+      set:html={`/* AI search referral tracking. Pushes a single 'ai_referral' event to window.dataLayer when document.referrer matches a known AI engine hostname. GTM consumes: event='ai_referral', ai_engine (string label), ai_referrer_url (full referrer), page_path (location.pathname). Idempotent per page load via window.__aiReferralLogged. */
+(function(){
+  try {
+    window.dataLayer = window.dataLayer || [];
+    if (window.__aiReferralLogged) return;
+    var ref = document.referrer;
+    if (!ref) return;
+    var host = '';
+    try { host = new URL(ref).hostname.toLowerCase(); } catch (e) { return; }
+    if (!host) return;
+    var engine = null;
+    if (host.endsWith('chatgpt.com') || host.endsWith('chat.openai.com')) engine = 'chatgpt';
+    else if (host.endsWith('perplexity.ai')) engine = 'perplexity';
+    else if (host.endsWith('claude.ai') || host.endsWith('claude.com')) engine = 'claude';
+    else if (host.endsWith('gemini.google.com') || host.endsWith('bard.google.com')) engine = 'gemini';
+    else if (host.endsWith('copilot.microsoft.com')) engine = 'copilot';
+    else if (host.endsWith('phind.com')) engine = 'phind';
+    else if (host.endsWith('you.com')) engine = 'you';
+    else if (host.endsWith('meta.ai')) engine = 'meta_ai';
+    else if (host.endsWith('duckduckgo.com')) engine = 'duckduckgo_ai';
+    if (!engine) return;
+    window.__aiReferralLogged = true;
+    window.dataLayer.push({
+      event: 'ai_referral',
+      ai_engine: engine,
+      ai_referrer_url: ref,
+      page_path: location.pathname
+    });
+  } catch (e) { /* swallow — analytics must never break the page */ }
+})();`}
+    />
+  )
+}
+
+{
   gtmId && !body && (
     <script
       is:inline

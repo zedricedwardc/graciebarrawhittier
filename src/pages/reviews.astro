@@ -8,6 +8,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
 import OptInModal from '../components/form/OptInModal.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
+import SchemaReview from '../components/seo/SchemaReview.astro';
 import { reviews } from '../content/reviews';
 
 const breadcrumb = [
@@ -86,7 +87,7 @@ const breadcrumb = [
             </article>
           ))}
         </div>
-        <p class="mt-8 text-xs text-gb-text-muted text-center">Placeholder quotes pending publication of real reviews.</p>
+        <p class="mt-8 text-xs text-gb-text-muted text-center">Real student & family reviews sourced from Google.</p>
       </div>
     </section>
 
@@ -109,4 +110,5 @@ const breadcrumb = [
 
   <OptInModal />
   <SchemaBreadcrumb items={breadcrumb} />
+  <SchemaReview items={reviews} />
 </BaseLayout>

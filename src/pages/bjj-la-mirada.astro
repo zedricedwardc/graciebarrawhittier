@@ -1,0 +1,189 @@
+---
+export const prerender = true;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CTAButton from '../components/cta/CTAButton.astro';
+import SchemaLocalBusiness from '../components/seo/SchemaLocalBusiness.astro';
+import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
+import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
+import type { FAQItemData } from '../content/faqs';
+import { nap } from '../content/nap';
+
+const breadcrumb = [
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'BJJ Near La Mirada', url: 'https://www.graciebarrawhittier.com/bjj-la-mirada/' },
+];
+
+const localFaqs: FAQItemData[] = [
+  {
+    question: 'Is Gracie Barra Whittier a good option for La Mirada residents?',
+    answer:
+      'Yes. La Mirada is one of the cities we actively serve, and a meaningful share of our student base commutes from there. Our location on Whittier Blvd is straightforward to reach by car, and our weekday and Saturday schedule covers most working-parent timeslots.',
+  },
+  {
+    question: 'My child has tried karate and lost interest. Will BJJ be different?',
+    answer:
+      'Probably yes. Our kids program from La Mirada families is heavy on engagement: partner drills, controlled grappling games, and a clear belt-stripe progression. Kids see and feel themselves getting better week to week, which is usually what was missing in striking-only programs.',
+  },
+  {
+    question: 'Do you offer Saturday classes for working La Mirada parents?',
+    answer:
+      'Yes. Saturday classes run from 10 AM to 1 PM, with a kids class in the morning and an adult Fundamentals class in the early afternoon. Many La Mirada families schedule the entire family on Saturdays.',
+  },
+  {
+    question: 'How long until a beginner can roll (spar) safely?',
+    answer:
+      'In our GB1 Fundamentals program, you drill technique first and add controlled positional sparring as you build comfort. There is no expectation that brand-new students from La Mirada will roll on day one. We grow you into it on your own timeline.',
+  },
+];
+---
+
+<BaseLayout
+  title="BJJ Classes Near La Mirada, CA | Gracie Barra Whittier"
+  description="Brazilian Jiu-Jitsu near La Mirada, CA. Certified Gracie Barra instruction for kids and adults, free 3-class trial, no contracts. Short drive from La Mirada."
+  canonical="https://www.graciebarrawhittier.com/bjj-la-mirada/"
+  ogImage="/og/home.jpg"
+>
+  <div class="bg-gb-bg-light">
+    {/* HERO */}
+    <section class="px-4 md:px-6 pt-6 md:pt-8">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative shadow-lg">
+        <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            Serving La Mirada Families
+          </p>
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+            Brazilian Jiu-Jitsu Near La Mirada | Gracie Barra Whittier
+          </h1>
+          <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+            A certified Gracie Barra academy a short drive from La Mirada. Kids and adult classes, free 3-class trial, no long-term contracts.
+          </p>
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+        </div>
+      </div>
+    </section>
+
+    {/* INTRO */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Authentic Gracie Barra Instruction, Minutes From La Mirada</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          For La Mirada families looking into Brazilian Jiu-Jitsu, Gracie Barra Whittier is one of the closest certified Gracie Barra academies. We are not a generic BJJ school using the name loosely — we operate under the official Gracie Barra organization, follow the global GB curriculum, and our instructors hold legitimate Gracie Barra ranks. Our address is {nap.address}, just a short drive from neighborhoods across La Mirada.
+        </p>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          What that means in practice for a La Mirada family: your child or adult beginner walks into a class that has a defined plan, a clear belt path, and instructors trained inside the world's largest BJJ network. There's no guesswork about what's being taught, and no surprise pivots between schools of thought. It's the same Jiu-Jitsu, taught the same way, that hundreds of GB academies teach worldwide.
+        </p>
+      </div>
+    </section>
+
+    {/* PROGRAMS OVERVIEW */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-8">
+          <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Programs for La Mirada Kids and Adults</h2>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5 md:gap-6">
+          <article class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-8 flex flex-col">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Kids Programs</p>
+            <h3 class="mt-2 text-xl font-extrabold text-gb-navy">Ages 3 through 15, split by age group</h3>
+            <p class="mt-3 text-sm text-gb-text-muted leading-relaxed">
+              Tiny Champions, Little Champions, and Juniors — each group runs its own age-appropriate curriculum, with a clear belt-stripe progression kids can see and feel.
+            </p>
+            <div class="mt-5">
+              <a href="/kids-martial-arts/" class="text-sm font-semibold text-gb-red hover:text-gb-red-dark">Explore the kids program →</a>
+            </div>
+          </article>
+          <article class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-8 flex flex-col">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Adults Programs</p>
+            <h3 class="mt-2 text-xl font-extrabold text-gb-navy">Ages 16+, Fundamentals through Competition</h3>
+            <p class="mt-3 text-sm text-gb-text-muted leading-relaxed">
+              GB1 Fundamentals for absolute beginners, GB2 Advanced for live training, and GB3 for competitors. Train for fitness, self-defense, or a long-term BJJ journey.
+            </p>
+            <div class="mt-5">
+              <a href="/adults-jiu-jitsu/" class="text-sm font-semibold text-gb-red hover:text-gb-red-dark">Explore the adults program →</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    {/* SCHEDULE OVERVIEW */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">When Classes Run</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          The academy is open Monday through Friday from 11 AM to 8 PM, Saturday from 10 AM to 1 PM, and closed Sunday. La Mirada parents often pair an after-school kids class with an evening adult class on the same day.
+        </p>
+        <div class="mt-5">
+          <a href="/schedule/" class="text-sm font-semibold text-gb-red hover:text-gb-red-dark">See the complete weekly schedule →</a>
+        </div>
+      </div>
+    </section>
+
+    {/* WHY LA MIRADA FAMILIES CHOOSE GB WHITTIER */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Why La Mirada Families Pick GB Whittier</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Most of the La Mirada families who walk through our door are comparing two or three local options and trying to figure out which one is serious. The thing that usually convinces them: we don't run high-pressure sales meetings, and we don't ask for a long-term contract. The Free 3-Class Pass is exactly that — three free classes, free uniform, and an honest conversation at the end with Program Director Alex about whether or not to enroll. No upsells, no commitment.
+        </p>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Beyond the trial, the day-to-day reality matters. Professor Phil and Professor Eric are both Gracie Barra certified, and they teach class personally — you don't get rotated through a roster of unrelated coaches. Kids are split into Tiny Champions, Little Champions, and Juniors so age and size are matched, and the adult program has separate tracks for true beginners versus experienced practitioners. For a La Mirada parent juggling work and after-school logistics, having a structured, predictable program at a reachable location is the practical reason most stay.
+        </p>
+      </div>
+    </section>
+
+    {/* GETTING HERE */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Getting Here from La Mirada</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Gracie Barra Whittier is a short drive from La Mirada, accessible via Whittier Blvd. We're located at {nap.address}. Call {nap.phone} for directions tailored to your starting point in La Mirada.
+        </p>
+      </div>
+    </section>
+
+    {/* CTA */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12 pb-6">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-2xl md:text-4xl font-extrabold">Try BJJ This Week</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+            La Mirada residents get the same Free 3-Class Pass as everyone else — three classes, free uniform, no contract. Reserve yours and come see the academy.
+          </p>
+          <div class="mt-7 flex justify-center">
+            <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* FAQ */}
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="la-mirada-faq-heading">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8 md:mb-10">
+          <h2 id="la-mirada-faq-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Common Questions From La Mirada Families</h2>
+        </div>
+        <div class="space-y-2">
+          {localFaqs.map((item) => (
+            <details class="group border-b border-gb-navy/15 py-4">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-navy">
+                <span class="flex items-center gap-3">
+                  <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span>{item.question}</span>
+                </span>
+              </summary>
+              <p class="mt-3 ml-7 text-sm text-gb-text-muted leading-relaxed">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <SchemaLocalBusiness />
+  <SchemaBreadcrumb items={breadcrumb} />
+  <SchemaFAQ items={localFaqs} />
+</BaseLayout>

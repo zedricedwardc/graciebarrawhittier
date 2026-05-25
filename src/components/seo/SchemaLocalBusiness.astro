@@ -5,14 +5,22 @@
  */
 import { nap } from '../../content/nap';
 
+const site = 'https://www.graciebarrawhittier.com';
+
 const schema = {
   '@context': 'https://schema.org',
   '@type': 'MartialArtsSchool',
+  '@id': `${site}/#academy`,
   name: nap.name,
-  url: 'https://www.graciebarrawhittier.com',
+  alternateName: 'GB Whittier',
+  description:
+    'Gracie Barra Whittier is a certified Brazilian Jiu-Jitsu academy in Whittier, California offering structured programs for kids (ages 3-15) and adults (16+). Part of the global Gracie Barra network with a 35+ year proven curriculum.',
+  url: site,
   telephone: nap.phone,
   email: nap.email,
   priceRange: nap.priceRange,
+  image: `${site}/og/home.jpg`,
+  logo: `${site}/logo/gb-whittier-logo.webp`,
   address: {
     '@type': 'PostalAddress',
     streetAddress: nap.streetAddress,
@@ -26,30 +34,73 @@ const schema = {
     latitude: nap.geo.latitude,
     longitude: nap.geo.longitude,
   },
-  // Placeholder hours — Wave 1: confirm with studio per build brief Open Items.
-  openingHoursSpecification: [
-    {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      opens: '09:00',
-      closes: '21:00',
-    },
-    {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: 'Saturday',
-      opens: '09:00',
-      closes: '13:00',
-    },
-  ],
+  openingHoursSpecification: nap.hours.map((block) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: block.days,
+    opens: block.opens,
+    closes: block.closes,
+  })),
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: nap.rating.average,
+    reviewCount: nap.rating.count,
+    bestRating: 5,
+    worstRating: 1,
+  },
   areaServed: nap.serviceAreas.map((city) => ({
     '@type': 'City',
     name: city,
   })),
+  parentOrganization: {
+    '@type': 'Organization',
+    name: 'Gracie Barra',
+    url: 'https://graciebarra.com',
+  },
+  knowsAbout: [
+    'Brazilian Jiu-Jitsu',
+    'BJJ for kids',
+    'Self-defense',
+    'Martial arts for adults',
+    'Gracie Barra curriculum',
+  ],
+  makesOffer: {
+    '@type': 'Offer',
+    name: 'Free 3-Class Pass',
+    description:
+      'Three free Brazilian Jiu-Jitsu classes with free uniform rental, no contract, and no risk. Available to new students.',
+    price: '0',
+    priceCurrency: 'USD',
+    url: `${site}/#trial`,
+    eligibleCustomerType: 'https://schema.org/NewCustomer',
+  },
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Programs at Gracie Barra Whittier',
+    itemListElement: [
+      {
+        '@type': 'Offer',
+        itemOffered: {
+          '@type': 'Service',
+          name: 'Kids Brazilian Jiu-Jitsu (ages 3-15)',
+          url: `${site}/kids-martial-arts/`,
+        },
+      },
+      {
+        '@type': 'Offer',
+        itemOffered: {
+          '@type': 'Service',
+          name: 'Adult Brazilian Jiu-Jitsu (ages 16+)',
+          url: `${site}/adults-jiu-jitsu/`,
+        },
+      },
+    ],
+  },
   sameAs: [
     nap.social.googleBusiness,
     nap.social.facebook,
     nap.social.instagram,
     nap.social.yelp,
+    'https://graciebarra.com',
   ],
 };
 ---

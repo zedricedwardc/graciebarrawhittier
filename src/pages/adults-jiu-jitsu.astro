@@ -11,7 +11,10 @@ import CTAButton from '../components/cta/CTAButton.astro';
 import OptInForm from '../components/form/OptInForm.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
+import SchemaCourse from '../components/seo/SchemaCourse.astro';
+import SchemaPerson from '../components/seo/SchemaPerson.astro';
 import { adultsFaqs } from '../content/adults-faqs';
+import { instructors } from '../content/instructors';
 import adultsHero from '../assets/images/adults/adults-hero.jpg';
 
 const programs = [
@@ -99,6 +102,15 @@ const breadcrumb = [
   { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
   { name: 'Adults Jiu-Jitsu', url: 'https://www.graciebarrawhittier.com/adults-jiu-jitsu/' },
 ];
+
+const adultsPageUrl = 'https://www.graciebarrawhittier.com/adults-jiu-jitsu/';
+
+const courseItems = programs.map((p) => ({
+  name: p.name,
+  description: p.description,
+  audience: 'Adults 16+',
+  url: adultsPageUrl,
+}));
 ---
 
 <BaseLayout
@@ -308,4 +320,6 @@ const breadcrumb = [
 
   <SchemaFAQ items={adultsFaqs} />
   <SchemaBreadcrumb items={breadcrumb} />
+  <SchemaCourse items={courseItems} pageUrl={adultsPageUrl} />
+  <SchemaPerson items={instructors} />
 </BaseLayout>

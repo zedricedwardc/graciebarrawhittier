@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { adultsFaqs } from './adults-faqs';
 
 describe('adultsFaqs', () => {
-  it('contains exactly 4 items', () => {
-    expect(adultsFaqs).toHaveLength(4);
+  it('contains exactly 9 items', () => {
+    expect(adultsFaqs).toHaveLength(9);
   });
 
   it('every item has a non-empty question and answer', () => {
@@ -14,7 +14,7 @@ describe('adultsFaqs', () => {
   });
 
   it('contains the four brief-mandated adults questions in order', () => {
-    expect(adultsFaqs.map((f) => f.question)).toEqual([
+    expect(adultsFaqs.slice(0, 4).map((f) => f.question)).toEqual([
       'Am I too old to start BJJ?',
       'Do I need to be fit to start?',
       'Is adult BJJ dangerous?',

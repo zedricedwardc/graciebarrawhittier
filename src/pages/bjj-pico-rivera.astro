@@ -1,0 +1,189 @@
+---
+export const prerender = true;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CTAButton from '../components/cta/CTAButton.astro';
+import SchemaLocalBusiness from '../components/seo/SchemaLocalBusiness.astro';
+import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
+import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
+import type { FAQItemData } from '../content/faqs';
+import { nap } from '../content/nap';
+
+const breadcrumb = [
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'BJJ Near Pico Rivera', url: 'https://www.graciebarrawhittier.com/bjj-pico-rivera/' },
+];
+
+const localFaqs: FAQItemData[] = [
+  {
+    question: 'Do you have Spanish-speaking instructors or staff?',
+    answer:
+      'Yes. Several of our coaches and front-desk staff speak Spanish, and many of our Pico Rivera families are bilingual households. Trial classes and enrollment conversations can be conducted in either language — just let us know when you arrive.',
+  },
+  {
+    question: 'Is Brazilian Jiu-Jitsu good for kids dealing with bullying?',
+    answer:
+      'It is one of the most common reasons Pico Rivera parents enroll. BJJ teaches kids to stay calm under pressure, defend themselves without striking, and project the kind of quiet confidence that usually ends bullying without a fight. The structured curriculum also gives kids a sense of progress that boosts self-esteem outside the academy.',
+  },
+  {
+    question: 'Can I bring multiple children from one family?',
+    answer:
+      'Absolutely. We see this often with Pico Rivera families — multiple siblings in different age brackets. We have family enrollment options and the schedule is built so siblings in different age groups can train on the same day. Ask Program Director Alex about family rates during your trial.',
+  },
+  {
+    question: 'I am in my 40s. Is it too late to start BJJ?',
+    answer:
+      "No. We have students from Pico Rivera who started in their 40s, 50s, and even 60s. The GB1 Fundamentals class is built around technique and leverage, not athletic ability or strength. You go at your own pace and you'll be training with adults at a similar starting point.",
+  },
+];
+---
+
+<BaseLayout
+  title="BJJ Classes Near Pico Rivera, CA | Gracie Barra Whittier"
+  description="Brazilian Jiu-Jitsu near Pico Rivera, CA. Certified Gracie Barra kids and adult classes, free 3-class trial, no contracts. Family-friendly academy on Whittier Blvd."
+  canonical="https://www.graciebarrawhittier.com/bjj-pico-rivera/"
+  ogImage="/og/home.jpg"
+>
+  <div class="bg-gb-bg-light">
+    {/* HERO */}
+    <section class="px-4 md:px-6 pt-6 md:pt-8">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative shadow-lg">
+        <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            Serving Pico Rivera Families
+          </p>
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+            Brazilian Jiu-Jitsu Near Pico Rivera | Gracie Barra Whittier
+          </h1>
+          <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+            Certified Gracie Barra instruction near Pico Rivera. Programs for kids and adults, free 3-class trial, family-friendly environment.
+          </p>
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+        </div>
+      </div>
+    </section>
+
+    {/* INTRO */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">A Family-Centered BJJ Academy Serving Pico Rivera</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Gracie Barra Whittier is one of the nearest certified Gracie Barra academies to Pico Rivera. Families come to us because they want real Brazilian Jiu-Jitsu — taught by certified instructors, following the official Gracie Barra curriculum, in an environment where parents and kids alike feel welcome. We're located at {nap.address}, on Whittier Blvd, with classes for kids starting at age 3 and adults of any experience level.
+        </p>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          A lot of what makes us a fit for Pico Rivera families is cultural and practical, not just technical. Our staff is bilingual, the academy is welcoming to multi-generational households, and we make it easy for siblings of different ages to train on the same visit. Brazilian Jiu-Jitsu also resonates with Pico Rivera parents who specifically want a martial art that emphasizes discipline, respect, and self-defense without the striking-heavy emphasis of other styles.
+        </p>
+      </div>
+    </section>
+
+    {/* PROGRAMS OVERVIEW */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-8">
+          <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">What We Offer Pico Rivera Students</h2>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5 md:gap-6">
+          <article class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-8 flex flex-col">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Kids Jiu-Jitsu</p>
+            <h3 class="mt-2 text-xl font-extrabold text-gb-navy">Age-Specific Classes, Ages 3 to 15</h3>
+            <p class="mt-3 text-sm text-gb-text-muted leading-relaxed">
+              Tiny Champions, Little Champions, and Juniors — separate age groups so your child trains alongside peers, learning real Jiu-Jitsu with discipline and respect baked into every class.
+            </p>
+            <div class="mt-5">
+              <a href="/kids-martial-arts/" class="text-sm font-semibold text-gb-red hover:text-gb-red-dark">Learn more about kids classes →</a>
+            </div>
+          </article>
+          <article class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-8 flex flex-col">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Adults Jiu-Jitsu</p>
+            <h3 class="mt-2 text-xl font-extrabold text-gb-navy">Beginner-Friendly Through Competition</h3>
+            <p class="mt-3 text-sm text-gb-text-muted leading-relaxed">
+              GB1 Fundamentals welcomes adults with zero experience. Train for self-defense, fitness, or a serious BJJ path — all ages 16+ and skill levels welcome.
+            </p>
+            <div class="mt-5">
+              <a href="/adults-jiu-jitsu/" class="text-sm font-semibold text-gb-red hover:text-gb-red-dark">Learn more about adult classes →</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    {/* SCHEDULE OVERVIEW */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Weekly Class Times</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Classes run Monday through Friday from 11 AM to 8 PM, Saturday from 10 AM to 1 PM, with the academy closed on Sunday. Pico Rivera families with multiple children often plan a single weekday trip that covers two age groups back-to-back.
+        </p>
+        <div class="mt-5">
+          <a href="/schedule/" class="text-sm font-semibold text-gb-red hover:text-gb-red-dark">View the detailed schedule →</a>
+        </div>
+      </div>
+    </section>
+
+    {/* WHY PICO RIVERA FAMILIES CHOOSE GB WHITTIER */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Why Pico Rivera Families Train Here</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          The reasons we hear most from Pico Rivera families come down to trust. Gracie Barra is a recognized name worldwide and the curriculum is standardized, which means parents don't have to take anyone's word for whether their child is being taught real Jiu-Jitsu — the same techniques are being taught at hundreds of GB schools globally. Professor Phil and Professor Eric carry official Gracie Barra rank, not self-awarded credentials, and they're on the mat with students every day rather than running the academy from a back office.
+        </p>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          On the practical side, Pico Rivera parents like that there's no contract pressure during the trial, the Free 3-Class Pass includes a uniform rental, and the academy is genuinely set up to accept entire families. Siblings can train in different age-appropriate groups during the same visit, parents can train alongside their kids on different mats, and our front-desk team is bilingual to make enrollment conversations comfortable. The result is an academy where Pico Rivera families settle in for years, not weeks.
+        </p>
+      </div>
+    </section>
+
+    {/* GETTING HERE */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Getting Here from Pico Rivera</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Gracie Barra Whittier is a short drive from Pico Rivera, accessible via Whittier Blvd. Our address is {nap.address}. Call {nap.phone} for directions specific to your starting point in Pico Rivera, or use any maps app for live routing.
+        </p>
+      </div>
+    </section>
+
+    {/* CTA */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12 pb-6">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-2xl md:text-4xl font-extrabold">Bring the Whole Family for a Free Trial</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+            Three classes free, free uniform rental, no contracts. The easiest way for a Pico Rivera family to see if BJJ is the right fit.
+          </p>
+          <div class="mt-7 flex justify-center">
+            <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* FAQ */}
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="pico-rivera-faq-heading">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8 md:mb-10">
+          <h2 id="pico-rivera-faq-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">FAQs From Pico Rivera Families</h2>
+        </div>
+        <div class="space-y-2">
+          {localFaqs.map((item) => (
+            <details class="group border-b border-gb-navy/15 py-4">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-navy">
+                <span class="flex items-center gap-3">
+                  <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span>{item.question}</span>
+                </span>
+              </summary>
+              <p class="mt-3 ml-7 text-sm text-gb-text-muted leading-relaxed">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <SchemaLocalBusiness />
+  <SchemaBreadcrumb items={breadcrumb} />
+  <SchemaFAQ items={localFaqs} />
+</BaseLayout>

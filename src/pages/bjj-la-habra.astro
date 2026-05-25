@@ -1,0 +1,189 @@
+---
+export const prerender = true;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CTAButton from '../components/cta/CTAButton.astro';
+import SchemaLocalBusiness from '../components/seo/SchemaLocalBusiness.astro';
+import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
+import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
+import type { FAQItemData } from '../content/faqs';
+import { nap } from '../content/nap';
+
+const breadcrumb = [
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'BJJ Near La Habra', url: 'https://www.graciebarrawhittier.com/bjj-la-habra/' },
+];
+
+const localFaqs: FAQItemData[] = [
+  {
+    question: 'How far is Gracie Barra Whittier from La Habra?',
+    answer:
+      'Gracie Barra Whittier is a short drive from La Habra and easily reachable via Whittier Blvd. Most La Habra families find the trip quick during weekday evenings and Saturday mornings when our classes run. Call (562) 640-1400 for directions tailored to your starting point.',
+  },
+  {
+    question: 'Do you have a beginner BJJ class for La Habra adults who have never trained?',
+    answer:
+      'Yes. Our GB1 Fundamentals class is built specifically for adults with zero martial arts experience. Most of our students from La Habra start here. The curriculum rotates on a 16-week cycle, so you can begin any week of the year and follow along from class one.',
+  },
+  {
+    question: 'What ages do you teach at the kids program?',
+    answer:
+      'We accept students starting at age 3 in Tiny Champions, age 5 in Little Champions, and age 10 in Juniors Jiu-Jitsu. La Habra parents often enroll multiple siblings since the age-specific groups run on overlapping schedules.',
+  },
+  {
+    question: 'Is there a trial available before signing up?',
+    answer:
+      'Yes. Every new student from La Habra gets a Free 3-Class Pass with no contract and a free uniform rental. After your three classes, our Program Director Alex will sit with you for a brief no-pressure conversation about next steps.',
+  },
+];
+---
+
+<BaseLayout
+  title="BJJ Classes Near La Habra, CA | Gracie Barra Whittier"
+  description="Brazilian Jiu-Jitsu near La Habra, CA. Certified Gracie Barra instruction for kids and adults — short drive from La Habra. Free 3-class trial, no contracts."
+  canonical="https://www.graciebarrawhittier.com/bjj-la-habra/"
+  ogImage="/og/home.jpg"
+>
+  <div class="bg-gb-bg-light">
+    {/* HERO */}
+    <section class="px-4 md:px-6 pt-6 md:pt-8">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative shadow-lg">
+        <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            Serving La Habra Families
+          </p>
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+            Brazilian Jiu-Jitsu Near La Habra | Gracie Barra Whittier
+          </h1>
+          <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+            Certified Gracie Barra instruction a short drive from La Habra. Free 3-class trial, no contracts, structured curriculum for kids and adults.
+          </p>
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+        </div>
+      </div>
+    </section>
+
+    {/* INTRO */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">A Certified Gracie Barra Academy Close to La Habra</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          La Habra parents and adult students don't have to travel far to find a Gracie Barra school that teaches the official global curriculum. Gracie Barra Whittier serves La Habra families who want certified instruction, structured progression, and a welcoming mat — without driving across the county to get it. Our academy at {nap.address} is operated by Professor Phil and Professor Eric, both directly certified through the Gracie Barra network, and we run programs for ages 3 through adult on a schedule that fits around school, work, and weekend life in La Habra.
+        </p>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          If you've been searching for "BJJ near La Habra" and finding mixed results, this is the difference: Gracie Barra Whittier teaches one curriculum, the same way it's taught at hundreds of certified GB academies worldwide. No improvisation, no mystery — just the most respected system in Brazilian Jiu-Jitsu, taught by instructors who live and train it every day.
+        </p>
+      </div>
+    </section>
+
+    {/* PROGRAMS OVERVIEW */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-8">
+          <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Programs Available to La Habra Students</h2>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5 md:gap-6">
+          <article class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-8 flex flex-col">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Kids Martial Arts</p>
+            <h3 class="mt-2 text-xl font-extrabold text-gb-navy">Tiny Champions, Little Champions & Juniors</h3>
+            <p class="mt-3 text-sm text-gb-text-muted leading-relaxed">
+              Age-specific groups from ages 3 to 15. Focused on discipline, confidence, and real Jiu-Jitsu skills taught in a structured, safe environment.
+            </p>
+            <div class="mt-5">
+              <a href="/kids-martial-arts/" class="text-sm font-semibold text-gb-red hover:text-gb-red-dark">See the kids program details →</a>
+            </div>
+          </article>
+          <article class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-8 flex flex-col">
+            <p class="text-xs font-bold tracking-widest text-gb-red uppercase">Adults BJJ</p>
+            <h3 class="mt-2 text-xl font-extrabold text-gb-navy">GB1 Fundamentals through GB3 Competition</h3>
+            <p class="mt-3 text-sm text-gb-text-muted leading-relaxed">
+              Beginner-friendly Fundamentals plus advanced and competition tracks for ages 16+. Build fitness, self-defense, and a real Jiu-Jitsu game.
+            </p>
+            <div class="mt-5">
+              <a href="/adults-jiu-jitsu/" class="text-sm font-semibold text-gb-red hover:text-gb-red-dark">See the adults program details →</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    {/* SCHEDULE OVERVIEW */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Class Schedule at a Glance</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Monday through Friday from 11 AM to 8 PM, Saturday from 10 AM to 1 PM, closed Sunday. La Habra commuters typically catch evening adult classes or Saturday morning kids classes.
+        </p>
+        <div class="mt-5">
+          <a href="/schedule/" class="text-sm font-semibold text-gb-red hover:text-gb-red-dark">View the full weekly schedule →</a>
+        </div>
+      </div>
+    </section>
+
+    {/* WHY LA HABRA FAMILIES CHOOSE GB WHITTIER */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Why La Habra Families Choose Gracie Barra Whittier</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Families coming from La Habra usually share a similar story: they tried a couple of local martial arts schools, found inconsistent teaching or a high-pressure sales pitch, and wanted something more legitimate. Gracie Barra Whittier delivers the opposite experience. Professor Phil leads the adult program and Professor Eric leads the kids program, both certified through the official Gracie Barra organization, and both deeply invested in long-term student progress rather than short-term contract signups.
+        </p>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          The structured curriculum is a real draw for La Habra parents — kids classes are split by age so a five-year-old isn't training alongside a thirteen-year-old, and the lessons follow a published progression that parents can actually track. For adults, the GB1 Fundamentals class is designed so you can walk in cold and feel comfortable on the first day. Add in the Free 3-Class Pass with no contract requirement and a complimentary uniform rental, and there's no risk in trying it out before committing.
+        </p>
+      </div>
+    </section>
+
+    {/* GETTING HERE */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12">
+      <div class="max-w-4xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Getting Here from La Habra</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Gracie Barra Whittier is a short drive from La Habra, accessible via Whittier Blvd. We're located at {nap.address}. Call {nap.phone} for directions specific to your starting point, or use any maps app for the most current route.
+        </p>
+      </div>
+    </section>
+
+    {/* CTA */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12 pb-6">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-2xl md:text-4xl font-extrabold">Ready to Try BJJ Near La Habra?</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+            Three free classes, free uniform rental, no contracts. The simplest way to see if Gracie Barra Whittier is right for you or your child.
+          </p>
+          <div class="mt-7 flex justify-center">
+            <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* FAQ */}
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="la-habra-faq-heading">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8 md:mb-10">
+          <h2 id="la-habra-faq-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Questions From La Habra Students</h2>
+        </div>
+        <div class="space-y-2">
+          {localFaqs.map((item) => (
+            <details class="group border-b border-gb-navy/15 py-4">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-navy">
+                <span class="flex items-center gap-3">
+                  <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span>{item.question}</span>
+                </span>
+              </summary>
+              <p class="mt-3 ml-7 text-sm text-gb-text-muted leading-relaxed">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <SchemaLocalBusiness />
+  <SchemaBreadcrumb items={breadcrumb} />
+  <SchemaFAQ items={localFaqs} />
+</BaseLayout>

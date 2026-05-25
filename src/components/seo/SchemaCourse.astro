@@ -1,0 +1,85 @@
+---
+/**
+ * SchemaCourse — JSON-LD ItemList of Course entries for a program page.
+ * AI answer engines lean on Course schema to cite age ranges, descriptions,
+ * and provider for structured "what programs do they offer" answers.
+ */
+import { nap } from '../../content/nap';
+
+export interface CourseItem {
+  name: string;
+  description: string;
+  audience?: string;
+  url?: string;
+}
+
+export interface Props {
+  items: CourseItem[];
+  pageUrl: string;
+}
+
+const { items, pageUrl } = Astro.props;
+const site = 'https://www.graciebarrawhittier.com';
+
+const provider = {
+  '@type': 'MartialArtsSchool',
+  '@id': `${site}/#academy`,
+  name: nap.name,
+  url: site,
+  sameAs: 'https://graciebarra.com',
+};
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: items.map((item, idx) => ({
+    '@type': 'ListItem',
+    position: idx + 1,
+    item: {
+      '@type': 'Course',
+      name: item.name,
+      description: item.description,
+      url: item.url ?? pageUrl,
+      provider,
+      offers: {
+        '@type': 'Offer',
+        category: 'Free trial',
+        price: '0',
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: `${pageUrl}#trial`,
+      },
+      hasCourseInstance: {
+        '@type': 'CourseInstance',
+        courseMode: 'in-person',
+        location: {
+          '@type': 'Place',
+          name: nap.name,
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: nap.streetAddress,
+            addressLocality: nap.addressLocality,
+            addressRegion: nap.addressRegion,
+            postalCode: nap.postalCode,
+            addressCountry: nap.addressCountry,
+          },
+        },
+        ...(item.audience
+          ? {
+              attendee: {
+                '@type': 'Audience',
+                audienceType: item.audience,
+              },
+            }
+          : {}),
+      },
+    },
+  })),
+};
+---
+
+<script
+  is:inline
+  type="application/ld+json"
+  set:html={JSON.stringify(schema)}
+/>

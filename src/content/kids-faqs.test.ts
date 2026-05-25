@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { kidsFaqs } from './kids-faqs';
 
 describe('kidsFaqs', () => {
-  it('contains exactly 4 items', () => {
-    expect(kidsFaqs).toHaveLength(4);
+  it('contains exactly 9 items', () => {
+    expect(kidsFaqs).toHaveLength(9);
   });
 
   it('every item has a non-empty question and answer', () => {
@@ -14,7 +14,7 @@ describe('kidsFaqs', () => {
   });
 
   it('contains the four brief-mandated kids questions in order', () => {
-    expect(kidsFaqs.map((f) => f.question)).toEqual([
+    expect(kidsFaqs.slice(0, 4).map((f) => f.question)).toEqual([
       'Is jiu-jitsu safe for young children?',
       'What if my child is shy or nervous?',
       'Will my child get hurt?',

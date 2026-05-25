@@ -1,0 +1,54 @@
+---
+/**
+ * SchemaPerson — emits an ItemList of Person JSON-LD for instructors.
+ * Helps AI engines answer "who teaches at Gracie Barra Whittier?" with names + photos.
+ */
+import type { Instructor } from '../../content/instructors';
+import { nap } from '../../content/nap';
+
+export interface Props {
+  items: Instructor[];
+}
+
+const { items } = Astro.props;
+const site = 'https://www.graciebarrawhittier.com';
+
+const worksFor = {
+  '@type': 'MartialArtsSchool',
+  '@id': `${site}/#academy`,
+  name: nap.name,
+  url: site,
+};
+
+const affiliation = {
+  '@type': 'Organization',
+  name: 'Gracie Barra',
+  url: 'https://graciebarra.com',
+};
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: items.map((p, idx) => ({
+    '@type': 'ListItem',
+    position: idx + 1,
+    item: {
+      '@type': 'Person',
+      '@id': `${site}/#instructor-${p.slug}`,
+      name: p.name,
+      jobTitle: p.jobTitle,
+      image: `${site}${p.image}`,
+      description: p.description,
+      worksFor,
+      affiliation,
+      knowsAbout: ['Brazilian Jiu-Jitsu', 'Gracie Barra curriculum', 'Self-defense'],
+    },
+  })),
+};
+---
+
+<script
+  is:inline
+  type="application/ld+json"
+  set:html={JSON.stringify(schema)}
+/>

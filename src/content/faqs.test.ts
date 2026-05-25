@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { homepageFaqs } from './faqs';
 
 describe('homepageFaqs', () => {
-  it('contains 8 items', () => {
-    expect(homepageFaqs).toHaveLength(8);
+  it('contains 13 items', () => {
+    expect(homepageFaqs).toHaveLength(13);
   });
 
   it('every item has a non-empty question and answer', () => {

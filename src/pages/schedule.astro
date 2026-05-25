@@ -1,0 +1,248 @@
+---
+export const prerender = true;
+/**
+ * /schedule — public, AI-citable class schedule.
+ * Data derived from src/data/schedule.ts (trial-eligible classes) so this page
+ * stays in sync with the booking flow.
+ *
+ * Advanced (GB2) and Competition (GB3) adult classes exist but are intentionally
+ * excluded — those students confirm their schedule with the academy in person.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CTAButton from '../components/cta/CTAButton.astro';
+import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
+import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
+import { schedule } from '../data/schedule';
+import { programs, type ProgramKey } from '../data/programs';
+import { nap } from '../content/nap';
+import type { FAQItemData } from '../content/faqs';
+
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+
+function fmtTime(hour: number, minute: number): string {
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  const m = minute === 0 ? '' : `:${minute.toString().padStart(2, '0')}`;
+  return `${h12}${m} ${period}`;
+}
+
+interface ProgramDisplay {
+  key: ProgramKey;
+  name: string;
+  ageRange: string;
+  rows: { day: string; time: string }[];
+}
+
+const display: ProgramDisplay[] = programs.map((p) => {
+  const slots = schedule[p.key];
+  const rows = slots.map((s) => ({
+    day: WEEKDAY_NAMES[s.weekday],
+    time: fmtTime(s.hour, s.minute),
+  }));
+  return { key: p.key, name: p.name, ageRange: p.ageRange, rows };
+});
+
+const kidsPrograms = display.filter((p) => p.key !== 'adults');
+const adultsProgram = display.find((p) => p.key === 'adults')!;
+
+const scheduleFaqs: FAQItemData[] = [
+  {
+    question: 'What time are kids Brazilian Jiu-Jitsu classes at Gracie Barra Whittier?',
+    answer:
+      'Kids classes run Monday through Thursday in the afternoon and early evening (3 PM to 7 PM depending on age group), plus Saturday morning. Tiny Champions (ages 3-4), Little Champions 1 (ages 5-6), Little Champions 2 (ages 7-9), and Juniors (ages 10-15) each have dedicated class times.',
+  },
+  {
+    question: 'What time are adult Brazilian Jiu-Jitsu classes at Gracie Barra Whittier?',
+    answer:
+      'Adult GB1 Fundamentals classes run Monday through Thursday at 11:00 AM and 7:00 PM, plus Saturday at 12:00 PM. These are open to all adult beginners and form the foundation of the Gracie Barra adult program.',
+  },
+  {
+    question: 'Are classes available on weekends?',
+    answer:
+      'Yes. Saturday is a full schedule day with kids classes from 10:00 AM and the adult Fundamentals class at 12:00 PM. The academy is closed on Sundays.',
+  },
+  {
+    question: 'When are the GB2 Advanced and GB3 Competition classes?',
+    answer:
+      'GB2 Advanced and GB3 Competition classes are available for students who have completed GB1 Fundamentals. Schedule details are confirmed with Professor Phil in person — visit the academy or call (562) 640-1400 for current times.',
+  },
+  {
+    question: 'Do I need to book a class in advance?',
+    answer:
+      'New students should claim the Free 3-Class Pass to lock in their first session. After enrolling, members can drop in to any class on the regular schedule. Trial students arrive 10 minutes early to get fitted for a free uniform rental.',
+  },
+];
+
+const breadcrumb = [
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'Class Schedule', url: 'https://www.graciebarrawhittier.com/schedule/' },
+];
+---
+
+<BaseLayout
+  title="Class Schedule | Gracie Barra Whittier"
+  description="Public class schedule for Gracie Barra Whittier. Kids BJJ (ages 3-15) classes Mon-Thu afternoons and Saturday mornings. Adult GB1 Fundamentals Mon-Thu 11 AM & 7 PM, Saturday 12 PM. Free 3-class trial available."
+  canonical="https://www.graciebarrawhittier.com/schedule/"
+  ogImage="/og/home.jpg"
+  ogImageAlt="Gracie Barra Whittier class schedule"
+>
+  <div class="bg-gb-bg-light">
+    {/* HERO */}
+    <section class="px-4 md:px-6 pt-6 md:pt-8">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+        <div class="absolute inset-0 -z-10 bg-gradient-to-br from-gb-navy via-gb-navy/95 to-gb-navy-dark"></div>
+        <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            Class Schedule
+          </p>
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+            Brazilian Jiu-Jitsu Classes in Whittier
+          </h1>
+          <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+            Weekly class times for kids (ages 3-15) and adults (16+). Every program runs the certified Gracie Barra curriculum.
+          </p>
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" class="js-trial-link" />
+        </div>
+      </div>
+    </section>
+
+    {/* STUDIO HOURS */}
+    <section class="px-4 md:px-6 pt-10 md:pt-14">
+      <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-8">
+        <div class="grid md:grid-cols-3 gap-6 items-center">
+          <div class="md:col-span-1">
+            <h2 class="text-xl md:text-2xl font-extrabold text-gb-navy">Studio Hours</h2>
+            <p class="mt-2 text-sm text-gb-text-muted leading-relaxed">
+              {nap.address}
+            </p>
+            <a href={`tel:${nap.phoneTel}`} class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-gb-navy hover:text-gb-red">
+              {nap.phone}
+            </a>
+          </div>
+          <dl class="md:col-span-2 grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            {nap.hours.map((block) => (
+              <div class="flex justify-between gap-3 border-b border-gb-bg-light py-2">
+                <dt class="font-semibold text-gb-navy">
+                  {block.days.length > 1
+                    ? `${block.days[0]?.slice(0, 3)}–${block.days[block.days.length - 1]?.slice(0, 3)}`
+                    : block.days[0]}
+                </dt>
+                <dd class="text-gb-text-muted">{block.opens.replace(/^0/, '')} – {block.closes.replace(/^0/, '')}</dd>
+              </div>
+            ))}
+            <div class="flex justify-between gap-3 border-b border-gb-bg-light py-2">
+              <dt class="font-semibold text-gb-navy">Sunday</dt>
+              <dd class="text-gb-text-muted">Closed</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    {/* KIDS SCHEDULE */}
+    <section class="px-4 md:px-6 pt-8 md:pt-12 pb-2" aria-labelledby="kids-schedule-heading">
+      <div class="max-w-6xl mx-auto">
+        <div class="mb-6 md:mb-8">
+          <h2 id="kids-schedule-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Kids Class Schedule</h2>
+          <p class="mt-3 text-sm md:text-base text-gb-text-muted max-w-3xl leading-relaxed">
+            Age-specific Brazilian Jiu-Jitsu classes for kids ages 3 to 15. Every program is taught by certified Gracie Barra instructors using the official GB curriculum.
+          </p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5 md:gap-6">
+          {kidsPrograms.map((p) => (
+            <article class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-7">
+              <div class="flex items-baseline justify-between gap-3 flex-wrap">
+                <h3 class="text-xl font-extrabold text-gb-navy">{p.name}</h3>
+                <span class="text-xs font-bold tracking-widest text-gb-red uppercase">{p.ageRange}</span>
+              </div>
+              <ul class="mt-4 space-y-2">
+                {p.rows.map((row) => (
+                  <li class="flex justify-between gap-3 text-sm border-b border-gb-bg-light pb-2">
+                    <span class="font-semibold text-gb-navy">{row.day}</span>
+                    <span class="text-gb-text-muted">{row.time}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+        <p class="mt-6 text-xs md:text-sm text-gb-text-muted max-w-3xl leading-relaxed">
+          Each age group has multiple sections during the week. Saturday morning combines Little Champions 1 &amp; 2 in a single class.
+        </p>
+      </div>
+    </section>
+
+    {/* ADULTS SCHEDULE */}
+    <section class="px-4 md:px-6 pt-10 md:pt-14 pb-2" aria-labelledby="adults-schedule-heading">
+      <div class="max-w-6xl mx-auto">
+        <div class="mb-6 md:mb-8">
+          <h2 id="adults-schedule-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Adult Class Schedule</h2>
+          <p class="mt-3 text-sm md:text-base text-gb-text-muted max-w-3xl leading-relaxed">
+            GB1 Fundamentals is the entry-point class for every adult at Gracie Barra Whittier. No experience required.
+          </p>
+        </div>
+        <article class="bg-gb-white rounded-2xl shadow-sm p-6 md:p-7">
+          <div class="flex items-baseline justify-between gap-3 flex-wrap">
+            <h3 class="text-xl font-extrabold text-gb-navy">{adultsProgram.name} — GB1 Fundamentals</h3>
+            <span class="text-xs font-bold tracking-widest text-gb-red uppercase">{adultsProgram.ageRange}</span>
+          </div>
+          <ul class="mt-4 grid sm:grid-cols-2 gap-x-6 gap-y-2">
+            {adultsProgram.rows.map((row) => (
+              <li class="flex justify-between gap-3 text-sm border-b border-gb-bg-light pb-2">
+                <span class="font-semibold text-gb-navy">{row.day}</span>
+                <span class="text-gb-text-muted">{row.time}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+        <div class="mt-6 bg-gb-white/60 border border-gb-bg-light rounded-xl p-4 md:p-5 text-sm text-gb-text-muted leading-relaxed">
+          <strong class="text-gb-navy">GB2 Advanced &amp; GB3 Competition</strong> classes are available for students who have completed GB1.
+          Schedule confirmed in-person with Professor Phil — call <a href={`tel:${nap.phoneTel}`} class="font-semibold text-gb-navy underline hover:text-gb-red">{nap.phone}</a> for current times.
+        </div>
+      </div>
+    </section>
+
+    {/* CTA */}
+    <section class="px-4 md:px-6 pt-10 md:pt-14 pb-12 md:pb-16">
+      <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-2xl md:text-4xl font-extrabold">Ready to Try a Class?</h2>
+          <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+            Your first 3 classes are free. Free uniform rental included. No contracts. Reserve your spot in any class on the schedule above.
+          </p>
+          <div class="mt-7 flex justify-center">
+            <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="/#trial" class="js-trial-link" />
+          </div>
+          <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform • No contracts</p>
+        </div>
+      </div>
+    </section>
+
+    {/* FAQ */}
+    <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="schedule-faq-heading">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-8 md:mb-10">
+          <h2 id="schedule-faq-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Schedule FAQ</h2>
+        </div>
+        <div class="space-y-2 max-w-3xl mx-auto">
+          {scheduleFaqs.map((item) => (
+            <details class="group border-b border-gb-navy/15 py-4">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-navy">
+                <span class="flex items-center gap-3">
+                  <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span>{item.question}</span>
+                </span>
+              </summary>
+              <p class="mt-3 ml-7 text-sm text-gb-text-muted leading-relaxed">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <SchemaFAQ items={scheduleFaqs} />
+  <SchemaBreadcrumb items={breadcrumb} />
+</BaseLayout>

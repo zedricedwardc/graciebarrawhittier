@@ -1,41 +1,63 @@
 /**
- * Placeholder reviews. Real reviews populate after the Firestorm campaign.
- * Wave 1 / launch: replace with real review data sourced from LocalCraze widget.
+ * Featured Google reviews from real Gracie Barra Whittier students/families.
+ * Pulled from the public GHL reputation widget at the launch checkpoint.
+ * Refresh occasionally so the featured set stays fresh.
  */
 export interface Review {
   name: string;
   role: string;
   rating: 1 | 2 | 3 | 4 | 5;
   quote: string;
+  source: 'Google';
 }
 
 export const reviews: Review[] = [
   {
-    name: 'Maria S.',
-    role: 'Parent of two Little Champions',
+    name: 'Fabian L.',
+    role: 'Parent of a Little Champion',
     rating: 5,
     quote:
-      'Both of my kids look forward to class every week. The coaches are patient and the structure has done wonders for their confidence at school.',
+      "Our 7-year-old has been at Gracie Barra for about 6 weeks, and we've already seen growth in confidence, focus, and discipline.",
+    source: 'Google',
   },
   {
-    name: 'Daniel R.',
-    role: 'Adult student, 18 months',
+    name: 'Raymond',
+    role: 'Family of a Junior student',
     rating: 5,
     quote:
-      'I came in completely out of shape and intimidated. A year and a half later I am the strongest, calmest version of myself I have ever been.',
+      "Coach Alex and Coach Phil are amazing instructors! My niece was also in their junior kid classes and had so much fun, they're very clear on breaking down the fundamentals, positioning and teaching, and they want you to succeed in your physical goals or just having a great conversation with them.",
+    source: 'Google',
   },
   {
-    name: 'Jessica L.',
-    role: 'Adult Fundamentals student',
+    name: 'M K',
+    role: 'Parent',
     rating: 5,
     quote:
-      'The Fundamentals program is perfect for total beginners. The vibe on the mats is welcoming, professional, and surprisingly fun.',
+      'Definitely recommend bringing your children here to start their Ju Jitsu journey — the coaches are fantastic and patient with the children, whilst maintaining the discipline on the mat.',
+    source: 'Google',
   },
   {
-    name: 'Carlos M.',
-    role: 'Parent of a Junior',
+    name: 'Aaron G.',
+    role: 'Adult student',
     rating: 5,
     quote:
-      'My son was being picked on at school and was afraid to stand up for himself. Six months in, the bullying stopped. He is more focused, more confident, and a kinder kid.',
+      "From the moment I walked through the doors, I was impressed by the welcoming and professional atmosphere. Whether you're a complete beginner or an experienced practitioner, this school has something for everyone.",
+    source: 'Google',
+  },
+  {
+    name: 'Mario M.',
+    role: 'Parent',
+    rating: 5,
+    quote:
+      'After the first week my boy began to show lots of interest and now looks forward to the sessions especially the sparring. I highly recommend Gracie Barra jujitsu.',
+    source: 'Google',
+  },
+  {
+    name: 'Dolores M.',
+    role: 'Adult student',
+    rating: 5,
+    quote:
+      'Everyone there is very understanding and patient with me as I learn. If you are looking for a sense of community then Gracie Barra Whittier is the place for you.',
+    source: 'Google',
   },
 ];
