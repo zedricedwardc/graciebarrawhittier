@@ -9,6 +9,7 @@ import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
 import OptInForm from '../components/form/OptInForm.astro';
+import AIChatWidget from '../components/widgets/AIChatWidget.astro';
 import SchemaBreadcrumb from '../components/seo/SchemaBreadcrumb.astro';
 import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
 import SchemaCourse from '../components/seo/SchemaCourse.astro';
@@ -322,4 +323,5 @@ const courseItems = programs.map((p) => ({
   <SchemaBreadcrumb items={breadcrumb} />
   <SchemaCourse items={courseItems} pageUrl={adultsPageUrl} />
   <SchemaPerson items={instructors} />
+  <AIChatWidget />
 </BaseLayout>

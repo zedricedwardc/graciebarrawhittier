@@ -6,6 +6,7 @@ import SchemaLocalBusiness from '../components/seo/SchemaLocalBusiness.astro';
 import SchemaFAQ from '../components/seo/SchemaFAQ.astro';
 import CTAButton from '../components/cta/CTAButton.astro';
 import OptInForm from '../components/form/OptInForm.astro';
+import AIChatWidget from '../components/widgets/AIChatWidget.astro';
 import { homepageFaqs } from '../content/faqs';
 import { nap } from '../content/nap';
 
@@ -530,4 +531,5 @@ const galleryImages = [
 
   <SchemaFAQ items={homepageFaqs} />
   <SchemaLocalBusiness />
+  <AIChatWidget />
 </BaseLayout>
