@@ -498,6 +498,13 @@ export interface WorkflowDef {
    * If true, the workflow MUST set the X-GBW-Secret header in that step.
    */
   callsWebsiteWebhook: false | { path: string };
+  /**
+   * Whether the env var for this workflow is required for the website to function.
+   * Defaults to true. Set to false for inbound-only workflows (GHL calls the website;
+   * the website never calls the workflow) so onboard checks don't fail when the workflow
+   * hasn't been built yet (e.g. during initial bootstrap).
+   */
+  required?: boolean;
 }
 
 export const WORKFLOWS: readonly WorkflowDef[] = [
@@ -623,6 +630,16 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
     callsWebsiteWebhook: { path: '/api/webhooks/ghl/agent-booking-completed' },
   },
 
+  // ─── Inbound orchestrators (GHL → /api/lead) ───────────────────────────
+  {
+    envVarKey: 'WORKFLOW_ID_CHAT_WIDGET_ORCHESTRATOR',
+    name: '[Inbound] Chat Widget → Pipeline Orchestrator',
+    description: 'GHL workflow fired on chat-widget Contact Created. POSTs to /api/lead via X-GBW-Secret to feed the lead into Lead Acquisition pipeline. Inbound-only — the website never calls this workflow.',
+    trigger: { type: 'webhook_inbound', description: 'Triggered by GHL Contact Created event (channel=Chat). No outbound call from the website.' },
+    callsWebsiteWebhook: { path: '/api/lead' },
+    required: false,
+  },
+
   // ─── Back to the Mats campaigns ─────────────────────────────────────
   {
     envVarKey: 'WORKFLOW_ID_BTM_30DAY',
@@ -705,7 +722,7 @@ export const ENV_VARS: readonly EnvVarDef[] = [
   ...WORKFLOWS.map(
     (w): EnvVarDef => ({
       key: w.envVarKey,
-      required: true,
+      required: w.required ?? true,
       description: `Workflow ID for: ${w.name}`,
     }),
   ),
