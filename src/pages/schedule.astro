@@ -26,6 +26,11 @@ function fmtTime(hour: number, minute: number): string {
   return `${h12}${m} ${period}`;
 }
 
+function fmtHHMM(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map((x) => parseInt(x, 10));
+  return fmtTime(h ?? 0, m ?? 0);
+}
+
 interface ProgramDisplay {
   key: ProgramKey;
   name: string;
@@ -127,7 +132,7 @@ const breadcrumb = [
                     ? `${block.days[0]?.slice(0, 3)}–${block.days[block.days.length - 1]?.slice(0, 3)}`
                     : block.days[0]}
                 </dt>
-                <dd class="text-gb-text-muted">{block.opens.replace(/^0/, '')} – {block.closes.replace(/^0/, '')}</dd>
+                <dd class="text-gb-text-muted">{fmtHHMM(block.opens)} – {fmtHHMM(block.closes)}</dd>
               </div>
             ))}
             <div class="flex justify-between gap-3 border-b border-gb-bg-light py-2">

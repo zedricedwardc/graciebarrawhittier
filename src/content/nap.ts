@@ -36,14 +36,13 @@ export const nap = {
     count: 120,
   },
   /**
-   * Academy opening hours, derived from src/data/schedule.ts.
-   * Mon–Fri: trial Fundamentals 11am, evening classes through 7pm → close at 8pm.
-   * Sat: kids 10am, adult Fundamentals 12pm → close at 1pm.
-   * Sun: closed.
+   * Academy opening hours — confirmed against the studio's published hours.
+   * Friday has a shorter window (advanced-only block).
    */
   hours: [
-    { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], opens: '11:00', closes: '20:00' },
-    { days: ['Saturday'], opens: '10:00', closes: '13:00' },
+    { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday'], opens: '11:00', closes: '21:00' },
+    { days: ['Friday'], opens: '16:00', closes: '20:00' },
+    { days: ['Saturday'], opens: '10:00', closes: '14:00' },
   ],
 } as const;
 
