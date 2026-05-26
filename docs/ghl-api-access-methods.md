@@ -126,12 +126,18 @@ If you see anything other than clean JSON (no `\uXXXX` escapes, valid keys), the
 
 ### Verified endpoints
 
-**Workflows:**
+**Workflows (corrected after reading `uxieee/ghl-workflow-api-docs/docs/03-endpoints.md` + `05-build-flow.md`):**
 
-| Method | Path | Notes |
+| Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/workflow/{loc}/{wf}?includeScheduledPauseInfo=true` | Full workflow doc including `workflowData.templates` (the steps) |
-| `PUT` | `/workflow/{loc}/{wf}` | Updates BOTH metadata AND `workflowData.templates`. Requires `version` in body matching current. **GET-THEN-PUT, NEVER PARTIAL** (see Critical Gotchas below) |
+| `POST` | `/workflow/{loc}` | Create empty workflow shell. Body: `{name, status:"draft", parentId, updatedBy, workflowData:{templates:[]}, ...}`. Returns `{id}`. |
+| `PUT` | `/workflow/{loc}/{wf}/auto-save` | **The endpoint for step graph updates.** Promotes templates to canonical version. Body MUST include `isAutoSave: true`, `autoSaveSession: {workflowId, id, userId, version}`, `createdSteps`/`modifiedSteps`/`deletedSteps` arrays. Verify success: response `filePath` ends in `/{N}` (canonical), NOT `auto-save-{ts}` (orphan). |
+| `GET` | `/workflow/{loc}/{wf}?includeScheduledPauseInfo=true` | Full workflow doc including `workflowData.templates`. |
+| `PUT` | `/workflow/{loc}/{wf}` (no `/auto-save`) | **Publish/unpublish only.** Body must have `status: "published"` or `"draft"`. **MUST strip `autoSaveSession` and `autoSaveSessionId`** or returns 422 "Looks like your previous changes were not committed." Runs stricter validators than auto-save. |
+| `GET` | `/workflow/{loc}/list?type=workflow&limit=100&offset=0` | List workflows in location. |
+| `DELETE` | `/workflow/{loc}/{wf}` | Inferred from REST. Untested. |
+
+**Critical: `/auto-save` vs publish PUT distinction.** Step graph mutations go through `/auto-save`. The plain PUT is for status flips only. Using the plain PUT for step updates is what caused this project's workflow wipe — the publish endpoint defaults missing fields (including `workflowData`) instead of preserving them.
 
 **Workflow triggers:**
 
@@ -270,6 +276,33 @@ When making any change via the API:
 6. **If something looks off, restore from the backup file.** Don't keep PUT-ing in the hope of fixing it; that compounds version drift.
 
 For trigger updates specifically, the partial-update pattern works (`PUT /workflow/{loc}/trigger/{triggerId}` with just `{"conditions": [...]}`). For workflow-level updates, always send the full doc.
+
+---
+
+## 6.5 Creating a brand-new workflow end-to-end
+
+Per `uxieee/ghl-workflow-api-docs/docs/05-build-flow.md`, the full sequence is:
+
+```
+1. POST /workflow/{loc}                    → {id}             empty shell
+2. PUT  /workflow/{loc}/{id}/auto-save     → full body        write step graph
+3. POST /workflow/{loc}/trigger            → {id} (× N)       attach each trigger
+4. PUT  /workflow/{loc}/{id}               → published body   flip status
+```
+
+Each step's body shape, casing rules, and gotchas are documented at:
+- Workflow shell create body: `docs/03-endpoints.md §2.1`
+- Auto-save body shape: `docs/03-endpoints.md §2.2` + `04-workflow-anatomy.md §2`
+- Trigger create body: `docs/03-endpoints.md §3.3` + per-trigger filter shapes in `reference/triggers/og/*`
+- Publish PUT preflight: `docs/03-endpoints.md §2.4`
+
+Two casing traps that silently fail:
+- Trigger body root: `workflowId` is **camelCase**, but `location_id`/`company_id`/`company_age` are **snake_case**. Mixing them up returns a believable `200 {id}` with no actual persistence.
+- After publish, the workflow's `version` increments AND so does `filePath`. Confirm publish succeeded by checking `status: "published"` AND `filePath` ending in `/{N}` (canonical).
+
+For per-step `attributes` shapes, the canonical source is `reference/steps/og/{type}.md` in the docs repo. For trigger filter shapes, `reference/triggers/og/{type}.md`.
+
+The honest practical recommendation for THIS project: **don't build workflows from scratch via API.** Build in the UI, snapshot via GET, replay via the documented sequence above when cloning across locations. The 4-call sequence is fully documented but every step's body schema is large; reusing a captured snapshot is dramatically more reliable than synthesizing one.
 
 ---
 
