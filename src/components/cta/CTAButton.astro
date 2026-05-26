@@ -39,13 +39,22 @@ const {
 
 const isSubmit = variant === 'formSubmit';
 const isNav = variant === 'nav';
+const isProgram = variant === 'program';
 
 const baseClasses =
   'inline-flex items-center justify-center rounded-full font-semibold tracking-wide ' +
   'transition-colors duration-200 focus:outline-none focus-visible:ring-2 ' +
-  'focus-visible:ring-offset-2 select-none whitespace-nowrap px-7';
+  'focus-visible:ring-offset-2 select-none';
 
-const sizeClasses = isNav ? 'h-12 text-sm' : 'h-14 md:h-12 text-base';
+const layoutClasses = isProgram
+  ? 'whitespace-normal text-center leading-tight px-4 py-2 min-h-14 md:min-h-12'
+  : 'whitespace-nowrap px-7';
+
+const sizeClasses = isNav
+  ? 'h-12 text-sm'
+  : isProgram
+    ? 'text-sm md:text-base'
+    : 'h-14 md:h-12 text-base';
 
 const variantMap = {
   primary:
@@ -61,7 +70,7 @@ const variantMap = {
 
 const widthClass = fullWidth || (isSubmit && fullWidth !== false) ? 'w-full' : '';
 
-const classes = [baseClasses, sizeClasses, variantMap[variant], widthClass, extraClass]
+const classes = [baseClasses, layoutClasses, sizeClasses, variantMap[variant], widthClass, extraClass]
   .filter(Boolean)
   .join(' ');
 ---
