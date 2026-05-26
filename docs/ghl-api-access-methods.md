@@ -273,7 +273,173 @@ For trigger updates specifically, the partial-update pattern works (`PUT /workfl
 
 ---
 
-## 7. References
+## 7. The better approach to using the internal backend
+
+The trial-and-error path we used to figure this out (probe endpoints, guess body shapes, PUT and see what breaks) is the WORST way to use this API. It cost us a workflow wipe and several hours. Here's how to do it right from the start when you DO need internal-backend access.
+
+### Principle 1 — Capture first, code second
+
+Never guess at an endpoint or body shape. The GHL UI is itself a client of the same API, and it always sends the correct shape. Before writing ANY automation, do the change once manually in the UI with DevTools Network tab recording:
+
+1. **Open the GHL feature you want to automate** (a workflow, an AI agent, a custom value, etc.).
+2. **DevTools → Network tab → check "Preserve log" and "Disable cache"**.
+3. **Make the smallest possible change in the UI** (e.g., add one trigger filter and save).
+4. **Find the request that performs the change** — it's usually a PUT or POST with `backend.leadconnectorhq.com` in the URL. Filter the network panel by `backend.leadconnectorhq.com` to make it easier to spot.
+5. **Right-click the request → Copy → Copy as cURL (bash)**. That's the entire correct shape: URL, headers, method, body, query params. Verbatim.
+6. **Save that cURL command to a file** (e.g., `scripts/ghl-captures/trigger-update.sh`). This is your ground-truth template.
+7. **Then write your automation by parameterizing the template** — replace specific values (workflow ID, tag name, etc.) with variables.
+
+This is dramatically faster and safer than probing. It also documents itself — anyone reading the saved cURL knows exactly what the API expects.
+
+### Principle 2 — Build a thin wrapper, not a script per task
+
+Every internal-backend call repeats the same boilerplate: headers, token handling, JSON encoding, error parsing. Extract it into a small TS module (since this repo already has TypeScript + node).
+
+Sketch of what that would look like:
+
+```ts
+// scripts/ghl-internal/client.ts
+interface GHLInternalAuth {
+  sessionToken: string;  // from DevTools, ~1hr TTL
+  tokenId: string;       // Firebase JWT from DevTools, ~1hr TTL
+  locationId: string;
+}
+
+interface GHLInternalRequest {
+  method: 'GET' | 'PUT' | 'POST' | 'DELETE';
+  path: string;          // e.g., "workflow/{loc}/{wf}"
+  body?: unknown;
+  query?: Record<string, string>;
+}
+
+async function callInternal(auth: GHLInternalAuth, req: GHLInternalRequest) {
+  const url = new URL(`https://backend.leadconnectorhq.com/${req.path}`);
+  for (const [k, v] of Object.entries(req.query ?? {})) url.searchParams.set(k, v);
+
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${auth.sessionToken}`,
+    'Token-Id': auth.tokenId,
+    'Channel': 'APP',
+    'Source': 'WEB_USER',
+    'Origin': 'https://client-app-automation-workflows.leadconnectorhq.com',
+    'Referer': 'https://client-app-automation-workflows.leadconnectorhq.com/',
+    'Accept': 'application/json, text/plain, */*',
+  };
+  if (req.body) headers['Content-Type'] = 'application/json';
+
+  const res = await fetch(url, {
+    method: req.method,
+    headers,
+    body: req.body ? JSON.stringify(req.body) : undefined,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new GHLInternalError(res.status, req.method, url.toString(), text);
+  }
+  return res.status === 204 ? null : await res.json();
+}
+```
+
+Then concrete helpers built on top:
+
+```ts
+// scripts/ghl-internal/workflow.ts
+export async function getWorkflow(auth, workflowId) { ... }
+export async function getTriggers(auth, workflowId) { ... }
+export async function updateTriggerConditions(auth, triggerId, conditions) { ... }
+export async function updateWorkflowSafe(auth, workflowId, mutate: (wf) => void) {
+  const current = await getWorkflow(auth, workflowId);
+  await fs.writeFile(`./backups/wf-${workflowId}-${Date.now()}.json`, JSON.stringify(current));
+  mutate(current);  // in-place edit
+  return await putWorkflow(auth, workflowId, current);
+}
+```
+
+The `updateWorkflowSafe` pattern is the most important one: **GET, backup, mutate in place, PUT the full doc**. That single function would have prevented the workflow wipe.
+
+### Principle 3 — Backup before every write
+
+Internal-backend writes are full-replace. A partial body silently zeros out unsent fields. The cheapest insurance is to checkpoint the current state to a timestamped JSON file before any mutation.
+
+A worktree-style pattern:
+```
+ghl-backups/
+  workflow-3ba5c152-7ecb-466f-82db-1dba8b94c843/
+    2026-05-26T16-30-00Z.json  ← before change
+    2026-05-26T16-30-12Z.json  ← after change
+    2026-05-26T18-45-00Z.json  ← next session
+```
+
+If anything goes wrong, you have an exact restore point. Doesn't cost anything since these JSONs are small.
+
+### Principle 4 — Token-aware code that fails fast
+
+The 1-hour session token TTL means long automation runs will silently hit expired tokens mid-way. The wrapper should:
+
+- **Decode the session JWT on use**, check the `exp` claim, and refuse to start work if there's less than 5 minutes left.
+- **Surface 401 responses immediately** — don't retry with stale auth.
+- **Print a clear "fetch fresh token from DevTools" message** when tokens expire, with the exact URL pattern to look for.
+
+```ts
+function assertTokenFresh(auth: GHLInternalAuth) {
+  const claims = JSON.parse(Buffer.from(auth.sessionToken.split('.')[1], 'base64url').toString());
+  const expiresInSec = claims.exp - Date.now() / 1000;
+  if (expiresInSec < 300) {
+    throw new Error(`Session token expires in ${expiresInSec.toFixed(0)}s. Refresh from DevTools before continuing.`);
+  }
+}
+```
+
+### Principle 5 — Sanity-check the validator before trusting save success
+
+The customer_reply validator is a no-op (and likely others). A successful 200 from PUT means "the bytes were stored" — NOT "the trigger will fire correctly at runtime." 
+
+After every trigger or workflow change, ALWAYS do at least one smoke test that exercises the new behavior end-to-end. For trigger filters: send a real test message in the channel; verify the workflow fires (or doesn't) in GHL → Execution History. Don't trust the API response alone.
+
+### Principle 6 — Treat the internal backend as fragile
+
+GHL can change endpoints, body shapes, or auth requirements at any time. They owe no SemVer. Build automation against the internal backend assuming it MIGHT break next week.
+
+Concretely:
+- **Pin to a recent capture date.** If your `scripts/ghl-captures/trigger-update.sh` was captured 2026-05-26, write that date in a comment. When something breaks, knowing the capture is N weeks stale tells you to re-capture.
+- **Don't put internal-backend calls on the critical path of customer-facing flows.** Backend changes are admin tooling, not runtime infra.
+- **Have a "rebuild from UI" plan documented** for every workflow/trigger you manage via API. If GHL breaks the API tomorrow, can someone get the same state back by clicking through the UI? Yes? Then you're fine.
+
+### Decision flow
+
+For ANY new GHL automation task:
+
+```
+                ┌──────────────────────────────────┐
+                │ Does the public API cover this?  │
+                └──────────┬───────────────────────┘
+                           │
+                ┌──────────┴──────────┐
+              YES                    NO
+                │                     │
+                ▼                     ▼
+        Use services.../  Capture the UI's actual save
+        (with PIT token)  request via DevTools first
+                                      │
+                                      ▼
+                          Parameterize the captured cURL
+                                      │
+                                      ▼
+                              Run via thin wrapper
+                              with GET-then-PUT-full
+                              and backup-before-write
+                                      │
+                                      ▼
+                          Verify end-to-end with a real
+                              smoke test in GHL UI
+```
+
+If the public API covers what you need, use it. If not, capture-first (don't guess), wrapper-second, smoke-test-always.
+
+---
+
+## 8. References
 
 - **uxieee/ghl-workflow-api-docs** — https://github.com/uxieee/ghl-workflow-api-docs — sniff'd JS bundle docs with trigger/step shapes, microservice topology, validators. Indispensable for the internal backend path.
 - **GHL Marketplace API docs** — https://marketplace.gohighlevel.com/docs/ghl/ — official docs for the public API. Notably has `/conversation-ai/agents` documented.
