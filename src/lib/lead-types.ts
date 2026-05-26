@@ -21,7 +21,7 @@ import type { OptInPageLabel } from '../../config/ghl-schema';
  * applied manually. `Meta Ads` / `Google Ads` activate when ad-funnel landing
  * pages are added as routes in this site (see LEAD_SOURCES below).
  */
-export const LEAD_CHANNELS = ['Website Leads', 'Walk-In', 'Meta Ads', 'Google Ads', 'Referral'] as const;
+export const LEAD_CHANNELS = ['Website Leads', 'Walk-In', 'Meta Ads', 'Google Ads', 'Referral', 'Website Chat'] as const;
 export type LeadChannel = (typeof LEAD_CHANNELS)[number];
 
 /** Two reporting layers a page-level opt-in slug resolves to. */
@@ -50,6 +50,10 @@ export const LEAD_SOURCES = {
   // /offer QR landing page — scanned from in-person flyers/front-desk signage,
   // so it lands in the Walk-In channel alongside the front-desk QR intake form.
   'qr-offer-optin': { channel: 'Walk-In',       pageLabel: 'Offer Page (QR)' },
+  // Chat-widget intake — visitors who submit the contact form inside the
+  // bottom-right chat widget. Comes in via /api/lead from the GHL workflow
+  // [Inbound] Chat Widget → Pipeline Orchestrator.
+  'chat-widget':    { channel: 'Website Chat', pageLabel: 'Chat Widget' },
   // ─── FUTURE — ad-funnel landing pages (new routes in this site) ──────────
   // Uncomment + build the page + add the pageLabel to OPTIN_PAGE_LABELS:
   //   'meta-generic-optin':   { channel: 'Meta Ads',   pageLabel: 'Meta Ad — General' },

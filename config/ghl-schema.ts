@@ -166,6 +166,7 @@ export const OPTIN_PAGE_LABELS = [
   'Adults Page',
   'Offer Page (QR)',
   'Contact Page',
+  'Chat Widget',
 ] as const;
 export type OptInPageLabel = (typeof OPTIN_PAGE_LABELS)[number];
 
@@ -188,7 +189,7 @@ export const CONTACT_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     fieldKey: 'lead_source',
     label: 'Lead Source',
     type: 'TEXT',
-    description: 'Coarse acquisition channel — Website Leads / Walk-In / Meta Ads / Google Ads / Referral. Set on every opt-in; mirrors the native contact Source attribute so dashboard widgets can group leads by channel (the native Source is not a widget group-by dimension). The page-level sub-layer is the optin_page dropdown.',
+    description: 'Coarse acquisition channel — Website Leads / Walk-In / Meta Ads / Google Ads / Referral / Website Chat. Set on every opt-in; mirrors the native contact Source attribute so dashboard widgets can group leads by channel (the native Source is not a widget group-by dimension). The page-level sub-layer is the optin_page dropdown.',
     setBy: 'webhook',
   },
   {
@@ -497,6 +498,13 @@ export interface WorkflowDef {
    * If true, the workflow MUST set the X-GBW-Secret header in that step.
    */
   callsWebsiteWebhook: false | { path: string };
+  /**
+   * Whether the env var for this workflow is required for the website to function.
+   * Defaults to true. Set to false for inbound-only workflows (GHL calls the website;
+   * the website never calls the workflow) so onboard checks don't fail when the workflow
+   * hasn't been built yet (e.g. during initial bootstrap).
+   */
+  required?: boolean;
 }
 
 export const WORKFLOWS: readonly WorkflowDef[] = [
@@ -622,6 +630,16 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
     callsWebsiteWebhook: { path: '/api/webhooks/ghl/agent-booking-completed' },
   },
 
+  // ─── Inbound orchestrators (GHL → /api/lead) ───────────────────────────
+  {
+    envVarKey: 'WORKFLOW_ID_CHAT_WIDGET_ORCHESTRATOR',
+    name: '[Inbound] Chat Widget → Pipeline Orchestrator',
+    description: 'GHL workflow fired on chat-widget Contact Created. POSTs to /api/lead via X-GBW-Secret to feed the lead into Lead Acquisition pipeline. Inbound-only — the website never calls this workflow.',
+    trigger: { type: 'webhook_inbound', description: 'Triggered by GHL Contact Created event (channel=Chat). No outbound call from the website.' },
+    callsWebsiteWebhook: { path: '/api/lead' },
+    required: false,
+  },
+
   // ─── Back to the Mats campaigns ─────────────────────────────────────
   {
     envVarKey: 'WORKFLOW_ID_BTM_30DAY',
@@ -669,6 +687,7 @@ export const TAGS: readonly { name: string; description: string }[] = [
   { name: 'source-kids-optin', description: 'Opted in via /kids-martial-arts.' },
   { name: 'source-adults-optin', description: 'Opted in via /adults-jiu-jitsu.' },
   { name: 'source-contact-form', description: 'Submitted the /contact form (not an opt-in but tagged for source attribution).' },
+  { name: 'source-chat-widget', description: 'Opted in via the bottom-right chat widget.' },
   { name: 'quarterly-reactivation', description: 'LOST/COLD lead — picked up by quarterly winback campaign.' },
   { name: 'back-to-the-mats-import', description: 'Bulk-imported via CSV into the Back to the Mats campaign. Source attribution.' },
   { name: 'source-agent-booking', description: 'Set on the contact by the agent-booking-completed webhook after the SMS bot books an appointment. Differentiates bot-driven bookings from page-driven ones in reporting.' },
@@ -703,7 +722,7 @@ export const ENV_VARS: readonly EnvVarDef[] = [
   ...WORKFLOWS.map(
     (w): EnvVarDef => ({
       key: w.envVarKey,
-      required: true,
+      required: w.required ?? true,
       description: `Workflow ID for: ${w.name}`,
     }),
   ),

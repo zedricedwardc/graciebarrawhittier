@@ -13,7 +13,8 @@ All env vars are read at build time via `import.meta.env`. They must be set in t
 | `PUBLIC_GHL_WEBHOOK_URL` | GHL â†’ Pipeline 1 â†’ Workflow trigger â†’ webhook URL | Homepage opt-in form posts here. If unset, form falls back to `/api/leads-stub` (will not reach GHL). |
 | `PUBLIC_GTM_ID` | GTM container settings, format `GTM-XXXXX` | Loads tracking script in `<head>` via `BaseLayout`. |
 | `PUBLIC_GA4_ID` | GA4 property â†’ data stream â†’ measurement ID `G-XXXXX` | Pageview events. |
-| `PUBLIC_GHL_CHAT_KEY` | GHL Conversations â†’ widget embed code â†’ embed key | AI chat widget on every public page. |
+| `PUBLIC_GHL_CHAT_WIDGET_ID` | GHL Conversations â†’ Chat Widget â†’ Widget ID | AI chat widget on home, kids, and adults pages. |
+| `PUBLIC_GHL_LOCATION_ID` | GHL â†’ Settings â†’ Business Info â†’ Location ID (same value as server-side `GHL_LOCATION_ID`) | Required by the chat widget embed; must stay in sync with `GHL_LOCATION_ID`. |
 | `PUBLIC_REVIEWS_EMBED_ID` | LocalCraze reviews widget config | Reviews widget on `/` and `/reviews/`. |
 
 ---
@@ -47,7 +48,7 @@ Build produces 10 pages plus sitemap-index.xml and sitemap-0.xml. `/kickstart/` 
 2. On `/kickstart/`, complete the survey for each age range; confirm the correct GHL calendar iframe loads. Walk through a test booking through to `/congrats/`.
 3. Run a Lighthouse mobile audit on `/`; targets â€” Performance â‰¥90, Accessibility â‰¥95, Best Practices â‰¥95, SEO â‰¥100.
 4. Submit `https://www.graciebarrawhittier.com/sitemap-index.xml` to Google Search Console; confirm ingestion (it should list 8 public pages and exclude `/kickstart/` and `/congrats/`).
-5. Visit any public page; confirm AI chat bubble loads in bottom-right (requires `PUBLIC_GHL_CHAT_KEY`).
+5. Visit the home, kids (`/kids/`), and adults (`/adults/`) pages; confirm AI chat bubble loads in bottom-right (requires `PUBLIC_GHL_CHAT_WIDGET_ID` and `PUBLIC_GHL_LOCATION_ID`).
 6. Visit `/` and `/reviews/`; confirm the LocalCraze reviews widget renders in place of the "Reviews loading..." placeholder (requires `PUBLIC_REVIEWS_EMBED_ID`).
 7. Spot-check NAP on every public page footer: phone is `(562) 640-1400` and address is `13595 Whittier Blvd. #104`.
 8. View-source on any public page; confirm a single `<script type="application/ld+json">` block with valid `LocalBusiness` schema. (`/contact/` also includes `BreadcrumbList`.)

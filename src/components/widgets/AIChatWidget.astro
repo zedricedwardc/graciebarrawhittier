@@ -1,20 +1,26 @@
 ---
 /**
- * AIChatWidget — placeholder for the GHL Conversations widget.
- * Loads only when PUBLIC_GHL_CHAT_KEY is set; otherwise renders nothing.
- * Wave 2/3 will replace this stub with the real GHL embed once the key is provisioned.
+ * AIChatWidget — GHL Conversations chat bubble.
+ * Renders only when both env vars are set; otherwise renders nothing.
+ * Loaded with `defer` so the script doesn't block initial parse.
+ *
+ * Per the chat widget design (docs/superpowers/specs/2026-05-25-...),
+ * this widget appears only on /, /kids-martial-arts, and /adults-jiu-jitsu —
+ * include it directly on those pages rather than site-wide via BaseLayout.
  */
-const chatKey = import.meta.env.PUBLIC_GHL_CHAT_KEY as string | undefined;
+const widgetId = import.meta.env.PUBLIC_GHL_CHAT_WIDGET_ID as string | undefined;
+const locationId = import.meta.env.PUBLIC_GHL_LOCATION_ID as string | undefined;
 ---
 
-{
-  chatKey && (
-    <div
-      data-gb-chat-widget
-      data-chat-key={chatKey}
-      aria-hidden="true"
-    >
-      {/* GHL Conversations widget loads here when PUBLIC_GHL_CHAT_KEY is set */}
-    </div>
-  )
-}
+{widgetId && locationId && (
+  <>
+    <div data-chat-widget data-widget-id={widgetId} data-location-id={locationId}></div>
+    <script
+      is:inline
+      defer
+      src="https://beta.leadconnectorhq.com/loader.js"
+      data-resources-url="https://beta.leadconnectorhq.com/chat-widget/loader.js"
+      data-widget-id={widgetId}
+    ></script>
+  </>
+)}
