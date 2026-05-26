@@ -1,9 +1,11 @@
 # GHL Conversation AI Bot — Chat Widget
 
-Paste-ready content for the new Conversation AI agent that will be assigned to the chat-widget workflow on `graciebarrawhittier.com`.
+Paste-ready content for the Conversation AI agent assigned to the chat-widget workflow on `graciebarrawhittier.com`.
 
 **Bot name in GHL:** `[Chat] Whittier Concierge`
-**Channel:** Chat widget only
+**GHL Agent ID:** `0ShQo8B39R7Zh74g5QCD` (created 2026-05-26 via POST `/conversation-ai/agents`)
+**Workflow assignment:** `[Inbound] Chat Widget → Pipeline Orchestrator` (id `3ba5c152-7ecb-466f-82db-1dba8b94c843`) — `update_conversation_ai_status` step references this agent
+**Channel:** Chat widget only (`Live_Chat`)
 **Voice:** Speaks AS Gracie Barra Whittier (no personal name)
 **Goal:** Answer FAQs, capture interest, redirect to the right next step
 
