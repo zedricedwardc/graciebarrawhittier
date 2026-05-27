@@ -71,7 +71,11 @@ const schema = {
     price: '0',
     priceCurrency: 'USD',
     url: `${site}/#trial`,
-    eligibleCustomerType: 'https://schema.org/NewCustomer',
+    itemOffered: {
+      '@type': 'Service',
+      name: 'Brazilian Jiu-Jitsu Trial Classes',
+      provider: { '@id': `${site}/#academy` },
+    },
   },
   hasOfferCatalog: {
     '@type': 'OfferCatalog',

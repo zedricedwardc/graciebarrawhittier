@@ -15,7 +15,10 @@
     "test:watch": "vitest",
     "onboard:ghl": "tsx scripts/onboard-client.ts",
     "validate:intake": "tsx scripts/intake-validator.ts",
-    "prebuild": "node scripts/og-image-home.mjs && node scripts/og-image-adults.mjs && node scripts/og-image-kids.mjs"
+    "og:home": "node scripts/og-image-home.mjs",
+    "og:adults": "node scripts/og-image-adults.mjs",
+    "og:kids": "node scripts/og-image-kids.mjs",
+    "og:all": "npm run og:home && npm run og:adults && npm run og:kids"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
