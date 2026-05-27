@@ -800,7 +800,7 @@ export type TransitionAction =
    * triggers on any stage change. BACK_TO_MATS has NO backflow webhook, so an
    * admin moving an opp to RE ENROLLED never reaches the website; its value
    * must be set by a GHL workflow that triggers on entry to the RE ENROLLED
-   * stage (Update Opportunity → Monetary Value). See docs/ghl-dashboard-build-spec.md §4.
+   * stage (Update Opportunity → Monetary Value). See docs/replication/ghl-dashboard-build-spec.md §4.
    */
   | { type: 'set_opp_value'; fromCustomValueKey: string }
   /** Set Contact.credits_remaining (canonical source of truth). */

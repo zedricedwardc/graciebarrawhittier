@@ -49,7 +49,7 @@ None.
 - Page: `/reviews/`, `/contact/`
 - Found: only 2 images each, both `Gracie Barra Whittier logo` (header + footer). No content imagery.
 - Expected: per brief, reviews page should have a hero/community photo; contact page benefits from an exterior or storefront image.
-- Fix: add at least one content image with descriptive alt text incl. location keyword. Or document as intentional in `docs/images-needed.md` if Wave 1 deliberately deferred photography.
+- Fix: add at least one content image with descriptive alt text incl. location keyword. Or document as intentional in `docs/replication/images-needed.md` if Wave 1 deliberately deferred photography.
 
 ### P1-6: Reviews page meta description marginally over 160
 - File: `src/pages/reviews.astro:30`

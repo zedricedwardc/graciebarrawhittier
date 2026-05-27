@@ -11,12 +11,21 @@ Read in this order:
 3. `../../config/ghl-schema.ts` — source of truth for GHL pipelines/stages/CFs/workflows
 
 Deep-dive references (follow links from REPLICATE.md when needed):
-- `../ghl-api-integration-spec.md` — GHL API contract
-- `../ghl-onboarding-runbook.md` — long-form runbook (human-readable)
-- `../ghl-setup-master-checklist.md` — checklist format
-- `../ghl-automation-plan.md` — workflow design
-- `../ghl-dashboard-build-guide.md` — UI build steps
-- `../launch-checklist.md` — production go-live items
+- `./ghl-api-integration-spec.md` — GHL API contract
+- `./ghl-onboarding-runbook.md` — long-form runbook (human-readable)
+- `./ghl-setup-master-checklist.md` — checklist format
+- `./ghl-automation-plan.md` — workflow design
+- `./ghl-dashboard-build-guide.md` — UI build steps
+- `./launch-checklist.md` — production go-live items
+- `./intro-campaign-setup.md` — intro funnel GHL setup
+- `./btm-campaign-setup.md` — Back to the Mats campaign GHL setup
+- `./ghl-api-access-methods.md` — auth + PIT scopes + Conversation AI endpoints
+- `./ghl-workflow-build-from-scratch.md` — internal-backend workflow build
+- `./ghl-chat-widget-bot-content.md` — chat widget bot content
+- `./sms-bot-prompt-updated.md` — SMS bot Alex prompt
+- `./sms-bot-pipeline-orchestration.md` — SMS bot pipeline orchestration
+- `./ai-referral-tracking.md` — referral tracking
+- `./images-needed.md` — image assets reference
 
 Generated artifacts (per-client):
 - `drafts/` — AI-drafted copy awaiting operator review (gitignored)

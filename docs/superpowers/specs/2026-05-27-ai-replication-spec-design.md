@@ -15,7 +15,7 @@ What's missing is an **AI-readable orchestrator** that:
 - Tells a fresh AI session what to do, in what order, with what tools
 - Defines the per-client data the AI needs as input (and what shape it takes)
 - Generates a per-client handoff document so the operator can complete the manual gaps (GHL UI clicks, real photos, real testimonials, DNS)
-- Plays nicely with the existing deep-dive runbooks (`docs/ghl-*.md`) rather than duplicating them
+- Plays nicely with the existing deep-dive runbooks (`docs/replication/ghl-*.md`) rather than duplicating them
 
 This spec defines that orchestrator layer.
 
@@ -52,12 +52,12 @@ GENERATED (per client, AI writes):
   HANDOFF.md                    — receipt of work + operator TODOs
 
 EXISTING (deep-dive references, AI follows links when needed):
-  docs/ghl-onboarding-runbook.md
-  docs/ghl-setup-master-checklist.md
-  docs/ghl-api-integration-spec.md
-  docs/ghl-automation-plan.md
-  docs/ghl-dashboard-build-guide.md
-  docs/launch-checklist.md
+  docs/replication/ghl-onboarding-runbook.md
+  docs/replication/ghl-setup-master-checklist.md
+  docs/replication/ghl-api-integration-spec.md
+  docs/replication/ghl-automation-plan.md
+  docs/replication/ghl-dashboard-build-guide.md
+  docs/replication/launch-checklist.md
   scripts/onboard-client.ts
   config/ghl-schema.ts          — source of truth for GHL shape
 ```
@@ -155,7 +155,7 @@ Repo: <new repo URL>
 ## 📚 Reference
 - Architecture overview: <link>
 - GHL schema (source of truth): config/ghl-schema.ts
-- Deep dives: docs/ghl-api-integration-spec.md, docs/ghl-onboarding-runbook.md
+- Deep dives: docs/replication/ghl-api-integration-spec.md, docs/replication/ghl-onboarding-runbook.md
 - Drafted content (review before publishing): drafts/
 
 ## 📞 Troubleshooting
@@ -168,10 +168,10 @@ Repo: <new repo URL>
 
 The new docs are an orchestration layer that **invokes** existing assets rather than replacing them:
 
-- `REPLICATE.md` phase 4 → invokes `scripts/onboard-client.ts`, links to `docs/ghl-onboarding-runbook.md` for failure-mode deep dive.
+- `REPLICATE.md` phase 4 → invokes `scripts/onboard-client.ts`, links to `docs/replication/ghl-onboarding-runbook.md` for failure-mode deep dive.
 - `REPLICATE.md` phase 3 → reads `config/ghl-schema.ts` as data source for what custom fields/pipelines exist.
 - `HANDOFF.md` GHL UI checklist → derived from `config/ghl-schema.ts` (not copied — re-derived each time from current schema, so it never drifts).
-- `HANDOFF.md` production runbook section → links to `docs/launch-checklist.md` for the long form.
+- `HANDOFF.md` production runbook section → links to `docs/replication/launch-checklist.md` for the long form.
 
 No existing doc is rewritten. No existing automation is duplicated.
 

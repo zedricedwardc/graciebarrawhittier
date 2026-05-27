@@ -4,9 +4,9 @@ This document is the entry point for the GHL automation system. The detailed tru
 
 | Concern | Document | Status |
 |---|---|---|
-| **What state should GHL be in?** | [`config/ghl-schema.ts`](../config/ghl-schema.ts) | Locked |
-| **How does the website talk to GHL?** | [`docs/ghl-api-integration-spec.md`](./ghl-api-integration-spec.md) | Build-ready |
-| **How do I onboard a new client?** | [`docs/ghl-onboarding-runbook.md`](./ghl-onboarding-runbook.md) | Build-ready |
+| **What state should GHL be in?** | [`config/ghl-schema.ts`](../../config/ghl-schema.ts) | Locked |
+| **How does the website talk to GHL?** | [`docs/replication/ghl-api-integration-spec.md`](./ghl-api-integration-spec.md) | Build-ready |
+| **How do I onboard a new client?** | [`docs/replication/ghl-onboarding-runbook.md`](./ghl-onboarding-runbook.md) | Build-ready |
 
 If those three are inconsistent, **the schema wins** — it's the source of truth.
 
@@ -46,7 +46,7 @@ These are the calls that shape the rest of the system. Made during the multi-age
 
 ## 3. Pipeline summary
 
-For full stage transitions and action lists, see [`config/ghl-schema.ts`](../config/ghl-schema.ts) → `STAGE_TRANSITIONS`.
+For full stage transitions and action lists, see [`config/ghl-schema.ts`](../../config/ghl-schema.ts) → `STAGE_TRANSITIONS`.
 
 ### 3.1 Lead Acquisition (parent contact)
 `NEW LEAD` → 24h timer → `TRIAL NURTURE` → 7d → `NURTURE CAMPAIGN` → 14d → `LOST / COLD`

@@ -37,7 +37,7 @@ GHL Workflow #2 — [Inbound] Chat Widget Inbound Alert
 
 - **Approach C (forward to `/api/lead`)** was chosen over a pure-GHL workflow so chat-lead creation runs through the same typed adapter as every other website opt-in. Single source of truth in TypeScript.
 - **Separate `Website Chat` channel** (vs merging into `Website Leads`) keeps dashboard reporting clean and lets staff distinguish chat-originated leads at a glance.
-- **Existing-contact reactivation** lives in Workflow #1, not in the adapter. `handleOptIn` already refreshes CFs without moving open opps; the workflow adds one branch that moves LOST/COLD Lead Acq opps back to NURTURE CAMPAIGN. Mirrors locked decision #7 in [ghl-automation-plan.md](../../ghl-automation-plan.md).
+- **Existing-contact reactivation** lives in Workflow #1, not in the adapter. `handleOptIn` already refreshes CFs without moving open opps; the workflow adds one branch that moves LOST/COLD Lead Acq opps back to NURTURE CAMPAIGN. Mirrors locked decision #7 in [ghl-automation-plan.md](../../replication/ghl-automation-plan.md).
 
 ---
 
@@ -303,7 +303,7 @@ The `Website Chat` channel is new and won't appear in existing dashboard widgets
 | #22 — Lead Source Report | Same — auto-includes. |
 | #23 — Website Leads KPI | Add a new widget #23b "Chat Widget Leads — Last 30 Days" alongside #23, configured: Source **Contacts**; **Source = Website Chat**; **Last 30 Days**. Width 1/3, same row as #23/#24/#25. |
 
-Update [docs/ghl-dashboard-build-guide.md](../../ghl-dashboard-build-guide.md) Row 11 to add widget #23b after the rebuild.
+Update [docs/replication/ghl-dashboard-build-guide.md](../../replication/ghl-dashboard-build-guide.md) Row 11 to add widget #23b after the rebuild.
 
 ---
 

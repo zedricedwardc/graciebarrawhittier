@@ -4,7 +4,7 @@ Step-by-step for onboarding a new client onto the Gracie Barra Whittier integrat
 
 > **Audience:** technical operator (you, or a teammate). Assumes git + npm + Vercel access.
 > **Time budget:** 90–120 minutes start to finish.
-> **Source of truth:** [`config/ghl-schema.ts`](../config/ghl-schema.ts) — the schema this runbook walks you through implementing.
+> **Source of truth:** [`config/ghl-schema.ts`](../../config/ghl-schema.ts) — the schema this runbook walks you through implementing.
 
 ---
 
@@ -126,7 +126,7 @@ For **campaign workflows** (Trial Nurture, Nurture Campaign, etc.):
 
 #### C.3.1 Nurture-campaign exits *(handled by website code)*
 
-When a contact in a nurture stage books an appointment, the website moves their opp off the nurture stage (e.g. Lead Acq `TRIAL NURTURE` → `INTRO BOOKED (WON)`) AND calls `removeContactFromWorkflow` for every nurture workflow in that funnel. See `exitNurtureWorkflows` in [src/lib/ghl-adapter.ts](../src/lib/ghl-adapter.ts).
+When a contact in a nurture stage books an appointment, the website moves their opp off the nurture stage (e.g. Lead Acq `TRIAL NURTURE` → `INTRO BOOKED (WON)`) AND calls `removeContactFromWorkflow` for every nurture workflow in that funnel. See `exitNurtureWorkflows` in [src/lib/ghl-adapter.ts](../../src/lib/ghl-adapter.ts).
 
 This covers all 6 nurture workflows:
 

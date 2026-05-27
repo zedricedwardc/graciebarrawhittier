@@ -646,7 +646,7 @@ Drag it into Row 11 between widget #25 (Paid Ad Leads) and the next row, OR repl
 
 - [ ] **Step 4: Update the dashboard build guide**
 
-Modify [docs/ghl-dashboard-build-guide.md](../../ghl-dashboard-build-guide.md) Row 11 table — add a fourth row entry:
+Modify [docs/replication/ghl-dashboard-build-guide.md](../../replication/ghl-dashboard-build-guide.md) Row 11 table — add a fourth row entry:
 
 ```markdown
 | 25b | Chat Widget Leads — Last 30 Days | Numeric / KPI | Source **Contacts**; **Source = Website Chat**; **Last 30 Days** | 1/3 |
@@ -657,7 +657,7 @@ Modify [docs/ghl-dashboard-build-guide.md](../../ghl-dashboard-build-guide.md) R
 - [ ] **Step 5: Commit the docs update**
 
 ```bash
-git add docs/ghl-dashboard-build-guide.md
+git add docs/replication/ghl-dashboard-build-guide.md
 git commit -m "$(cat <<'EOF'
 docs(ghl-dashboard): add Chat Widget Leads KPI to Row 11
 

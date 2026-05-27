@@ -51,9 +51,9 @@ See [docs/replication/README.md](docs/replication/README.md) for the orientation
 |---|---|
 | Architecture & design | `docs/superpowers/specs/2026-05-27-ai-replication-spec-design.md` |
 | GHL schema (source of truth) | `config/ghl-schema.ts` |
-| GHL API contract | `docs/ghl-api-integration-spec.md` |
-| GHL onboarding runbook | `docs/ghl-onboarding-runbook.md` |
-| GHL dashboard build guide | `docs/ghl-dashboard-build-guide.md` |
-| Launch checklist | `docs/launch-checklist.md` |
+| GHL API contract | `docs/replication/ghl-api-integration-spec.md` |
+| GHL onboarding runbook | `docs/replication/ghl-onboarding-runbook.md` |
+| GHL dashboard build guide | `docs/replication/ghl-dashboard-build-guide.md` |
+| Launch checklist | `docs/replication/launch-checklist.md` |
 | Replication procedure | `docs/replication/REPLICATE.md` |
 | Intake template | `docs/replication/CLIENT_INTAKE.template.md` |

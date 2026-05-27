@@ -2,7 +2,7 @@
 
 **Status:** build-ready
 **Last updated:** 2026-05-08
-**Goal:** Reproducible GHL automation system for the Gracie Barra Whittier website. Every artifact is defined declaratively in [`config/ghl-schema.ts`](../config/ghl-schema.ts) so onboarding the next client = clone repo + run script + click through GHL UI checklist.
+**Goal:** Reproducible GHL automation system for the Gracie Barra Whittier website. Every artifact is defined declaratively in [`config/ghl-schema.ts`](../../config/ghl-schema.ts) so onboarding the next client = clone repo + run script + click through GHL UI checklist.
 
 > **Reproducibility contract:** No pipeline IDs, stage names, workflow IDs, or custom-field IDs are hardcoded in handler code. Everything resolves through the schema at runtime. Adding a new client should never require editing source code — only env vars and GHL UI clicks.
 
@@ -284,7 +284,7 @@ src/components/booking/
   - Creates `CUSTOM_VALUES` via API where they don't exist
   - Prints checklists for UI-only assets (pipelines, CFs, workflows) with the **exact stage names and field keys** from the schema
   - On re-run after operator does manual UI work: discovers IDs, writes `.env.client.local`
-- `docs/ghl-onboarding-runbook.md` — operator-facing doc (1-page)
+- `docs/replication/ghl-onboarding-runbook.md` — operator-facing doc (1-page)
 - `.env.example` — every entry from `ENV_VARS`
 
 **Test plan:**
@@ -378,7 +378,7 @@ src/components/booking/
 - `src/pages/api/webhooks/ghl/appointment-status.ts`
 - `src/pages/api/cancel.ts`
 - Update confirmation page to include cancel link with HMAC token
-- GHL UI work (documented in `docs/ghl-onboarding-runbook.md`):
+- GHL UI work (documented in `docs/replication/ghl-onboarding-runbook.md`):
   - Build the 3 backflow workflows (Trial Conv, Credit Mon, Appointment Status)
   - Each has a webhook action with `X-GBW-Secret` custom header
 
@@ -542,9 +542,9 @@ The handler code never references stage names or pipeline IDs as string literals
 
 ## 10. Files referenced
 
-- [`config/ghl-schema.ts`](../config/ghl-schema.ts) — single source of truth
-- [`docs/ghl-automation-plan.md`](./ghl-automation-plan.md) — workflow logic plan (will be updated to match locked stage names)
-- [`docs/ghl-onboarding-runbook.md`](./ghl-onboarding-runbook.md) — operator-facing onboarding doc (Phase 0 deliverable)
+- [`config/ghl-schema.ts`](../../config/ghl-schema.ts) — single source of truth
+- [`docs/replication/ghl-automation-plan.md`](./ghl-automation-plan.md) — workflow logic plan (will be updated to match locked stage names)
+- [`docs/replication/ghl-onboarding-runbook.md`](./ghl-onboarding-runbook.md) — operator-facing onboarding doc (Phase 0 deliverable)
 - `src/lib/ghl.ts` — existing PIT client; extended in Phase 1
 - `src/pages/api/availability.ts` — existing; no change
 - `src/pages/api/book.ts` — extended in Phase 3

@@ -31,7 +31,7 @@ A prospect fills out an opt-in form on the website. Over the next week we email 
 
 Full glossary at §15.
 
-> **Source of truth:** [`config/ghl-schema.ts`](../config/ghl-schema.ts). The website resolves pipelines, stages, and custom fields by **name** at runtime, so anything you create in GHL must match this doc exactly. If you ever need to double-check a name, that file is canonical — but every name you need to type appears in this doc inside a code block.
+> **Source of truth:** [`config/ghl-schema.ts`](../../config/ghl-schema.ts). The website resolves pipelines, stages, and custom fields by **name** at runtime, so anything you create in GHL must match this doc exactly. If you ever need to double-check a name, that file is canonical — but every name you need to type appears in this doc inside a code block.
 
 > **Your safety net is** `GET /api/health/ghl?key=<HEALTH_KEY>` — a single endpoint that compares the live GHL state to the schema and reports drift. Bookmark the URL after deploy. Run it after every change. If it returns `{ ok: true, drift: [] }`, you're aligned.
 
@@ -210,7 +210,7 @@ All custom fields are API-creatable. `npm run onboard:ghl provision` creates the
 | `last_attendance_iso` | Last Attendance ISO | DATE | `handleAttendance` / `handleCreditDecrement` | When the trainee last attended. Used for idle-timeout filters. |
 | `rebook_link_token` | Rebook Link Token | TEXT | `handleAttendance` | HMAC-signed token for /rebook magic link, 90-day expiry. |
 
-> **Why `appointment_date` AND `last_appointment_start_iso`?** Both are needed. The datetime drives time-of-day waits (`2h before {{appointment.start_time}}`). The date drives day-of "is today" filters and the morning-of auto-move. Comparing a full ISO across the UTC/LA boundary drifts; an 11pm PT slot reads as next-day UTC. See the comment in [`ghl-schema.ts`](../config/ghl-schema.ts) for the rationale.
+> **Why `appointment_date` AND `last_appointment_start_iso`?** Both are needed. The datetime drives time-of-day waits (`2h before {{appointment.start_time}}`). The date drives day-of "is today" filters and the morning-of auto-move. Comparing a full ISO across the UTC/LA boundary drifts; an 11pm PT slot reads as next-day UTC. See the comment in [`ghl-schema.ts`](../../config/ghl-schema.ts) for the rationale.
 
 ---
 
@@ -346,7 +346,7 @@ This is the step most likely to be missed. Without it, `CREDIT_MON` opps stuck i
 4. **Inside the Update Opportunity action's config panel, scroll down and toggle `Duplicate Opportunity` to OFF.** Default is ON; leaving it ON creates a second opp instead of moving the existing one.
 5. Save and re-publish the workflow.
 
-> **Wait-anchor warning:** every wait step in this workflow MUST anchor on `{{appointment.start_time}}` from the trigger event. Do NOT use `{{opportunity.last_appointment_start_iso}}` — the opp custom field races with the stage-change commit and resolves to a stale value. (This was the root cause of the prior bug where all rebook reminders skipped: see [git log entry "drop Rebooking Reminders workflow refs"](../config/ghl-schema.ts).)
+> **Wait-anchor warning:** every wait step in this workflow MUST anchor on `{{appointment.start_time}}` from the trigger event. Do NOT use `{{opportunity.last_appointment_start_iso}}` — the opp custom field races with the stage-change commit and resolves to a stale value. (This was the root cause of the prior bug where all rebook reminders skipped: see [git log entry "drop Rebooking Reminders workflow refs"](../../config/ghl-schema.ts).)
 
 > **Acceptance check for §7.4:** open the workflow editor and confirm: (a) Find Opportunity is the first action, (b) the FOUND branch has the morning-of `Wait Until` + Update Stage tail with Duplicate Opportunity disabled, (c) every Wait step references `{{appointment.start_time}}` (not an opp field), (d) the workflow status badge reads `Published` (not Draft).
 
@@ -507,7 +507,7 @@ This is the canonical map of what fires when an opp enters each stage. Use it as
 | `WON ENROLLED` | `set_status` won; `fire_workflow` 90-Day Review |
 | `LOST` | `set_status` lost; `set_credits` 0; `cross_pipeline_move` LEAD_ACQ to `NURTURE CAMPAIGN` |
 
-The handler logic for `decrement_credits` and `cross_pipeline_move` lives in [`ghl-adapter.ts`](../src/lib/ghl-adapter.ts) and is triggered by the **backflow webhooks** in §7.12.
+The handler logic for `decrement_credits` and `cross_pipeline_move` lives in [`ghl-adapter.ts`](../../src/lib/ghl-adapter.ts) and is triggered by the **backflow webhooks** in §7.12.
 
 ---
 
@@ -632,7 +632,7 @@ Work top-down. Each step has an acceptance criterion you can verify before movin
 
 ## 11. Provisioning scripts
 
-All scripts run from the **repo root** (the directory containing `package.json`). They live under `scripts/` and read from [`ghl-schema.ts`](../config/ghl-schema.ts). They never write to GHL state that isn't API-creatable (pipelines + workflows are UI-only — admin's job).
+All scripts run from the **repo root** (the directory containing `package.json`). They live under `scripts/` and read from [`ghl-schema.ts`](../../config/ghl-schema.ts). They never write to GHL state that isn't API-creatable (pipelines + workflows are UI-only — admin's job).
 
 | Command | What it does | When to run | Success looks like |
 |---|---|---|---|
@@ -751,5 +751,5 @@ If any step fails, check Vercel runtime logs for the matching handler tag (`[han
 - **Calendar group**: a folder of calendars used as a filter in the `Customer Booked Appointment` trigger. We have a "Back to the Mats" group for BTM calendars; trial calendars are loose (no group).
 - **`trainee_key`**: deterministic slug generated by the website (`<firstname>-<dobYYYYMMDD>` or `self-<contactId>` for self-bookings). The only safe key for distinguishing siblings on a shared parent contact.
 - **Backflow / backflow webhook**: a workflow whose only action is a Custom Webhook posting to the website. Used when GHL state changes need to drive website logic (cross-pipeline moves, credit decrements, cancellations).
-- **`exitNurtureWorkflows`**: website helper that removes a contact from every active nurture workflow on a funnel. Called after every booking. See [`ghl-adapter.ts`](../src/lib/ghl-adapter.ts).
+- **`exitNurtureWorkflows`**: website helper that removes a contact from every active nurture workflow on a funnel. Called after every booking. See [`ghl-adapter.ts`](../../src/lib/ghl-adapter.ts).
 - **Find Opportunity step**: a workflow action that looks up an existing opp by pipeline/stage/status/contact filter. If not found, the step can either Stop, Skip, or Branch. Used in `Pre-Trial Reminders` to disambiguate first-trial vs rebook.

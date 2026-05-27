@@ -26,7 +26,7 @@ All env vars are read at build time via `import.meta.env`. They must be set in t
 - [ ] Studio class schedule on `/contact/` â€” currently sourced from `Website Media/Schedule-2.pdf`. Verify the schedule on the page matches what the studio is currently running.
 - [ ] Confirm GHL calendar IDs in `src/pages/kickstart.astro` (top of file, `calendars` array) match the current GHL calendar setup for each program (Tiny Champions, LC1, LC2, Juniors, Adults).
 - [ ] SMS-consent disclaimer in `src/components/form/OptInForm.astro` (lines ~119-124) is currently placeholder text. Swap in verbatim disclaimer per business / legal requirements before launch.
-- [ ] Reviews / Contact pages currently lack on-page photography (only logo + map). Add real GB Whittier photos to `public/images/` and reference in JSX when available â€” see `docs/images-needed.md`.
+- [ ] Reviews / Contact pages currently lack on-page photography (only logo + map). Add real GB Whittier photos to `public/images/` and reference in JSX when available â€” see `./images-needed.md`.
 
 ---
 

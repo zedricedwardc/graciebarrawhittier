@@ -27,7 +27,7 @@
 - `README.md` — replace default Astro template content with project orientation + pointer to replication docs
 
 **Untouched (referenced but not modified):**
-- `scripts/onboard-client.ts`, `config/ghl-schema.ts`, all `docs/ghl-*.md`, `docs/launch-checklist.md`
+- `scripts/onboard-client.ts`, `config/ghl-schema.ts`, all `docs/replication/ghl-*.md`, `docs/replication/launch-checklist.md`
 
 ---
 
@@ -55,12 +55,12 @@ Read in this order:
 3. `../../config/ghl-schema.ts` — source of truth for GHL pipelines/stages/CFs/workflows
 
 Deep-dive references (follow links from REPLICATE.md when needed):
-- `../ghl-api-integration-spec.md` — GHL API contract
-- `../ghl-onboarding-runbook.md` — long-form runbook (human-readable)
-- `../ghl-setup-master-checklist.md` — checklist format
-- `../ghl-automation-plan.md` — workflow design
-- `../ghl-dashboard-build-guide.md` — UI build steps
-- `../launch-checklist.md` — production go-live items
+- `./ghl-api-integration-spec.md` — GHL API contract
+- `./ghl-onboarding-runbook.md` — long-form runbook (human-readable)
+- `./ghl-setup-master-checklist.md` — checklist format
+- `./ghl-automation-plan.md` — workflow design
+- `./ghl-dashboard-build-guide.md` — UI build steps
+- `./launch-checklist.md` — production go-live items
 
 Generated artifacts (per-client):
 - `drafts/` — AI-drafted copy awaiting operator review (gitignored)
@@ -518,7 +518,7 @@ Append:
 3. Update `src/content/programs.ts` + `src/data/programs.ts` + `src/data/schedule.ts` from intake §4 (enabled programs only — remove entries for disabled tiers).
 4. Update `src/data/blackouts.ts` from intake §4 blackout dates.
 5. Update `src/content/reviews.ts`:
-   - Option A (Place ID): leave the file's structure; populate from a one-off fetch you do now via the Google Business Profile public scrape pattern in `docs/ghl-onboarding-runbook.md` if documented, else leave a `// TODO: refresh post-deploy` comment AND add a HANDOFF note.
+   - Option A (Place ID): leave the file's structure; populate from a one-off fetch you do now via the Google Business Profile public scrape pattern in `docs/replication/ghl-onboarding-runbook.md` if documented, else leave a `// TODO: refresh post-deploy` comment AND add a HANDOFF note.
    - Option B (manual): one entry per intake §7 review.
 6. Update location pages: for each intake §6 city, write `src/pages/bjj-<city-slug>.astro` using the existing `bjj-la-habra.astro` as a structural template and the approved draft from `drafts/locations/`. Delete location-page files for cities NOT in intake §6.
 7. Update `src/content/{faqs,adults-faqs,kids-faqs}.ts` if drafts produced overrides; otherwise leave defaults.
@@ -549,7 +549,7 @@ This phase has three sub-steps with an operator gap between 4a and 4c.
 
 ### 4b. Operator does UI clicks (operator runs)
 
-This is human work — pipelines, stages, contact + opportunity custom fields, workflows. See `docs/ghl-dashboard-build-guide.md` for the long-form how-to.
+This is human work — pipelines, stages, contact + opportunity custom fields, workflows. See `docs/replication/ghl-dashboard-build-guide.md` for the long-form how-to.
 
 ### 4c. Discover IDs + provision API-creatable assets (AI runs)
 
@@ -745,8 +745,8 @@ Use this exact structure. Fill every `<placeholder>`. Re-derive the GHL UI check
 ## 📚 Reference
 - Architecture: `docs/superpowers/specs/2026-05-27-ai-replication-spec-design.md`
 - GHL schema (source of truth): `config/ghl-schema.ts`
-- Deep dives: `docs/ghl-api-integration-spec.md`, `docs/ghl-onboarding-runbook.md`
-- Launch checklist: `docs/launch-checklist.md`
+- Deep dives: `docs/replication/ghl-api-integration-spec.md`, `docs/replication/ghl-onboarding-runbook.md`
+- Launch checklist: `docs/replication/launch-checklist.md`
 - AI-drafted content (review before publishing): `drafts/`
 
 ## 📞 Troubleshooting
@@ -1246,10 +1246,10 @@ See [docs/replication/README.md](docs/replication/README.md) for the orientation
 |---|---|
 | Architecture & design | `docs/superpowers/specs/2026-05-27-ai-replication-spec-design.md` |
 | GHL schema (source of truth) | `config/ghl-schema.ts` |
-| GHL API contract | `docs/ghl-api-integration-spec.md` |
-| GHL onboarding runbook | `docs/ghl-onboarding-runbook.md` |
-| GHL dashboard build guide | `docs/ghl-dashboard-build-guide.md` |
-| Launch checklist | `docs/launch-checklist.md` |
+| GHL API contract | `docs/replication/ghl-api-integration-spec.md` |
+| GHL onboarding runbook | `docs/replication/ghl-onboarding-runbook.md` |
+| GHL dashboard build guide | `docs/replication/ghl-dashboard-build-guide.md` |
+| Launch checklist | `docs/replication/launch-checklist.md` |
 | Replication procedure | `docs/replication/REPLICATE.md` |
 ```
 

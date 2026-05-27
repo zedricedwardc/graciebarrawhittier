@@ -30,7 +30,7 @@ If you already know the intro funnel, here's the diff for BTM:
 
 What's reused: contact + opp custom fields (`trainee_key`, `program`, `appointment_date`, etc.), webhook secret, PIT token, `90-Day Review Campaign` workflow (shared on `RE ENROLLED`).
 
-> **Source of truth:** [`config/ghl-schema.ts`](../config/ghl-schema.ts). Drift will be flagged by `GET /api/health/ghl?key=<HEALTH_KEY>` after deploy.
+> **Source of truth:** [`config/ghl-schema.ts`](../../config/ghl-schema.ts). Drift will be flagged by `GET /api/health/ghl?key=<HEALTH_KEY>` after deploy.
 
 ---
 
@@ -181,7 +181,7 @@ You should end up with 5 BTM calendars in the `Back to the Mats` group:
 | `juniors` | `Juniors Jiu-Jitsu (Ages 10-15)` | `BTM Juniors Jiu-Jitsu (Ages 10-15)` |
 | `adults` | `Adults Brazilian Jiu-Jitsu (Ages 16+)` | `BTM Adults Brazilian Jiu-Jitsu (Ages 16+)` |
 
-The mapping is enforced by [`programs.ts`](../src/data/programs.ts).
+The mapping is enforced by [`programs.ts`](../../src/data/programs.ts).
 
 ---
 
@@ -239,7 +239,7 @@ In **Automation → Workflows → + Create Workflow**.
 
 ## 10. Website ↔ GHL contract
 
-The website's [`handleBtmBooking`](../src/lib/ghl-adapter.ts) is the only code path that touches the BTM pipeline. It is dispatched from `POST /api/book` when the request has `flow: 'btm'` (the `/back-to-the-mats` page sends this).
+The website's [`handleBtmBooking`](../../src/lib/ghl-adapter.ts) is the only code path that touches the BTM pipeline. It is dispatched from `POST /api/book` when the request has `flow: 'btm'` (the `/back-to-the-mats` page sends this).
 
 | Website endpoint | What it does | Pipelines touched |
 |---|---|---|

@@ -126,7 +126,7 @@
 3. Update `src/content/programs.ts` + `src/data/programs.ts` + `src/data/schedule.ts` from intake §4 (enabled programs only — remove entries for disabled tiers).
 4. Update `src/data/blackouts.ts` from intake §4 blackout dates.
 5. Update `src/content/reviews.ts`:
-   - Option A (Place ID): leave the file's structure; populate from a one-off fetch you do now via the Google Business Profile public scrape pattern in `docs/ghl-onboarding-runbook.md` if documented, else leave a `// TODO: refresh post-deploy` comment AND add a HANDOFF note.
+   - Option A (Place ID): leave the file's structure; populate from a one-off fetch you do now via the Google Business Profile public scrape pattern in `./ghl-onboarding-runbook.md` if documented, else leave a `// TODO: refresh post-deploy` comment AND add a HANDOFF note.
    - Option B (manual): one entry per intake §7 review.
 6. Update location pages: for each intake §6 city, write `src/pages/bjj-<city-slug>.astro` using the existing `bjj-la-habra.astro` as a structural template and the approved draft from `drafts/locations/`. Delete location-page files for cities NOT in intake §6.
 7. Update `src/content/{faqs,adults-faqs,kids-faqs}.ts` if drafts produced overrides; otherwise leave defaults.
@@ -157,7 +157,7 @@ This phase has three sub-steps with an operator gap between 4a and 4c.
 
 ### 4b. Operator does UI clicks (operator runs)
 
-This is human work — pipelines, stages, contact + opportunity custom fields, workflows. See `docs/ghl-dashboard-build-guide.md` for the long-form how-to.
+This is human work — pipelines, stages, contact + opportunity custom fields, workflows. See `./ghl-dashboard-build-guide.md` for the long-form how-to.
 
 ### 4c. Discover IDs + provision API-creatable assets (AI runs)
 
@@ -333,8 +333,8 @@ Use this exact structure. Fill every `<placeholder>`. Re-derive the GHL UI check
 ## 📚 Reference
 - Architecture: `docs/superpowers/specs/2026-05-27-ai-replication-spec-design.md`
 - GHL schema (source of truth): `config/ghl-schema.ts`
-- Deep dives: `docs/ghl-api-integration-spec.md`, `docs/ghl-onboarding-runbook.md`
-- Launch checklist: `docs/launch-checklist.md`
+- Deep dives: `./ghl-api-integration-spec.md`, `./ghl-onboarding-runbook.md`
+- Launch checklist: `./launch-checklist.md`
 - AI-drafted content (review before publishing): `drafts/`
 
 ## 📞 Troubleshooting

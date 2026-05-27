@@ -208,7 +208,7 @@ PASS (all 4 QA reports independently confirmed `npm run build` succeeds; 10 page
 
 ### Deferred (track but don't fix now)
 
-- **Reviews + Contact pages lack non-logo content imagery** (seo P1-5) — requires real GB Whittier photography from `Website Media/`; image-prep is a Wave 1 deliverable, not a Wave 3 fix. Document in `docs/images-needed.md` if not already; ship as-is.
+- **Reviews + Contact pages lack non-logo content imagery** (seo P1-5) — requires real GB Whittier photography from `Website Media/`; image-prep is a Wave 1 deliverable, not a Wave 3 fix. Document in `docs/replication/images-needed.md` if not already; ship as-is.
 - **FAQ section background — light vs navy** (brand P2 #2) — see conflict C3. Defer to design-lead post-launch decision.
 - **Homepage program-card heading order** (seo P2-2) — informational only, no fix required.
 - **Homepage H1 visual rank vs H2** (seo P2-3) — owner call; brief explicitly says display H2 stays visually prominent ("Build Confidence. Learn Real Self-Defense." is the visible hero), so current rendering matches brief intent.
@@ -244,4 +244,4 @@ Grouped by file so Finalizer reads + edits each file once. Apply in this order:
 16. **Verify**: `grep -r "VIEW OUR FULL CLASS SCHEDULE"`, `grep -r "Professor Eric and Professor Phil"`, `grep -r "free 3-class trial pass"`, `grep -r "text-gb-gold" src/pages/{kickstart,congrats,kids-martial-arts,adults-jiu-jitsu}.astro` (last should return 0 matches; offer-pill uses live in `index.astro` and `OptInForm.astro` only).
 17. **Check meta-desc lengths** on `/`, `/kids-martial-arts/`, `/adults-jiu-jitsu/`, `/contact/`, `/reviews/` are 130–160 chars; homepage `<title>` is ≤60 chars.
 
-End of aggregate. Finalizer: execute steps 1–17 in order. If any fix introduces a visual regression at the 375 px viewport, prefer the brief-locked text/spec over the QA recommendation and note the divergence in `docs/launch-checklist.md`.
+End of aggregate. Finalizer: execute steps 1–17 in order. If any fix introduces a visual regression at the 375 px viewport, prefer the brief-locked text/spec over the QA recommendation and note the divergence in `docs/replication/launch-checklist.md`.
