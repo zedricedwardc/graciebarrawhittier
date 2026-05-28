@@ -42,7 +42,8 @@ describe('stampEnrollmentDateIfEmpty', () => {
     const opp = makeOpp({}, []);
     await stampEnrollmentDateIfEmpty(opp);
     expect(updateOppMock).toHaveBeenCalledTimes(1);
-    const [oppId, args] = updateOppMock.mock.calls[0];
+    const call = updateOppMock.mock.calls[0]!;
+    const [oppId, args] = call;
     expect(oppId).toBe('opp_123');
     expect(args.customFields).toEqual([
       { id: 'cfid-enrollment_date', field_value: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
