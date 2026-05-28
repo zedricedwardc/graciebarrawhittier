@@ -15,7 +15,7 @@ import {
   type UpdateOpportunityArgs,
 } from './ghl';
 import { getPipelineId, getStageId } from './ghl-pipelines';
-import { cacheOpportunityCustomFields, getCfId } from './ghl-custom-fields';
+import { cacheOpportunityCustomFields, getCfId, cfPayload } from './ghl-custom-fields';
 import { getCustomValue } from './ghl-custom-values';
 import type { PipelineKey } from '../../config/ghl-schema';
 
@@ -216,3 +216,25 @@ export async function updateOppFields(
 }
 
 export type { OpportunityRecord, UpdateOpportunityArgs };
+
+/** YYYY-MM-DD in America/Los_Angeles. en-CA formats as ISO calendar date. */
+function todayInLA(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
+    .format(new Date());
+}
+
+/**
+ * Stamp `enrollment_date` on an opportunity if it is currently empty.
+ *
+ * First-write-wins: returns without writing when the opp already has a
+ * non-empty `enrollment_date`. This preserves the original enrollment date
+ * across admin stage corrections (moves out of and back into the WON stage).
+ *
+ * Called from the stage-changed webhook on entry to STUDENT ENROLLED (WON).
+ */
+export async function stampEnrollmentDateIfEmpty(opp: OpportunityRecord): Promise<void> {
+  const existing = await getOppCfValueByKey<string>(opp, 'enrollment_date');
+  if (typeof existing === 'string' && existing.trim()) return;
+  const payload = await cfPayload('opportunity', { enrollment_date: todayInLA() });
+  await updateOppFields(opp.id, payload);
+}
