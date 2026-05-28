@@ -230,6 +230,10 @@ function todayInLA(): string {
  * non-empty `enrollment_date`. This preserves the original enrollment date
  * across admin stage corrections (moves out of and back into the WON stage).
  *
+ * The TRIAL_CONV path enforces this in code; the parallel BACK_TO_MATS RE
+ * ENROLLED workflow in GHL intentionally overwrites instead (see the
+ * `Student Enrolled` workflow + docs/replication/btm-campaign-setup.md §9).
+ *
  * Called from the stage-changed webhook on entry to STUDENT ENROLLED (WON).
  */
 export async function stampEnrollmentDateIfEmpty(opp: OpportunityRecord): Promise<void> {

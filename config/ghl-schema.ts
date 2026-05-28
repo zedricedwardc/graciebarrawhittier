@@ -479,11 +479,27 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
     defaultValue: '160',
     description:
       'Dollar amount stamped on an opportunity\'s monetaryValue when it reaches a ' +
-      'WON enrollment stage (TRIAL_CONV STUDENT ENROLLED (WON), CREDIT_MON WON ENROLLED, ' +
-      'BACK_TO_MATS RE ENROLLED). Powers the studio dashboard Revenue + Conversion widgets. ' +
+      'first-time enrollment stage (TRIAL_CONV STUDENT ENROLLED (WON) or CREDIT_MON ' +
+      'WON ENROLLED). Powers the studio dashboard Revenue + Conversion widgets. ' +
       'Default 160 = one month average tuition (conservative); set to a 12-month LTV estimate ' +
       '(e.g. 1920) to show full business impact. Read at request time via ' +
-      'src/lib/ghl-custom-values.ts — the set_opp_value transition action applies it.',
+      'src/lib/ghl-custom-values.ts — the set_opp_value transition action applies it. ' +
+      'BACK_TO_MATS RE ENROLLED uses btm_student_value instead (separate value because ' +
+      're-enrolled former students have different expected LTV than first-time enrollees).',
+  },
+  {
+    fieldKey: 'btm_student_value',
+    name: 'BTM Student Value',
+    defaultValue: '80',
+    description:
+      'Dollar amount stamped on an opportunity\'s monetaryValue when it reaches the ' +
+      'BACK_TO_MATS RE ENROLLED stage. Distinct from enrolled_student_value because ' +
+      're-enrolled former students typically have a different (often lower) expected ' +
+      'LTV than first-time enrollees. Default 80 = half of enrolled_student_value\'s ' +
+      'conservative default; tune to a realistic re-enrollment LTV. Applied by the ' +
+      'BTM "Student Enrolled" GHL workflow (Update Opportunity → Monetary Value = ' +
+      '{{custom_values.btm_student_value}}) on entry to RE ENROLLED, not by any ' +
+      'website-side code.',
   },
 ] as const;
 
@@ -1058,14 +1074,18 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
     actions: [
       { type: 'set_status', status: 'won' },
       // No BTM backflow webhook — an admin moving an opp here never reaches the
-      // website. Both set_opp_value AND enrollment_date stamping must be applied
-      // by a GHL workflow triggered on entry to RE ENROLLED:
-      //   Update Opportunity → Monetary Value = {{custom_values.enrolled_student_value}}
-      //   Update Opportunity → Enrollment Date = today (gated by an
-      //     "Enrollment Date is empty" If/Else for first-write-wins parity with
-      //     the TRIAL_CONV stage-changed webhook handler).
-      // See docs/replication/btm-campaign-setup.md.
-      { type: 'set_opp_value', fromCustomValueKey: 'enrolled_student_value' },
+      // website. set_opp_value AND enrollment_date stamping are both applied by
+      // the BTM "Student Enrolled" GHL workflow on entry to RE ENROLLED:
+      //   Update Opportunity → Monetary Value = {{custom_values.btm_student_value}}
+      //     (NOTE: btm_student_value, NOT enrolled_student_value — re-enrolled
+      //      former students have a separate LTV bucket. See the custom-value
+      //      definition above.)
+      //   Update Opportunity → Enrollment Date = {{right_now.date}}
+      //     (intentionally unconditional — BTM does NOT enforce first-write-wins
+      //      the way the TRIAL_CONV stage-changed webhook handler does. Admin
+      //      moving an opp out of and back into RE ENROLLED resets the date.)
+      // See docs/replication/btm-campaign-setup.md §9.
+      { type: 'set_opp_value', fromCustomValueKey: 'btm_student_value' },
       { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_90_DAY_REVIEW' },
     ],
   },
