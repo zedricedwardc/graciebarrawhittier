@@ -232,8 +232,17 @@ In **Automation → Workflows → + Create Workflow**.
 | `RE ENROLLMENT CLASS BOOKED` | `fire_workflow` BTM Appointment Confirmation; `auto_move_on_appointment_day` → `APPOINTMENT TODAY` (Wait + Update Stage tail inside the workflow). |
 | `APPOINTMENT TODAY` | None — admin classifies. |
 | `NO-SHOW` | `fire_workflow` BTM Re-Booking Campaign. 14d Wait + Update Stage to `OFFER EXPIRED` configured inside that workflow. |
-| `RE ENROLLED` | `set_status` won; `fire_workflow` 90-Day Review (shared with intro funnel). |
+| `RE ENROLLED` | `set_status` won; `set_opp_value` Monetary Value = `{{custom_values.enrolled_student_value}}`; **stamp `Enrollment Date` = today (first-write-wins)**; `fire_workflow` 90-Day Review (shared with intro funnel). See note below. |
 | `OFFER EXPIRED` | `set_status` lost. |
+
+### Note: RE ENROLLED workflow-only actions
+
+BTM does **not** fire a backflow webhook to the website (§10 below), so the actions on entry to `RE ENROLLED` that mutate the opp (Monetary Value, Enrollment Date) must be configured *inside* the GHL workflow that triggers on entry to `RE ENROLLED` — the same workflow that fires the 90-Day Review campaign. Steps:
+
+1. **Update Opportunity → Monetary Value** = `{{custom_values.enrolled_student_value}}`. This is what powers the studio dashboard Revenue + Conversion widgets for re-enrolled students.
+2. **Update Opportunity → Enrollment Date** = today's date. Gate this action with an If/Else step above it whose condition is `Opportunity → Enrollment Date is empty`. The Update action runs only on the matched branch — that's how first-write-wins is enforced in GHL UI, matching the TRIAL_CONV `stage-changed` webhook handler's behavior (`src/pages/api/webhooks/ghl/stage-changed.ts`).
+
+For the TRIAL_CONV path, the equivalent stamping is done in code by the website's `stage-changed` webhook handler; no GHL workflow step is needed there.
 
 ---
 

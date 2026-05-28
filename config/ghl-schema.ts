@@ -1058,8 +1058,13 @@ export const STAGE_TRANSITIONS: readonly StageTransition[] = [
     actions: [
       { type: 'set_status', status: 'won' },
       // No BTM backflow webhook — an admin moving an opp here never reaches the
-      // website. set_opp_value must be applied by a GHL workflow triggered on
-      // entry to RE ENROLLED (Update Opportunity → Monetary Value).
+      // website. Both set_opp_value AND enrollment_date stamping must be applied
+      // by a GHL workflow triggered on entry to RE ENROLLED:
+      //   Update Opportunity → Monetary Value = {{custom_values.enrolled_student_value}}
+      //   Update Opportunity → Enrollment Date = today (gated by an
+      //     "Enrollment Date is empty" If/Else for first-write-wins parity with
+      //     the TRIAL_CONV stage-changed webhook handler).
+      // See docs/replication/btm-campaign-setup.md.
       { type: 'set_opp_value', fromCustomValueKey: 'enrolled_student_value' },
       { type: 'fire_workflow', workflowEnvVarKey: 'WORKFLOW_ID_90_DAY_REVIEW' },
     ],
