@@ -345,6 +345,17 @@ export const OPPORTUNITY_CUSTOM_FIELDS: readonly CustomFieldDef[] = [
     description: 'HMAC-signed magic-link token for /rebook page. Generated at trial activation, 90-day expiry.',
     setBy: 'workflow',
   },
+  {
+    fieldKey: 'enrollment_date',
+    label: 'Enrollment Date',
+    type: 'DATE',
+    description:
+      'YYYY-MM-DD (America/Los_Angeles) when this opp first reached an enrolled stage ' +
+      '(TRIAL_CONV STUDENT ENROLLED (WON) or BACK_TO_MATS RE ENROLLED). First-write-wins — ' +
+      'admin nudges of the stage do not reset it. Set by the stage-changed webhook for ' +
+      'TRIAL_CONV and by the BTM RE ENROLLED workflow for BACK_TO_MATS.',
+    setBy: 'webhook',
+  },
 ] as const;
 
 // ─── Custom Values (account-level globals, admin-editable) ──────────────────
