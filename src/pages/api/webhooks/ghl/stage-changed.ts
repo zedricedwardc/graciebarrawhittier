@@ -28,6 +28,7 @@ import {
   enrolledStudentValue,
   moveStage,
   getOppCfValueByKey,
+  stampEnrollmentDateIfEmpty,
 } from '../../../../lib/ghl-opportunities';
 import { getOpportunity } from '../../../../lib/ghl';
 import { idempotency } from '../../../../lib/idempotency';
@@ -186,6 +187,17 @@ export const POST: APIRoute = async ({ request }) => {
         await setOppStatus(body.opp_id, 'won');
         // set_opp_value transition action — stamp revenue for the dashboard.
         await setOppValue(body.opp_id, await enrolledStudentValue());
+
+        // Stamp enrollment_date for tenure/anniversary use. First-write-wins.
+        // Isolated in its own try/catch so a stamp failure does not skip the
+        // Credit-opp-close step below.
+        try {
+          const opp = await getOpportunity(body.opp_id);
+          if (opp) await stampEnrollmentDateIfEmpty(opp);
+        } catch (err) {
+          console.error('[stage-changed WON] enrollment_date stamp failed', err);
+        }
+
         // Close the matching Credit Mon opp as won, if any
         if (body.trainee_key) {
           const creditOpps = await findOpps({
