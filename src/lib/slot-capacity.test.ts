@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AvailabilitySlot } from './booking-types';
-import { filterSlotsByCapacity } from './slot-capacity';
+import { decideSlotCapacity, filterSlotsByCapacity } from './slot-capacity';
 
 const slot = (startISO: string): AvailabilitySlot => ({
   startISO,
@@ -82,5 +82,29 @@ describe('filterSlotsByCapacity', () => {
     });
 
     expect(available).toEqual(slots);
+  });
+
+  it('requires a free-slot override for a partially booked class hidden from free-slots', () => {
+    const decision = decideSlotCapacity({
+      slot: slot('2026-06-03T16:00:00-07:00'),
+      events: [
+        { id: 'apt_1', startTime: '2026-06-03T16:00:00-07:00', appointmentStatus: 'confirmed' },
+      ],
+      freeStartISOs: new Set(),
+      appointmentPerSlot: 3,
+    });
+
+    expect(decision).toEqual({ available: true, requiresFreeSlotOverride: true });
+  });
+
+  it('does not require a free-slot override for a slot GHL reports as free', () => {
+    const decision = decideSlotCapacity({
+      slot: slot('2026-06-30T15:00:00-07:00'),
+      events: [],
+      freeStartISOs: new Set(['2026-06-30T15:00:00-07:00']),
+      appointmentPerSlot: 3,
+    });
+
+    expect(decision).toEqual({ available: true, requiresFreeSlotOverride: false });
   });
 });

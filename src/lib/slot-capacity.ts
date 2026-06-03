@@ -6,6 +6,11 @@ export interface CapacityEvent {
   appointmentStatus?: string;
 }
 
+export interface SlotCapacityDecision {
+  available: boolean;
+  requiresFreeSlotOverride: boolean;
+}
+
 const NON_BLOCKING_STATUSES = new Set(['cancelled', 'canceled', 'invalid']);
 
 export function appointmentPerSlot(value: unknown): number {
@@ -20,8 +25,24 @@ export function filterSlotsByCapacity(args: {
   freeStartISOs?: Set<string>;
   appointmentPerSlot: number;
 }): AvailabilitySlot[] {
+  return args.slots.filter((slot) => decideSlotCapacity({
+    slot,
+    events: args.events,
+    freeStartISOs: args.freeStartISOs,
+    appointmentPerSlot: args.appointmentPerSlot,
+  }).available);
+}
+
+export function decideSlotCapacity(args: {
+  slot: AvailabilitySlot;
+  events: CapacityEvent[];
+  freeStartISOs?: Set<string>;
+  appointmentPerSlot: number;
+}): SlotCapacityDecision {
   const capacity = appointmentPerSlot(args.appointmentPerSlot);
-  const activeCounts = new Map<number, number>();
+  const slotKey = Date.parse(args.slot.startISO);
+  if (Number.isNaN(slotKey)) return { available: false, requiresFreeSlotOverride: false };
+
   const freeStarts = new Set<number>();
 
   for (const startISO of args.freeStartISOs ?? []) {
@@ -29,21 +50,17 @@ export function filterSlotsByCapacity(args: {
     if (!Number.isNaN(key)) freeStarts.add(key);
   }
 
+  let activeCount = 0;
   for (const event of args.events) {
     if (!event.startTime || !countsAgainstCapacity(event.appointmentStatus)) continue;
     const key = Date.parse(event.startTime);
     if (Number.isNaN(key)) continue;
-    activeCounts.set(key, (activeCounts.get(key) ?? 0) + 1);
+    if (key === slotKey) activeCount++;
   }
 
-  return args.slots.filter((slot) => {
-    const key = Date.parse(slot.startISO);
-    if (Number.isNaN(key)) return false;
-    const activeCount = activeCounts.get(key) ?? 0;
-    if (activeCount >= capacity) return false;
-    if (activeCount > 0) return true;
-    return freeStarts.has(key);
-  });
+  if (activeCount >= capacity) return { available: false, requiresFreeSlotOverride: false };
+  if (activeCount > 0) return { available: true, requiresFreeSlotOverride: !freeStarts.has(slotKey) };
+  return { available: freeStarts.has(slotKey), requiresFreeSlotOverride: false };
 }
 
 function countsAgainstCapacity(status: string | undefined): boolean {

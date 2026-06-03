@@ -22,7 +22,7 @@ import { handleBooking, exitNurtureWorkflows, toAcademyLocalDate } from '../../l
 import { findOpps, findByTraineeKey, moveStage, getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { cfPayload } from '../../lib/ghl-custom-fields';
 import { generateSlots } from '../../lib/slot-resolver';
-import { appointmentPerSlot, filterSlotsByCapacity } from '../../lib/slot-capacity';
+import { appointmentPerSlot, decideSlotCapacity, type SlotCapacityDecision } from '../../lib/slot-capacity';
 import { blackouts } from '../../data/blackouts';
 import { verifyRebookToken } from '../../lib/rebook-token';
 
@@ -86,9 +86,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 
   // Re-validate that the class still has capacity.
-  let slotAvailable: boolean;
+  let slotDecision: SlotCapacityDecision;
   try {
-    slotAvailable = await hasSlotCapacity({
+    slotDecision = await getSlotCapacityDecision({
       calendarId,
       program: body.program,
       slotStartISO: body.slotStartISO,
@@ -98,7 +98,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not verify slot availability.' });
   }
-  if (!slotAvailable) {
+  if (!slotDecision.available) {
     const alternates = nextAlternates(body.program, body.slotStartISO, 3);
     return json({ ok: false, code: 'SLOT_TAKEN', alternates });
   }
@@ -130,6 +130,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       startISO: body.slotStartISO,
       endISO,
       title,
+      ignoreFreeSlotValidation: slotDecision.requiresFreeSlotOverride,
     });
   } catch (err) {
     console.error('[book] createAppointment failed',
@@ -313,9 +314,9 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
   }
 
   // Re-validate slot capacity (parity with initial booking).
-  let slotAvailable: boolean;
+  let slotDecision: SlotCapacityDecision;
   try {
-    slotAvailable = await hasSlotCapacity({
+    slotDecision = await getSlotCapacityDecision({
       calendarId,
       program: body.program,
       slotStartISO: body.slotStartISO,
@@ -325,7 +326,7 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not verify slot availability.' });
   }
-  if (!slotAvailable) {
+  if (!slotDecision.available) {
     const alternates = nextAlternates(body.program, body.slotStartISO, 3);
     return json({ ok: false, code: 'SLOT_TAKEN', alternates });
   }
@@ -378,6 +379,7 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
       startISO: body.slotStartISO,
       endISO,
       title,
+      ignoreFreeSlotValidation: slotDecision.requiresFreeSlotOverride,
     });
   } catch (err) {
     console.error('[book/rebook] createAppointment failed',
@@ -431,11 +433,11 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
   });
 }
 
-async function hasSlotCapacity(args: {
+async function getSlotCapacityDecision(args: {
   calendarId: string;
   program: ProgramKey;
   slotStartISO: string;
-}): Promise<boolean> {
+}): Promise<SlotCapacityDecision> {
   const slotMs = Date.parse(args.slotStartISO);
   const [calendar, events] = await Promise.all([
     getCalendar(args.calendarId),
@@ -451,11 +453,10 @@ async function hasSlotCapacity(args: {
     endDate: slotMs + 60_000,
   });
   const endISO = computeEndISO(args.slotStartISO, args.program);
-  const available = filterSlotsByCapacity({
-    slots: [{ startISO: args.slotStartISO, endISO, label: args.slotStartISO }],
+  return decideSlotCapacity({
+    slot: { startISO: args.slotStartISO, endISO, label: args.slotStartISO },
     events,
     freeStartISOs,
     appointmentPerSlot: appointmentPerSlot(calendar?.appointmentPerSlot),
   });
-  return available.length > 0;
 }

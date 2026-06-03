@@ -80,6 +80,25 @@ describe('ghl client', () => {
     expect(body.startTime).toBe('2026-05-06T15:00:00-07:00');
   });
 
+  it('createAppointment can bypass free-slot validation for partially booked class capacity', async () => {
+    (fetch as any).mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: 'apt_43' }), { status: 200 }),
+    );
+
+    await ghl.createAppointment({
+      calendarId: 'cal_x',
+      contactId: 'c_1',
+      startISO: '2026-05-06T15:00:00-07:00',
+      endISO: '2026-05-06T15:45:00-07:00',
+      title: 'Tiny Champions trial - Emma (6)',
+      ignoreFreeSlotValidation: true,
+    });
+
+    const [, init] = (fetch as any).mock.calls[0];
+    const body = JSON.parse(init.body as string);
+    expect(body.ignoreFreeSlotValidation).toBe(true);
+  });
+
   it('getCalendar reads appointmentPerSlot for capacity checks', async () => {
     (fetch as any).mockResolvedValueOnce(
       new Response(JSON.stringify({ calendar: { id: 'cal_x', appointmentPerSlot: 3 } }), { status: 200 }),

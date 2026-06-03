@@ -428,6 +428,7 @@ export interface CreateAppointmentArgs {
   startISO: string;
   endISO: string;
   title: string;
+  ignoreFreeSlotValidation?: boolean;
 }
 
 export async function createAppointment(args: CreateAppointmentArgs): Promise<string> {
@@ -443,6 +444,7 @@ export async function createAppointment(args: CreateAppointmentArgs): Promise<st
       title: args.title,
       appointmentStatus: 'confirmed',
       toNotify: true, // fire native confirmation email/SMS
+      ...(args.ignoreFreeSlotValidation ? { ignoreFreeSlotValidation: true } : {}),
     }),
   })) as { id?: string; appointment?: { id?: string } };
   const id = data?.id ?? data?.appointment?.id;
