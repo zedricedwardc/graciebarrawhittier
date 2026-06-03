@@ -429,6 +429,7 @@ export interface CreateAppointmentArgs {
   endISO: string;
   title: string;
   ignoreFreeSlotValidation?: boolean;
+  assignedUserId?: string;
 }
 
 export async function createAppointment(args: CreateAppointmentArgs): Promise<string> {
@@ -445,6 +446,7 @@ export async function createAppointment(args: CreateAppointmentArgs): Promise<st
       appointmentStatus: 'confirmed',
       toNotify: true, // fire native confirmation email/SMS
       ...(args.ignoreFreeSlotValidation ? { ignoreFreeSlotValidation: true } : {}),
+      ...(args.assignedUserId ? { assignedUserId: args.assignedUserId } : {}),
     }),
   })) as { id?: string; appointment?: { id?: string } };
   const id = data?.id ?? data?.appointment?.id;
@@ -467,6 +469,7 @@ export interface CalendarEventRecord {
   calendarId?: string;
   contactId?: string;
   appointmentStatus?: string;
+  assignedUserId?: string;
 }
 
 export async function getCalendarEvents(args: {

@@ -4,11 +4,13 @@ export interface CapacityEvent {
   id?: string;
   startTime?: string;
   appointmentStatus?: string;
+  assignedUserId?: string;
 }
 
 export interface SlotCapacityDecision {
   available: boolean;
   requiresFreeSlotOverride: boolean;
+  assignedUserId?: string;
 }
 
 const NON_BLOCKING_STATUSES = new Set(['cancelled', 'canceled', 'invalid']);
@@ -51,15 +53,25 @@ export function decideSlotCapacity(args: {
   }
 
   let activeCount = 0;
+  let assignedUserId: string | undefined;
   for (const event of args.events) {
     if (!event.startTime || !countsAgainstCapacity(event.appointmentStatus)) continue;
     const key = Date.parse(event.startTime);
     if (Number.isNaN(key)) continue;
-    if (key === slotKey) activeCount++;
+    if (key === slotKey) {
+      activeCount++;
+      assignedUserId ??= event.assignedUserId;
+    }
   }
 
   if (activeCount >= capacity) return { available: false, requiresFreeSlotOverride: false };
-  if (activeCount > 0) return { available: true, requiresFreeSlotOverride: !freeStarts.has(slotKey) };
+  if (activeCount > 0) {
+    return {
+      available: true,
+      requiresFreeSlotOverride: !freeStarts.has(slotKey),
+      ...(assignedUserId ? { assignedUserId } : {}),
+    };
+  }
   return { available: freeStarts.has(slotKey), requiresFreeSlotOverride: false };
 }
 

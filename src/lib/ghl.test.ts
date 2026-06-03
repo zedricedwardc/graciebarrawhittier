@@ -92,11 +92,13 @@ describe('ghl client', () => {
       endISO: '2026-05-06T15:45:00-07:00',
       title: 'Tiny Champions trial - Emma (6)',
       ignoreFreeSlotValidation: true,
+      assignedUserId: 'user_1',
     });
 
     const [, init] = (fetch as any).mock.calls[0];
     const body = JSON.parse(init.body as string);
     expect(body.ignoreFreeSlotValidation).toBe(true);
+    expect(body.assignedUserId).toBe('user_1');
   });
 
   it('getCalendar reads appointmentPerSlot for capacity checks', async () => {

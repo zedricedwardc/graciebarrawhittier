@@ -131,6 +131,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       endISO,
       title,
       ignoreFreeSlotValidation: slotDecision.requiresFreeSlotOverride,
+      assignedUserId: slotDecision.assignedUserId,
     });
   } catch (err) {
     console.error('[book] createAppointment failed',
@@ -380,6 +381,7 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
       endISO,
       title,
       ignoreFreeSlotValidation: slotDecision.requiresFreeSlotOverride,
+      assignedUserId: slotDecision.assignedUserId,
     });
   } catch (err) {
     console.error('[book/rebook] createAppointment failed',

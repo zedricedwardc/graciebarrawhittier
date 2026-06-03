@@ -88,13 +88,22 @@ describe('filterSlotsByCapacity', () => {
     const decision = decideSlotCapacity({
       slot: slot('2026-06-03T16:00:00-07:00'),
       events: [
-        { id: 'apt_1', startTime: '2026-06-03T16:00:00-07:00', appointmentStatus: 'confirmed' },
+        {
+          id: 'apt_1',
+          startTime: '2026-06-03T16:00:00-07:00',
+          appointmentStatus: 'confirmed',
+          assignedUserId: 'user_1',
+        },
       ],
       freeStartISOs: new Set(),
       appointmentPerSlot: 3,
     });
 
-    expect(decision).toEqual({ available: true, requiresFreeSlotOverride: true });
+    expect(decision).toEqual({
+      available: true,
+      requiresFreeSlotOverride: true,
+      assignedUserId: 'user_1',
+    });
   });
 
   it('does not require a free-slot override for a slot GHL reports as free', () => {
