@@ -279,6 +279,28 @@ export async function getContact(contactId: string): Promise<ContactRecord | nul
   }
 }
 
+export interface CalendarRecord {
+  id: string;
+  name?: string;
+  calendarType?: string;
+  appointmentPerSlot?: number | string;
+}
+
+export async function getCalendar(calendarId: string): Promise<CalendarRecord | null> {
+  try {
+    const data = (await request(
+      `/calendars/${encodeURIComponent(calendarId)}`,
+      { version: CALENDAR_VERSION },
+    )) as { calendar?: CalendarRecord } & CalendarRecord;
+    if (data.calendar) return data.calendar;
+    if (data.id) return data;
+    return null;
+  } catch (err) {
+    if (err instanceof GhlError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 /** Update a contact (custom fields, name, etc.). */
 export interface UpdateContactArgs {
   firstName?: string;
@@ -433,6 +455,34 @@ export async function createAppointment(args: CreateAppointmentArgs): Promise<st
     );
   }
   return id;
+}
+
+export interface CalendarEventRecord {
+  id: string;
+  title?: string;
+  startTime?: string;
+  endTime?: string;
+  calendarId?: string;
+  contactId?: string;
+  appointmentStatus?: string;
+}
+
+export async function getCalendarEvents(args: {
+  calendarId: string;
+  startTime: number;
+  endTime: number;
+}): Promise<CalendarEventRecord[]> {
+  const params = new URLSearchParams({
+    locationId: locationId(),
+    calendarId: args.calendarId,
+    startTime: String(args.startTime),
+    endTime: String(args.endTime),
+  });
+  const data = (await request(
+    `/calendars/events?${params.toString()}`,
+    { version: CALENDAR_VERSION },
+  )) as { events?: CalendarEventRecord[] };
+  return data.events ?? [];
 }
 
 export interface AppointmentRecord {

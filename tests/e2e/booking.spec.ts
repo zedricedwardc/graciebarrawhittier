@@ -47,7 +47,7 @@ test('book Adults class — survey → calendar → slot → form → success', 
   await enabledDate.waitFor({ state: 'visible', timeout: 30_000 });
 
   expect(availabilityCalls.length, 'expected at least one /api/availability call').toBeGreaterThan(0);
-  expect(availabilityCalls[0].status, 'availability call should be 2xx').toBeLessThan(400);
+  expect(availabilityCalls[0]!.status, 'availability call should be 2xx').toBeLessThan(400);
 
   await enabledDate.click();
 

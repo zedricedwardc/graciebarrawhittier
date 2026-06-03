@@ -44,8 +44,10 @@ export function validateIntake(markdown: string): ValidationResult {
     }
     const fieldMatch = line.match(REQUIRED_LINE_RE);
     if (!fieldMatch) continue;
-    const label = fieldMatch[1].trim();
-    const value = fieldMatch[2].trim();
+    const [, rawLabel, rawValue] = fieldMatch;
+    if (rawLabel === undefined || rawValue === undefined) continue;
+    const label = rawLabel.trim();
+    const value = rawValue.trim();
     requiredFieldsFound += 1;
     if (!value) {
       errors.push(`${currentSection}: missing REQUIRED field "${label}"`);
@@ -66,7 +68,10 @@ export function validateIntake(markdown: string): ValidationResult {
     const s = line.match(SECTION_RE);
     if (s) { seenSections.add(`§${s[1]}`); continue; }
     const m = line.match(REQUIRED_LINE_RE);
-    if (m) seenLabels.add(m[1].trim());
+    if (m) {
+      const [, rawLabel] = m;
+      if (rawLabel !== undefined) seenLabels.add(rawLabel.trim());
+    }
   }
   for (const { section, label } of declaredLabels) {
     if (!seenSections.has(section)) continue;
@@ -101,7 +106,10 @@ function extractDeclaredRequiredLabels(): RequiredField[] {
       const s = line.match(SECTION_RE);
       if (s) { section = `§${s[1]}`; continue; }
       const m = line.match(REQUIRED_LINE_RE);
-      if (m) out.push({ section, label: m[1].trim() });
+      if (m) {
+        const [, rawLabel] = m;
+        if (rawLabel !== undefined) out.push({ section, label: rawLabel.trim() });
+      }
     }
     return out;
   } catch {

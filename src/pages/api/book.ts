@@ -11,7 +11,8 @@ import {
   upsertContact,
   createAppointment,
   createAppointmentNote,
-  getFreeSlots,
+  getCalendar,
+  getCalendarEvents,
   getContact,
   GhlError,
   readEnv,
@@ -20,6 +21,7 @@ import { handleBooking, exitNurtureWorkflows, toAcademyLocalDate } from '../../l
 import { findOpps, findByTraineeKey, moveStage, getOppCfValueByKey } from '../../lib/ghl-opportunities';
 import { cfPayload } from '../../lib/ghl-custom-fields';
 import { generateSlots } from '../../lib/slot-resolver';
+import { appointmentPerSlot, filterSlotsByCapacity } from '../../lib/slot-capacity';
 import { blackouts } from '../../data/blackouts';
 import { verifyRebookToken } from '../../lib/rebook-token';
 
@@ -82,19 +84,20 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED', message: 'Calendar not configured.' });
   }
 
-  // Re-validate that the slot is still available.
-  const slotMs = Date.parse(body.slotStartISO);
-  const windowStart = slotMs - 60_000;
-  const windowEnd   = slotMs + 60_000;
-  let stillFree: Set<string>;
+  // Re-validate that the class still has capacity.
+  let slotAvailable: boolean;
   try {
-    stillFree = await getFreeSlots({ calendarId, startDate: windowStart, endDate: windowEnd });
+    slotAvailable = await hasSlotCapacity({
+      calendarId,
+      program: body.program,
+      slotStartISO: body.slotStartISO,
+    });
   } catch (err) {
-    console.error('[book] re-validate getFreeSlots failed',
+    console.error('[book] re-validate capacity failed',
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not verify slot availability.' });
   }
-  if (!stillFree.has(body.slotStartISO)) {
+  if (!slotAvailable) {
     const alternates = nextAlternates(body.program, body.slotStartISO, 3);
     return json({ ok: false, code: 'SLOT_TAKEN', alternates });
   }
@@ -308,17 +311,20 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
     return json({ ok: false, code: 'GHL_FAILED', message: 'Calendar not configured.' });
   }
 
-  // Re-validate slot availability (parity with initial booking).
-  const slotMs = Date.parse(body.slotStartISO);
-  let stillFree: Set<string>;
+  // Re-validate slot capacity (parity with initial booking).
+  let slotAvailable: boolean;
   try {
-    stillFree = await getFreeSlots({ calendarId, startDate: slotMs - 60_000, endDate: slotMs + 60_000 });
+    slotAvailable = await hasSlotCapacity({
+      calendarId,
+      program: body.program,
+      slotStartISO: body.slotStartISO,
+    });
   } catch (err) {
-    console.error('[book/rebook] re-validate getFreeSlots failed',
+    console.error('[book/rebook] re-validate capacity failed',
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not verify slot availability.' });
   }
-  if (!stillFree.has(body.slotStartISO)) {
+  if (!slotAvailable) {
     const alternates = nextAlternates(body.program, body.slotStartISO, 3);
     return json({ ok: false, code: 'SLOT_TAKEN', alternates });
   }
@@ -424,15 +430,25 @@ async function handleRebook(payload: unknown, ip: string): Promise<Response> {
   });
 }
 
-/** Read a custom-field value from a fetched opportunity. */
-function readCfFromOpp(opp: { customFields?: Array<{ id: string; key?: string; value?: unknown; field_value?: unknown }> }, key: string): string | null {
-  if (!opp.customFields) return null;
-  for (const f of opp.customFields) {
-    if (f.key === key || f.id === key) {
-      const v = (f.value ?? f.field_value) as unknown;
-      if (v == null) return null;
-      return String(v);
-    }
-  }
-  return null;
+async function hasSlotCapacity(args: {
+  calendarId: string;
+  program: ProgramKey;
+  slotStartISO: string;
+}): Promise<boolean> {
+  const slotMs = Date.parse(args.slotStartISO);
+  const [calendar, events] = await Promise.all([
+    getCalendar(args.calendarId),
+    getCalendarEvents({
+      calendarId: args.calendarId,
+      startTime: slotMs - 60_000,
+      endTime: slotMs + 60_000,
+    }),
+  ]);
+  const endISO = computeEndISO(args.slotStartISO, args.program);
+  const available = filterSlotsByCapacity({
+    slots: [{ startISO: args.slotStartISO, endISO, label: args.slotStartISO }],
+    events,
+    appointmentPerSlot: appointmentPerSlot(calendar?.appointmentPerSlot),
+  });
+  return available.length > 0;
 }

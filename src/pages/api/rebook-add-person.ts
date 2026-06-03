@@ -24,7 +24,8 @@ import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import {
   getContact,
-  getFreeSlots,
+  getCalendar,
+  getCalendarEvents,
   createAppointment,
   createAppointmentNote,
   GhlError,
@@ -38,6 +39,7 @@ import { verifyRebookToken } from '../../lib/rebook-token';
 import { CONTACT_SCOPED_TRAINEE_KEY } from '../../lib/rebook-cards';
 import { deriveTraineeKey } from '../../lib/trainee-key';
 import type { AvailabilitySlot } from '../../lib/booking-types';
+import { appointmentPerSlot, filterSlotsByCapacity } from '../../lib/slot-capacity';
 
 export const prerender = false;
 
@@ -95,16 +97,19 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, code: 'GHL_FAILED', message: 'Calendar not configured.' });
   }
 
-  const slotMs = Date.parse(body.slotStartISO);
-  let stillFree: Set<string>;
+  let slotAvailable: boolean;
   try {
-    stillFree = await getFreeSlots({ calendarId, startDate: slotMs - 60_000, endDate: slotMs + 60_000 });
+    slotAvailable = await hasSlotCapacity({
+      calendarId,
+      program: body.program,
+      slotStartISO: body.slotStartISO,
+    });
   } catch (err) {
-    console.error('[rebook-add-person] getFreeSlots failed',
+    console.error('[rebook-add-person] capacity check failed',
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
     return json({ ok: false, code: 'GHL_FAILED', message: 'Could not verify slot availability.' });
   }
-  if (!stillFree.has(body.slotStartISO)) {
+  if (!slotAvailable) {
     return json({ ok: false, code: 'SLOT_TAKEN', alternates: nextAlternates(body.program, body.slotStartISO, 3) });
   }
 
@@ -253,4 +258,30 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+async function hasSlotCapacity(args: {
+  calendarId: string;
+  program: ProgramKey;
+  slotStartISO: string;
+}): Promise<boolean> {
+  const slotMs = Date.parse(args.slotStartISO);
+  const [calendar, events] = await Promise.all([
+    getCalendar(args.calendarId),
+    getCalendarEvents({
+      calendarId: args.calendarId,
+      startTime: slotMs - 60_000,
+      endTime: slotMs + 60_000,
+    }),
+  ]);
+  const available = filterSlotsByCapacity({
+    slots: [{
+      startISO: args.slotStartISO,
+      endISO: computeEndISO(args.slotStartISO, args.program),
+      label: args.slotStartISO,
+    }],
+    events,
+    appointmentPerSlot: appointmentPerSlot(calendar?.appointmentPerSlot),
+  });
+  return available.length > 0;
 }

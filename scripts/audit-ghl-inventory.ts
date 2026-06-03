@@ -144,7 +144,7 @@ async function main() {
   const byModel = new Map<string, Cf[]>();
   for (const f of cfs) {
     const m = f.fieldKey?.includes('.')
-      ? f.fieldKey.split('.')[0]
+      ? f.fieldKey.split('.')[0]!
       : (f.model ?? 'unknown');
     if (!byModel.has(m)) byModel.set(m, []);
     byModel.get(m)!.push(f);

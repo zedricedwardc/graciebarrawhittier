@@ -80,6 +80,38 @@ describe('ghl client', () => {
     expect(body.startTime).toBe('2026-05-06T15:00:00-07:00');
   });
 
+  it('getCalendar reads appointmentPerSlot for capacity checks', async () => {
+    (fetch as any).mockResolvedValueOnce(
+      new Response(JSON.stringify({ calendar: { id: 'cal_x', appointmentPerSlot: 3 } }), { status: 200 }),
+    );
+
+    const calendar = await ghl.getCalendar('cal_x');
+
+    expect(calendar?.appointmentPerSlot).toBe(3);
+    const [url, init] = (fetch as any).mock.calls[0];
+    expect(url).toMatch(/calendars\/cal_x/);
+    expect(init.headers.Version).toBe('2021-04-15');
+  });
+
+  it('getCalendarEvents queries calendar events for a date window', async () => {
+    (fetch as any).mockResolvedValueOnce(
+      new Response(JSON.stringify({ events: [{ id: 'apt_1', startTime: '2026-06-03T16:00:00-07:00' }] }), { status: 200 }),
+    );
+
+    const events = await ghl.getCalendarEvents({
+      calendarId: 'cal_x',
+      startTime: 1780470000000,
+      endTime: 1781161199000,
+    });
+
+    expect(events).toHaveLength(1);
+    const [url, init] = (fetch as any).mock.calls[0];
+    expect(url).toContain('/calendars/events?');
+    expect(url).toContain('locationId=loc_123');
+    expect(url).toContain('calendarId=cal_x');
+    expect(init.headers.Version).toBe('2021-04-15');
+  });
+
   it('throws GhlError on non-2xx with status + body context', async () => {
     (fetch as any).mockResolvedValueOnce(
       new Response('{"message":"bad token"}', { status: 401 }),

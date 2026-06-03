@@ -59,6 +59,7 @@ for (const route of PAGES) {
       // Find latest matching request without a status set
       for (let i = order.length - 1; i >= 0; i--) {
         const k = order[i];
+        if (k === undefined) continue;
         if (k.startsWith(`${method} ${url} `)) {
           const rec = records.get(k);
           if (rec && rec.status === undefined) {
@@ -78,6 +79,7 @@ for (const route of PAGES) {
     page.on('requestfailed', (req) => {
       for (let i = order.length - 1; i >= 0; i--) {
         const k = order[i];
+        if (k === undefined) continue;
         if (k.startsWith(`${req.method()} ${req.url()} `)) {
           const rec = records.get(k);
           if (rec) {
