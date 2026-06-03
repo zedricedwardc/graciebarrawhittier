@@ -13,6 +13,7 @@ import {
   createAppointmentNote,
   getCalendar,
   getCalendarEvents,
+  getFreeSlots,
   getContact,
   GhlError,
   readEnv,
@@ -444,10 +445,16 @@ async function hasSlotCapacity(args: {
       endTime: slotMs + 60_000,
     }),
   ]);
+  const freeStartISOs = await getFreeSlots({
+    calendarId: args.calendarId,
+    startDate: slotMs - 60_000,
+    endDate: slotMs + 60_000,
+  });
   const endISO = computeEndISO(args.slotStartISO, args.program);
   const available = filterSlotsByCapacity({
     slots: [{ startISO: args.slotStartISO, endISO, label: args.slotStartISO }],
     events,
+    freeStartISOs,
     appointmentPerSlot: appointmentPerSlot(calendar?.appointmentPerSlot),
   });
   return available.length > 0;

@@ -26,6 +26,7 @@ import {
   getContact,
   getCalendar,
   getCalendarEvents,
+  getFreeSlots,
   createAppointment,
   createAppointmentNote,
   GhlError,
@@ -274,6 +275,11 @@ async function hasSlotCapacity(args: {
       endTime: slotMs + 60_000,
     }),
   ]);
+  const freeStartISOs = await getFreeSlots({
+    calendarId: args.calendarId,
+    startDate: slotMs - 60_000,
+    endDate: slotMs + 60_000,
+  });
   const available = filterSlotsByCapacity({
     slots: [{
       startISO: args.slotStartISO,
@@ -281,6 +287,7 @@ async function hasSlotCapacity(args: {
       label: args.slotStartISO,
     }],
     events,
+    freeStartISOs,
     appointmentPerSlot: appointmentPerSlot(calendar?.appointmentPerSlot),
   });
   return available.length > 0;

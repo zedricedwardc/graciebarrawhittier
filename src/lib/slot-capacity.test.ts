@@ -57,4 +57,30 @@ describe('filterSlotsByCapacity', () => {
 
     expect(available).toEqual([]);
   });
+
+  it('removes an empty template slot when GHL does not report it as free', () => {
+    const slots = [slot('2026-06-30T16:00:00-07:00')];
+
+    const available = filterSlotsByCapacity({
+      slots,
+      events: [],
+      freeStartISOs: new Set(),
+      appointmentPerSlot: 3,
+    });
+
+    expect(available).toEqual([]);
+  });
+
+  it('keeps an empty template slot when GHL reports it as free', () => {
+    const slots = [slot('2026-06-30T16:00:00-07:00')];
+
+    const available = filterSlotsByCapacity({
+      slots,
+      events: [],
+      freeStartISOs: new Set(['2026-06-30T16:00:00-07:00']),
+      appointmentPerSlot: 3,
+    });
+
+    expect(available).toEqual(slots);
+  });
 });

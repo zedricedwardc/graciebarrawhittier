@@ -3,7 +3,7 @@ import { AvailabilityRequest, type AvailabilitySlot } from '../../lib/booking-ty
 import { generateSlots } from '../../lib/slot-resolver';
 import { getCalendarIdEnvVar } from '../../data/programs';
 import { blackouts } from '../../data/blackouts';
-import { getCalendar, getCalendarEvents, GhlError, readEnv } from '../../lib/ghl';
+import { getCalendar, getCalendarEvents, getFreeSlots, GhlError, readEnv } from '../../lib/ghl';
 import { appointmentPerSlot, filterSlotsByCapacity } from '../../lib/slot-capacity';
 
 export const prerender = false;
@@ -37,13 +37,16 @@ export const GET: APIRoute = async ({ url }) => {
 
   let capacity = 1;
   let events: Awaited<ReturnType<typeof getCalendarEvents>> = [];
+  let freeStartISOs = new Set<string>();
   try {
-    const [calendar, calendarEvents] = await Promise.all([
+    const [calendar, calendarEvents, freeSlots] = await Promise.all([
       getCalendar(calendarId),
       getCalendarEvents({ calendarId, startTime: fromMs, endTime: toMs }),
+      getFreeSlots({ calendarId, startDate: fromMs, endDate: toMs }),
     ]);
     capacity = appointmentPerSlot(calendar?.appointmentPerSlot);
     events = calendarEvents;
+    freeStartISOs = freeSlots;
   } catch (err) {
     console.error('[availability] GHL calendar capacity/events failed',
       err instanceof GhlError ? { status: err.status, body: err.bodyText } : err);
@@ -64,6 +67,7 @@ export const GET: APIRoute = async ({ url }) => {
   const slots = filterSlotsByCapacity({
     slots: templateSlots,
     events,
+    freeStartISOs,
     appointmentPerSlot: capacity,
   });
 

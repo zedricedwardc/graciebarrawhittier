@@ -17,10 +17,17 @@ export function appointmentPerSlot(value: unknown): number {
 export function filterSlotsByCapacity(args: {
   slots: AvailabilitySlot[];
   events: CapacityEvent[];
+  freeStartISOs?: Set<string>;
   appointmentPerSlot: number;
 }): AvailabilitySlot[] {
   const capacity = appointmentPerSlot(args.appointmentPerSlot);
   const activeCounts = new Map<number, number>();
+  const freeStarts = new Set<number>();
+
+  for (const startISO of args.freeStartISOs ?? []) {
+    const key = Date.parse(startISO);
+    if (!Number.isNaN(key)) freeStarts.add(key);
+  }
 
   for (const event of args.events) {
     if (!event.startTime || !countsAgainstCapacity(event.appointmentStatus)) continue;
@@ -32,7 +39,10 @@ export function filterSlotsByCapacity(args: {
   return args.slots.filter((slot) => {
     const key = Date.parse(slot.startISO);
     if (Number.isNaN(key)) return false;
-    return (activeCounts.get(key) ?? 0) < capacity;
+    const activeCount = activeCounts.get(key) ?? 0;
+    if (activeCount >= capacity) return false;
+    if (activeCount > 0) return true;
+    return freeStarts.has(key);
   });
 }
 
