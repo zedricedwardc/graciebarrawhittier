@@ -21,6 +21,7 @@ import {
   addContactNote,
   getContact,
   deleteOpportunity,
+  cancelAppointment,
   type ContactRecord,
 } from './ghl';
 import {
@@ -613,6 +614,17 @@ async function handleTrialBooking(
 
   // ─── Branch A: rebook (existing Trial Conv opp found) ────────────────
   if (existingOpp) {
+    // Reschedule: the trainee picked a new slot, so a fresh GHL appointment was
+    // already created upstream. Cancel the prior appointment to stop its stale
+    // Pre-Trial Reminders run; the new appointment fires reminders on its own.
+    const oldApptId = await getOppCfValueByKey<string>(existingOpp, 'last_appointment_id');
+    if (oldApptId && oldApptId !== input.appointmentId) {
+      try {
+        await cancelAppointment(oldApptId);
+      } catch (err) {
+        console.warn('[handleTrialBooking] old appointment cancel failed (non-fatal)', { oldApptId, err });
+      }
+    }
     const oppCfs = await cfPayload('opportunity', {
       trainee_key: traineeKey,
       trainee_first_name: input.trainee.firstName,
@@ -941,9 +953,9 @@ export async function handleCancellation(input: HandleCancellationInput): Promis
     `Appointment cancelled by ${who}${input.reason ? ` — reason: ${input.reason}` : '.'}`,
   );
 
-  // Optional follow-up workflow
-  const cancelWf = readEnv('WORKFLOW_ID_CANCEL_FOLLOWUP');
-  if (cancelWf) await addContactToWorkflow(input.contactId, cancelWf);
+  // Cancelled closes the trial opp — pull the contact out of the trial funnel's
+  // active nurture workflows so a dead opportunity stops triggering messaging.
+  await exitNurtureWorkflows(input.contactId, 'trial');
 
   return { contactId: input.contactId, trialConvOppId: matchingOpp?.id };
 }
@@ -1072,15 +1084,10 @@ export async function handleAppointmentStatusChange(
       input.contactId,
       `Appointment marked ${label} in GHL — opportunity closed (abandoned).${reasonSuffix}`,
     );
-    // Preserve the legacy admin-cancellation followup behavior.
-    const cancelWf = readEnv('WORKFLOW_ID_CANCEL_FOLLOWUP');
-    if (cancelWf) {
-      try {
-        await addContactToWorkflow(input.contactId, cancelWf);
-      } catch (err) {
-        console.warn('[handleAppointmentStatusChange] cancel-followup enroll failed (non-fatal)', err);
-      }
-    }
+    // Cancelled/invalid closes the opp — pull the contact out of the funnel's
+    // active nurture workflows so a dead opportunity stops triggering messaging.
+    const funnel = rule.pipelineKey === 'BACK_TO_MATS' ? 'btm' : 'trial';
+    await exitNurtureWorkflows(input.contactId, funnel);
     return { ...ctx, outcome: 'abandoned' };
   }
 

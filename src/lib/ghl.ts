@@ -461,6 +461,21 @@ export async function createAppointment(args: CreateAppointmentArgs): Promise<st
   return id;
 }
 
+/**
+ * Cancel an appointment by flipping its status to "cancelled". GHL's native
+ * appointment-trigger automations remove the cancelled appointment from its
+ * reminder workflow run — appointment-scoped, so other appointments for the
+ * same contact are unaffected. Used by the rebook flow to retire the prior
+ * appointment when a trainee reschedules.
+ */
+export async function cancelAppointment(appointmentId: string): Promise<void> {
+  await request(`/calendars/events/appointments/${appointmentId}`, {
+    method: 'PUT',
+    version: CALENDAR_VERSION,
+    body: JSON.stringify({ appointmentStatus: 'cancelled' }),
+  });
+}
+
 export interface CalendarEventRecord {
   id: string;
   title?: string;
