@@ -17,6 +17,7 @@
  * GHL_BLOG_DEFAULT_CATEGORY_ID. Location comes from GHL_LOCATION_ID.
  */
 
+import sanitizeHtml from 'sanitize-html';
 import { ghlFetch, GhlError } from './ghl-rate-limit';
 import { readEnv } from './ghl';
 import { saveBody, readBody, deleteBody } from './blog-body-store';
@@ -38,6 +39,12 @@ export interface BlogPostSummary {
 export interface BlogPost extends BlogPostSummary {
   rawHTML: string;
   status: 'PUBLISHED' | 'DRAFT' | 'SCHEDULED' | 'ARCHIVED';
+  /**
+   * True when rawHTML came from the description fallback instead of the blob
+   * store (pre-blob post, or the blob is missing/unreachable) — the admin
+   * editor can warn that it's not showing the full saved body.
+   */
+  bodyFallback: boolean;
 }
 
 export interface CreatePostInput {
@@ -118,6 +125,28 @@ export function ensureHtml(raw: string): string {
     .filter(Boolean)
     .map((line) => `<p>${line}</p>`);
   return paras.length ? paras.join('') : `<p>${s}</p>`;
+}
+
+/**
+ * Server-side body sanitization (defence in depth — the admin editor sanitizes
+ * on paste, but the API must not trust the client). Allowlist mirrors what the
+ * editor toolbar can produce; everything else (script, iframe, event handlers,
+ * javascript:/data: URLs) is stripped. Applied to rawHTML before it is sent to
+ * GHL AND before it is persisted to the blob store, so both copies match.
+ */
+export function sanitizeBody(html: string): string {
+  return sanitizeHtml(html, {
+    allowedTags: [
+      'p', 'div', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li',
+      'b', 'strong', 'i', 'em', 'u', 'a', 'img', 'blockquote', 'br', 'span',
+    ],
+    allowedAttributes: {
+      a: ['href', 'target', 'rel'],
+      img: ['src', 'alt', 'width', 'height'],
+    },
+    // Images come from the GHL CDN (https); no data: URIs.
+    allowedSchemes: ['http', 'https'],
+  });
 }
 
 /** Slugify a title: lowercase, ascii-ish, hyphen-separated. */
@@ -214,6 +243,7 @@ function mapPost(p: GhlBlogPost): BlogPost {
     ...mapSummary(p),
     rawHTML: p.rawHTML ?? '',
     status: normalized,
+    bodyFallback: true, // no blob merged yet; enrichPost flips this when the stored body loads
   };
 }
 
@@ -498,14 +528,21 @@ async function enrichPost(match: GhlBlogPost): Promise<BlogPost> {
   ]);
   post.authorName = resolveAuthorName(authorsMap, postAuthorId(match));
   post.blogName = resolveBlogName(blogsMap, postBlogId(match));
-  post.rawHTML = body || ensureHtml(post.description);
+  if (body) {
+    post.rawHTML = body;
+    post.bodyFallback = false;
+  } else {
+    post.rawHTML = ensureHtml(post.description);
+    post.bodyFallback = true;
+  }
   return post;
 }
 
 /** Page through PUBLISHED posts until `pick` matches. GHL 422s on limit > 50. */
 async function findPublishedPost(pick: (p: GhlBlogPost) => boolean): Promise<GhlBlogPost | null> {
   const PAGE = 50;
-  for (let offset = 0; ; offset += PAGE) {
+  const MAX_PAGES = 20; // safety cap (1000 posts) so a pathological response can't loop forever
+  for (let page = 0, offset = 0; page < MAX_PAGES; page++, offset += PAGE) {
     const params = new URLSearchParams({
       locationId: locationId(),
       blogId: blogId(),
@@ -519,6 +556,8 @@ async function findPublishedPost(pick: (p: GhlBlogPost) => boolean): Promise<Ghl
     if (match) return match;
     if (raw.length < PAGE) return null; // last page, no match
   }
+  console.warn(`[ghl-blog] findPublishedPost: page cap (${MAX_PAGES}) hit without a match`);
+  return null;
 }
 
 /** Fetch a single PUBLISHED post by slug (body merged from the blob store). Cached (~5 min). */
@@ -561,7 +600,7 @@ export function buildCreatePayload(input: CreatePostInput, urlSlug: string, publ
     blogId: blogId(),
     imageUrl: input.imageUrl,
     description,
-    rawHTML: ensureHtml(input.rawHTML),
+    rawHTML: sanitizeBody(ensureHtml(input.rawHTML)),
     status: 'PUBLISHED',
     imageAltText: input.imageAltText?.trim() || input.title,
     categories: [defaultCategoryId()],
@@ -571,8 +610,12 @@ export function buildCreatePayload(input: CreatePostInput, urlSlug: string, publ
   };
 }
 
-/** Create a PUBLISHED post. Auto-fills blogId, author, categories, urlSlug, publishedAt. */
-export async function createPost(input: CreatePostInput): Promise<{ id: string; slug: string }> {
+/**
+ * Create a PUBLISHED post. Auto-fills blogId, author, categories, urlSlug,
+ * publishedAt. `bodyPersisted` reports whether the body made it into the blob
+ * store (false when the save failed OR when no id came back to key it on).
+ */
+export async function createPost(input: CreatePostInput): Promise<{ id: string; slug: string; bodyPersisted: boolean }> {
   const urlSlug = await ensureUniqueSlug(input.title);
   const publishedAt = new Date().toISOString();
   const payload = buildCreatePayload(input, urlSlug, publishedAt);
@@ -588,16 +631,28 @@ export async function createPost(input: CreatePostInput): Promise<{ id: string; 
   }
   // GHL accepts rawHTML but never returns it — persist the body where we can
   // read it back (public post page + admin edit prefill).
-  if (id) await saveBody(id, payload.rawHTML as string);
+  const bodyPersisted = id ? await saveBody(id, payload.rawHTML as string) : false;
   await invalidateBlogCache();
-  return { id, slug: post.urlSlug ?? urlSlug };
+  return { id, slug: post.urlSlug ?? urlSlug, bodyPersisted };
 }
 
 /**
  * Update an existing post. Only provided fields change. If `title` is provided
  * we re-derive a unique slug (excluding this post from the collision check).
+ *
+ * GHL's PUT REQUIRES `status` (422 "status must be a valid enum value" without
+ * it), so we send PUBLISHED — but only after verifying the post still exists
+ * among published posts. That guard is what prevents an update from silently
+ * resurrecting a post another admin archived moments earlier.
+ *
+ * `bodyPersisted` is true when there was nothing to persist (no rawHTML in the
+ * update) or the blob save succeeded; false when the save failed.
  */
-export async function updatePost(id: string, input: Partial<CreatePostInput>): Promise<void> {
+export async function updatePost(id: string, input: Partial<CreatePostInput>): Promise<{ bodyPersisted: boolean }> {
+  const existing = await getPostById(id);
+  if (!existing) {
+    throw new GhlError(404, '', `/blogs/posts/${id}`, 'updatePost: post is not published (deleted?)');
+  }
   const payload: Record<string, unknown> = {
     locationId: locationId(),
     blogId: blogId(),
@@ -609,7 +664,14 @@ export async function updatePost(id: string, input: Partial<CreatePostInput>): P
     payload.title = input.title;
     payload.urlSlug = await ensureUniqueSlug(input.title, id);
   }
-  if (input.rawHTML !== undefined) payload.rawHTML = ensureHtml(input.rawHTML);
+  if (input.rawHTML !== undefined) {
+    payload.rawHTML = sanitizeBody(ensureHtml(input.rawHTML));
+    // Body changed but no explicit description — re-derive so the list/SEO
+    // summary doesn't go stale against the new body.
+    if (input.description === undefined) {
+      payload.description = deriveDescription(payload.rawHTML as string);
+    }
+  }
   if (input.imageUrl !== undefined) payload.imageUrl = input.imageUrl;
   if (input.description !== undefined) {
     payload.description = input.description.trim() || deriveDescription(input.rawHTML ?? '');
@@ -618,8 +680,9 @@ export async function updatePost(id: string, input: Partial<CreatePostInput>): P
     payload.imageAltText = input.imageAltText.trim() || input.title || '';
   }
   await ghlFetch(`/blogs/posts/${encodeURIComponent(id)}`, { method: 'PUT', json: payload });
-  if (payload.rawHTML !== undefined) await saveBody(id, payload.rawHTML as string);
+  const bodyPersisted = payload.rawHTML !== undefined ? await saveBody(id, payload.rawHTML as string) : true;
   await invalidateBlogCache();
+  return { bodyPersisted };
 }
 
 /** Soft-delete: set status ARCHIVED. Drops the stored body + cache. */

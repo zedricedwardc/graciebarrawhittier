@@ -38,19 +38,24 @@ afterEach(() => {
 });
 
 describe('saveBody', () => {
-  it('puts JSON at a deterministic pathname with overwrite enabled', async () => {
+  it('puts JSON at a deterministic pathname with overwrite enabled, returns true', async () => {
     putMock.mockResolvedValueOnce({ url: `${BASE}/blog/p1.json`, pathname: 'blog/p1.json' } as never);
-    await saveBody('p1', '<p>Hello</p>');
+    expect(await saveBody('p1', '<p>Hello</p>')).toBe(true);
     const [pathname, body, opts] = putMock.mock.calls[0]!;
     expect(pathname).toBe('blog/p1.json');
     expect(JSON.parse(body as string)).toEqual({ rawHTML: '<p>Hello</p>' });
     expect(opts).toMatchObject({ access: 'public', addRandomSuffix: false, allowOverwrite: true });
   });
 
-  it('is a no-op without the blob token', async () => {
+  it('is a no-op without the blob token — reports false so callers can warn', async () => {
     vi.stubEnv('BLOB_READ_WRITE_TOKEN', '');
-    await saveBody('p1', '<p>x</p>');
+    expect(await saveBody('p1', '<p>x</p>')).toBe(false);
     expect(putMock).not.toHaveBeenCalled();
+  });
+
+  it('returns false (never throws) when the blob put fails', async () => {
+    putMock.mockRejectedValueOnce(new Error('blob unavailable'));
+    expect(await saveBody('p1', '<p>x</p>')).toBe(false);
   });
 });
 

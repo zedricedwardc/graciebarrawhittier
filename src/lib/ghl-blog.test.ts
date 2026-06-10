@@ -10,7 +10,7 @@ vi.mock('./ghl-rate-limit', async () => {
 });
 // Mock the blob body store — GHL never returns rawHTML, so reads merge from here.
 vi.mock('./blog-body-store', () => ({
-  saveBody: vi.fn(async () => {}),
+  saveBody: vi.fn(async () => true),
   readBody: vi.fn(async () => ''),
   deleteBody: vi.fn(async () => {}),
 }));
@@ -26,9 +26,11 @@ import {
   deriveDescription,
   ensureHtml,
   stripHtml,
+  sanitizeBody,
   buildCreatePayload,
   ensureUniqueSlug,
   createPost,
+  updatePost,
   listPublishedPosts,
   getPostBySlug,
   getAuthorsMap,
@@ -44,7 +46,7 @@ const deleteBodyMock = vi.mocked(deleteBody);
 
 beforeEach(() => {
   ghlFetchMock.mockReset();
-  saveBodyMock.mockReset().mockResolvedValue(undefined);
+  saveBodyMock.mockReset().mockResolvedValue(true);
   readBodyMock.mockReset().mockResolvedValue('');
   deleteBodyMock.mockReset().mockResolvedValue(undefined);
   __clearBlogCache();
@@ -85,6 +87,24 @@ describe('pure helpers', () => {
     // Already-block HTML passes through untouched.
     expect(ensureHtml('<p>already</p>')).toBe('<p>already</p>');
     expect(ensureHtml('<h2>Title</h2><p>body</p>')).toBe('<h2>Title</h2><p>body</p>');
+  });
+
+  it('sanitizeBody strips script/iframe/event handlers but keeps the editor allowlist', () => {
+    // Active content is removed entirely (including script text).
+    expect(sanitizeBody('<p>hi</p><script>alert(1)</script>')).toBe('<p>hi</p>');
+    expect(sanitizeBody('<iframe src="https://evil"></iframe><p>ok</p>')).toBe('<p>ok</p>');
+    // Event handlers + javascript:/data: URLs are stripped, the element survives.
+    const img = sanitizeBody('<img src="https://cdn/x.jpg" onerror="alert(1)" alt="a" width="10" height="20">');
+    expect(img).not.toContain('onerror');
+    expect(img).toContain('src="https://cdn/x.jpg"');
+    expect(img).toContain('alt="a"');
+    expect(sanitizeBody('<a href="javascript:alert(1)">x</a>')).not.toContain('javascript:');
+    expect(sanitizeBody('<img src="data:image/png;base64,AAAA">')).not.toContain('data:');
+    // Editor allowlist passes through untouched.
+    const kept = '<h2>Title</h2><ul><li><strong>bold</strong> <em>em</em> <u>u</u></li></ul>'
+      + '<blockquote><span>quote</span></blockquote>'
+      + '<p><a href="https://x.com" target="_blank" rel="noopener">link</a><br /></p>';
+    expect(sanitizeBody(kept)).toBe(kept);
   });
 });
 
@@ -167,7 +187,7 @@ describe('createPost', () => {
       .mockResolvedValueOnce({ data: { _id: 'post_99', urlSlug: 'my-post' } }); // create
 
     const res = await createPost({ title: 'My Post', rawHTML: '<p>Hi.</p>', imageUrl: 'https://cdn/x.jpg' });
-    expect(res).toEqual({ id: 'post_99', slug: 'my-post' });
+    expect(res).toEqual({ id: 'post_99', slug: 'my-post', bodyPersisted: true });
 
     const [createPath, opts] = ghlFetchMock.mock.calls[1]!;
     expect(createPath).toBe('/blogs/posts');
@@ -185,7 +205,7 @@ describe('createPost', () => {
       .mockResolvedValueOnce({ blogPost: { _id: 'bp_1', urlSlug: 'my-post' } });   // create — GHL nests under blogPost
 
     const res = await createPost({ title: 'My Post', rawHTML: '<p>Hi.</p>', imageUrl: 'https://cdn/x.jpg' });
-    expect(res).toEqual({ id: 'bp_1', slug: 'my-post' });
+    expect(res).toEqual({ id: 'bp_1', slug: 'my-post', bodyPersisted: true });
   });
 
   it('does not throw when a 2xx create response has no parseable id', async () => {
@@ -196,16 +216,123 @@ describe('createPost', () => {
     const res = await createPost({ title: 'My Post', rawHTML: '<p>Hi.</p>', imageUrl: 'https://cdn/x.jpg' });
     expect(res.slug).toBe('my-post');
     expect(res.id).toBe('');
+    expect(res.bodyPersisted).toBe(false); // save skipped — nothing to key the body on
     expect(saveBodyMock).not.toHaveBeenCalled(); // no id to key the body on
   });
 
-  it('persists the (HTML-wrapped) body to the blob store keyed by the new id', async () => {
+  it('persists the (HTML-wrapped, sanitized) body to the blob store keyed by the new id', async () => {
     ghlFetchMock
       .mockResolvedValueOnce({ exists: false })                                  // slug check
       .mockResolvedValueOnce({ blogPost: { _id: 'bp_2', urlSlug: 'my-post' } }); // create
 
     await createPost({ title: 'My Post', rawHTML: 'bare body text', imageUrl: 'u' });
     expect(saveBodyMock).toHaveBeenCalledWith('bp_2', '<p>bare body text</p>');
+  });
+
+  it('sends the SAME sanitized body to GHL and the blob store', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({ exists: false })                                  // slug check
+      .mockResolvedValueOnce({ blogPost: { _id: 'bp_3', urlSlug: 'my-post' } }); // create
+
+    await createPost({ title: 'My Post', rawHTML: '<p>hi</p><script>alert(1)</script>', imageUrl: 'u' });
+    const [, opts] = ghlFetchMock.mock.calls[1]!;
+    const body = (opts as { json?: Record<string, unknown> }).json!;
+    expect(body.rawHTML).toBe('<p>hi</p>');
+    expect(saveBodyMock).toHaveBeenCalledWith('bp_3', '<p>hi</p>');
+  });
+
+  it('reports bodyPersisted: false when the blob save fails', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({ exists: false })                                  // slug check
+      .mockResolvedValueOnce({ blogPost: { _id: 'bp_4', urlSlug: 'my-post' } }); // create
+    saveBodyMock.mockResolvedValueOnce(false); // blob put failed / no token
+
+    const res = await createPost({ title: 'My Post', rawHTML: '<p>Hi.</p>', imageUrl: 'u' });
+    expect(res).toEqual({ id: 'bp_4', slug: 'my-post', bodyPersisted: false });
+  });
+});
+
+describe('updatePost', () => {
+  /** updatePost verifies the post is still PUBLISHED before writing (GHL's PUT
+   *  requires `status`, and sending PUBLISHED must never resurrect an archived
+   *  post). Enqueue the getPostById fetches: list page + authors + blogs. */
+  function mockExisting(id = 'post_1') {
+    ghlFetchMock
+      .mockResolvedValueOnce({ blogs: [{ _id: id, urlSlug: 'existing', title: 'Existing' }] }) // list (getPostById)
+      .mockResolvedValueOnce({ authors: [] }) // authors map
+      .mockResolvedValueOnce({ data: [] }); // blogs map
+  }
+  /** The PUT call's JSON body, located by method (mock order varies per case). */
+  function putBody(): Record<string, unknown> {
+    const call = ghlFetchMock.mock.calls.find(
+      ([, opts]) => (opts as { method?: string } | undefined)?.method === 'PUT',
+    );
+    expect(call).toBeDefined();
+    return (call![1] as { json?: Record<string, unknown> }).json!;
+  }
+
+  it('sends status PUBLISHED only after verifying the post is still published', async () => {
+    mockExisting();
+    ghlFetchMock.mockResolvedValueOnce({}); // PUT
+    await updatePost('post_1', { imageUrl: 'https://cdn/new.jpg' });
+    const body = putBody();
+    expect(body.status).toBe('PUBLISHED'); // GHL 422s without status
+    expect(body.imageUrl).toBe('https://cdn/new.jpg');
+  });
+
+  it('throws a 404 GhlError when the post is no longer published (no resurrect)', async () => {
+    // getPostById finds nothing — short page ends the search.
+    ghlFetchMock
+      .mockResolvedValueOnce({ blogs: [] }); // list (getPostById) — empty
+    await expect(updatePost('gone_1', { title: 'X' })).rejects.toMatchObject({ status: 404 });
+    // No PUT was sent.
+    expect(ghlFetchMock.mock.calls.find(([, o]) => (o as { method?: string } | undefined)?.method === 'PUT')).toBeUndefined();
+  });
+
+  it('re-derives the description from the new body when none is provided', async () => {
+    mockExisting();
+    ghlFetchMock.mockResolvedValueOnce({}); // PUT
+    const res = await updatePost('post_1', { rawHTML: '<p>Fresh body text.</p>' });
+    const body = putBody();
+    expect(body.description).toBe('Fresh body text.');
+    expect(body.rawHTML).toBe('<p>Fresh body text.</p>');
+    // Sanitized body persisted to the blob store; success reported.
+    expect(saveBodyMock).toHaveBeenCalledWith('post_1', '<p>Fresh body text.</p>');
+    expect(res).toEqual({ bodyPersisted: true });
+  });
+
+  it('honours an explicit description over the re-derived one', async () => {
+    mockExisting();
+    ghlFetchMock.mockResolvedValueOnce({}); // PUT
+    await updatePost('post_1', { rawHTML: '<p>Body.</p>', description: 'Custom summary.' });
+    expect(putBody().description).toBe('Custom summary.');
+  });
+
+  it('sanitizes the body before sending to GHL and the blob store', async () => {
+    mockExisting();
+    ghlFetchMock.mockResolvedValueOnce({}); // PUT
+    await updatePost('post_1', { rawHTML: '<p>ok</p><img src="https://cdn/x.jpg" onerror="alert(1)">' });
+    const body = putBody();
+    expect(body.rawHTML).not.toContain('onerror');
+    expect(saveBodyMock).toHaveBeenCalledWith('post_1', body.rawHTML);
+  });
+
+  it('reports bodyPersisted: true when the update carries no body (nothing to persist)', async () => {
+    mockExisting();
+    ghlFetchMock
+      .mockResolvedValueOnce({ exists: false }) // slug check (title changed)
+      .mockResolvedValueOnce({});               // PUT
+    const res = await updatePost('post_1', { title: 'New Title' });
+    expect(saveBodyMock).not.toHaveBeenCalled();
+    expect(res).toEqual({ bodyPersisted: true });
+  });
+
+  it('reports bodyPersisted: false when the blob save fails', async () => {
+    mockExisting();
+    ghlFetchMock.mockResolvedValueOnce({}); // PUT
+    saveBodyMock.mockResolvedValueOnce(false);
+    const res = await updatePost('post_1', { rawHTML: '<p>Body.</p>' });
+    expect(res).toEqual({ bodyPersisted: false });
   });
 });
 
@@ -307,6 +434,7 @@ describe('getPostBySlug', () => {
     expect(post).toMatchObject({
       id: 'b', slug: 'wanted', rawHTML: '<p>Stored body</p>', status: 'PUBLISHED',
       authorName: 'Coach Carlos', blogName: 'GBW Blog',
+      bodyFallback: false, // the real stored body loaded — not the description fallback
     });
   });
 
@@ -320,6 +448,7 @@ describe('getPostBySlug', () => {
     readBodyMock.mockResolvedValueOnce(''); // nothing in the blob store
     const post = await getPostBySlug('wanted');
     expect(post?.rawHTML).toBe('<p>Saved summary text.</p>');
+    expect(post?.bodyFallback).toBe(true); // body is the description stand-in, flagged for the editor
   });
 
   it('returns null when no post matches the slug', async () => {

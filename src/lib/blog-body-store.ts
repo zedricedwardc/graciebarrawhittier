@@ -23,7 +23,8 @@
  *
  * All functions are best-effort and never throw: a missing/unreachable blob
  * degrades to '' (callers fall back to the GHL description), and a failed save
- * is logged — the post itself already exists in GHL.
+ * is logged AND reported (saveBody returns false) so callers can surface
+ * "body not persisted" to the admin — the post itself already exists in GHL.
  */
 
 import { put, del, list } from '@vercel/blob';
@@ -79,12 +80,16 @@ async function resolveBase(): Promise<string | null> {
   return null;
 }
 
-/** Persist a post's body HTML. Best-effort: logs + swallows failures. */
-export async function saveBody(postId: string, rawHTML: string): Promise<void> {
-  if (!postId) return;
+/**
+ * Persist a post's body HTML. Best-effort: never throws, logs failures.
+ * Returns true when the body was persisted, false when it wasn't (no token,
+ * or the put failed) so callers can surface the miss to the admin.
+ */
+export async function saveBody(postId: string, rawHTML: string): Promise<boolean> {
+  if (!postId) return false;
   if (!hasToken()) {
     console.warn('[blog-body-store] BLOB_READ_WRITE_TOKEN not set — body not persisted', { postId });
-    return;
+    return false;
   }
   try {
     const result = await put(pathFor(postId), JSON.stringify({ rawHTML }), {
@@ -96,11 +101,13 @@ export async function saveBody(postId: string, rawHTML: string): Promise<void> {
       cacheControlMaxAge: 60,
     });
     learnBase(result.url, pathFor(postId));
+    return true;
   } catch (err) {
     console.error('[blog-body-store] save failed (post exists in GHL; body not readable until re-saved)', {
       postId,
       err: String(err).slice(0, 200),
     });
+    return false;
   }
 }
 

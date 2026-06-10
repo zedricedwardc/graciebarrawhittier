@@ -219,6 +219,8 @@ const STYLES = `
   .status { margin: 0; font-size: .85rem; }
   .status.is-ok { color: var(--p-success); }
   .status.is-err { color: var(--p-critical); }
+  #list-status { margin: 0 0 .75rem; }
+  #list-status:empty { display: none; }
   .side-note { font-size: .8rem; color: var(--p-subdued); margin: .5rem 0 0; }
 `;
 ---
@@ -269,6 +271,11 @@ const STYLES = `
                 </div>
                 <button type="button" id="add-btn" class="btn btn-primary">Add blog post</button>
               </header>
+
+              {/* Post-save/delete confirmations land HERE (the topbar status
+                  lives in the editor view, which is hidden once we return to
+                  the list — see form-status for in-editor messages). */}
+              <p class="status" id="list-status" role="status" aria-live="polite"></p>
 
               <div class="card">
                 <div class="tabs"><span class="tab">All</span></div>
@@ -446,7 +453,27 @@ const STYLES = `
             const publishBtn = $<HTMLButtonElement>('publish-btn');
             const cancelEditBtn = $<HTMLButtonElement>('cancel-edit-btn');
             const formStatusEl = $('form-status');
+            const listStatusEl = $('list-status');
             const postListEl = $('post-list');
+
+            // ── Edit-session state ────────────────────────────────────────
+            // editEpoch: bumped every time the editor target changes (Add,
+            // Edit, Back, reset). startEdit's async prefill captures the epoch
+            // before its fetch and bails if it no longer matches — a slow GET
+            // for post A can never overwrite the editor after the admin
+            // switched to post B (cross-post body corruption guard).
+            let editEpoch = 0;
+            // bodyDirty: true only after the admin actually types in the body.
+            // Programmatic innerHTML writes do NOT fire 'input', so prefill
+            // resets it explicitly. An untouched body is never re-sent on
+            // Update — a description-derived fallback can't clobber the real
+            // stored body.
+            let bodyDirty = false;
+            // bodyIsFallback: the GET told us rawHTML is a short summary
+            // fallback, not the real stored body.
+            let bodyIsFallback = false;
+
+            bodyEl?.addEventListener('input', () => { bodyDirty = true; });
 
             function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
               return { 'x-admin-token': token, ...extra };
@@ -471,7 +498,7 @@ const STYLES = `
               window.scrollTo({ top: 0 });
             }
 
-            addBtn?.addEventListener('click', () => { resetForm(); setStatus(formStatusEl, ''); showEditor(); titleEl?.focus(); });
+            addBtn?.addEventListener('click', () => { resetForm(); setStatus(formStatusEl, ''); setStatus(listStatusEl, ''); showEditor(); titleEl?.focus(); });
             backBtn?.addEventListener('click', () => { resetForm(); setStatus(formStatusEl, ''); showList(); });
 
             // ── Search + filter (client-side, composed) ───────────────────
@@ -557,6 +584,7 @@ const STYLES = `
               ensureEmptyState();
               syncSelectionUI();
               if (failures > 0) window.alert(`${failures} post${failures === 1 ? '' : 's'} could not be deleted.`);
+              else setStatus(listStatusEl, `${rows.length} post${rows.length === 1 ? '' : 's'} deleted.`, 'ok');
             });
 
             // ── Rich-text toolbar ─────────────────────────────────────────
@@ -625,6 +653,9 @@ const STYLES = `
 
             // ── Form reset / edit prefill ─────────────────────────────────
             function resetForm() {
+              editEpoch++; // invalidate any in-flight prefill fetch
+              bodyDirty = false;
+              bodyIsFallback = false;
               if (postIdEl) postIdEl.value = '';
               if (titleEl) titleEl.value = '';
               if (featuredUrlEl) featuredUrlEl.value = '';
@@ -639,6 +670,12 @@ const STYLES = `
             cancelEditBtn?.addEventListener('click', () => { resetForm(); setStatus(formStatusEl, ''); showList(); });
 
             async function startEdit(row: HTMLElement) {
+              // Capture the epoch BEFORE the fetch: any later Add/Edit/Back
+              // bumps editEpoch and this prefill's response is discarded.
+              const epoch = ++editEpoch;
+              bodyDirty = false;
+              bodyIsFallback = false;
+              setStatus(listStatusEl, '');
               const id = row.dataset.postId ?? '';
               if (postIdEl) postIdEl.value = id;
               if (titleEl) titleEl.value = row.dataset.title ?? '';
@@ -662,17 +699,30 @@ const STYLES = `
               try {
                 const res = await fetch(`/api/admin/blog/${encodeURIComponent(id)}`, { headers: authHeaders() });
                 const data = await res.json().catch(() => ({}));
+                // Stale response (admin switched posts / clicked Add / went
+                // back): don't touch the DOM or status at all.
+                if (epoch !== editEpoch) return;
                 if (res.ok && data.ok && data.post) {
                   bodyEl.innerHTML = data.post.rawHTML ?? '';
+                  bodyIsFallback = !!data.post.bodyFallback;
                   if (data.post.imageUrl && featuredUrlEl) {
                     featuredUrlEl.value = data.post.imageUrl;
                     if (featuredPreviewEl) { featuredPreviewEl.src = data.post.imageUrl; featuredPreviewEl.hidden = false; }
                   }
-                  setStatus(formStatusEl, '');
+                  setStatus(
+                    formStatusEl,
+                    bodyIsFallback
+                      ? 'Showing a short summary — the original body couldn’t be loaded. Editing the content will replace it.'
+                      : '',
+                  );
+                  // Programmatic innerHTML doesn't fire 'input' — make the
+                  // freshly-prefilled body explicitly NOT dirty.
+                  bodyDirty = false;
                 } else {
                   setStatus(formStatusEl, 'Could not load the post body — retype it if you want to change it.', 'err');
                 }
               } catch {
+                if (epoch !== editEpoch) return;
                 setStatus(formStatusEl, 'Could not load the post body — retype it if you want to change it.', 'err');
               }
             }
@@ -695,7 +745,10 @@ const STYLES = `
                 let res: Response;
                 if (isEditing) {
                   const body: Record<string, string> = { title };
-                  if (rawHTML) body.rawHTML = rawHTML;
+                  // Only send the body if the admin actually edited it. An
+                  // untouched prefill (especially a bodyFallback summary) is
+                  // never re-sent, so it can't overwrite the real stored body.
+                  if (bodyDirty && rawHTML) body.rawHTML = rawHTML;
                   if (imageUrl) body.imageUrl = imageUrl;
                   res = await fetch(`/api/admin/blog/${encodeURIComponent(id)}`, {
                     method: 'PUT', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body),
@@ -717,11 +770,25 @@ const STYLES = `
                     if (titleSpan) titleSpan.textContent = title;
                   }
                 } else {
+                  if (!data.id) {
+                    // Created, but no id came back — a hand-built row would be
+                    // a ghost (edit/delete can't target it). Reload to refetch
+                    // the real list; the token survives (it's in the URL).
+                    window.location.reload();
+                    return;
+                  }
                   addPostRow({ id: data.id as string, title, slug: (data.slug as string) ?? '', imageUrl });
                 }
                 resetForm();
+                setStatus(formStatusEl, '');
                 showList();
-                setStatus(formStatusEl, isEditing ? 'Post updated.' : 'Post published.', 'ok');
+                // Confirmation goes to the LIST view's status line — the
+                // topbar status is inside the (now hidden) editor view.
+                if (data.bodyPersisted === false) {
+                  setStatus(listStatusEl, 'Saved, but the post body could not be stored — it may display a short summary. Try updating again.', 'err');
+                } else {
+                  setStatus(listStatusEl, isEditing ? 'Post updated.' : 'Post published.', 'ok');
+                }
               } catch (err) {
                 setStatus(formStatusEl, err instanceof Error ? err.message : 'Something went wrong.', 'err');
               } finally {
@@ -744,6 +811,7 @@ const STYLES = `
                 row.remove();
                 ensureEmptyState();
                 syncSelectionUI();
+                setStatus(listStatusEl, 'Post deleted.', 'ok');
               } catch (err) {
                 if (delBtn) delBtn.disabled = false;
                 window.alert(err instanceof Error ? err.message : 'Could not delete.');

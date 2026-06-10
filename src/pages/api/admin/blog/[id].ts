@@ -27,7 +27,9 @@ export const GET: APIRoute = async ({ request, url, params }) => {
     if (!post) return json(404, { ok: false, code: 'NOT_FOUND' });
     return json(200, {
       ok: true,
-      post: { id: post.id, title: post.title, rawHTML: post.rawHTML, imageUrl: post.imageUrl, slug: post.slug },
+      // bodyFallback: rawHTML is the description fallback, not the stored body —
+      // the editor should warn before letting an edit overwrite the real body.
+      post: { id: post.id, title: post.title, rawHTML: post.rawHTML, imageUrl: post.imageUrl, slug: post.slug, bodyFallback: post.bodyFallback },
     });
   } catch (err) {
     console.error('[admin/blog get] failed',
@@ -57,9 +59,15 @@ export const PUT: APIRoute = async ({ request, url, params }) => {
   if (!parsed.success) return json(400, { ok: false, code: 'INVALID_INPUT' });
 
   try {
-    await updatePost(id, parsed.data);
-    return json(200, { ok: true });
+    const { bodyPersisted } = await updatePost(id, parsed.data);
+    // bodyPersisted: false → the GHL update succeeded but the body blob save
+    // failed; the UI should warn that a re-save is needed.
+    return json(200, { ok: true, bodyPersisted });
   } catch (err) {
+    if (err instanceof GhlError && err.status === 404) {
+      // Post no longer published (deleted by another admin) — don't resurrect it.
+      return json(404, { ok: false, code: 'NOT_FOUND', message: 'This post no longer exists — refresh the list.' });
+    }
     console.error('[admin/blog update] failed',
       err instanceof GhlError ? { status: err.status, body: err.bodyText.slice(0, 200), path: err.path } : { err: String(err) });
     return json(502, { ok: false, code: 'GHL_FAILED', message: 'Could not update the post.' });

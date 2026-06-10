@@ -8,7 +8,9 @@
  * so a partial post is never created.
  *
  * Body: { title, rawHTML, imageUrl, description?, imageAltText? }
- * Response: { ok: true, id, slug } | { ok: false, code, message? }
+ * Response: { ok: true, id, slug, bodyPersisted } | { ok: false, code, message? }
+ * `bodyPersisted: false` means the post exists in GHL but its body didn't make
+ * it into the blob store — the UI should warn that a re-save is needed.
  */
 
 import type { APIRoute } from 'astro';
@@ -37,8 +39,8 @@ export const POST: APIRoute = async ({ request, url }) => {
   if (!parsed.success) return json(400, { ok: false, code: 'INVALID_INPUT' });
 
   try {
-    const { id, slug } = await createPost(parsed.data);
-    return json(200, { ok: true, id, slug });
+    const { id, slug, bodyPersisted } = await createPost(parsed.data);
+    return json(200, { ok: true, id, slug, bodyPersisted });
   } catch (err) {
     console.error('[admin/blog create] failed',
       err instanceof GhlError ? { status: err.status, body: err.bodyText.slice(0, 200), path: err.path } : { err: String(err) });

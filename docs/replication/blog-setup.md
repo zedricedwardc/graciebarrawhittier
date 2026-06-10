@@ -67,6 +67,14 @@ Without the store, publishing still works but post pages fall back to the
       into `.env.local`). **Done when:** publishing a post from `/admin/blog`
       shows its body on `/blog/<slug>`.
 
+- [ ] **[DEV]** After creating the store, run `vercel blob get-store <store-id>`
+      (or read the store's URL off the Vercel dashboard) and set
+      `BLOB_STORE_BASE_URL` in Vercel → Project → Environment Variables (all
+      environments). Recommended for new gyms — without it the store's base URL
+      is learned from the first write or a `list()` call (eventually consistent
+      for ~1 min on brand-new stores); with it, the very first published post
+      renders its body immediately on all instances.
+
 ## 4. Create the "Website Blog" custom menu
 
 The admin editor is reached through a GHL custom-menu link whose URL embeds a
