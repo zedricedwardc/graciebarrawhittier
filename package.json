@@ -26,6 +26,7 @@
     "@astrojs/vercel": "^10.0.6",
     "@tailwindcss/vite": "^4.2.4",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/blob": "^2.4.0",
     "astro": "^6.2.2",
     "tailwindcss": "^4.2.4",
     "zod": "^4.4.3"

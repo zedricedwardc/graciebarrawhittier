@@ -52,6 +52,21 @@ token string is unchanged, so no Vercel update is needed — see
       Variables (Production + Preview). Redeploy. **Done when:** `/blog` renders
       on the deployed site.
 
+## 3b. Connect a Vercel Blob store (post bodies)
+
+GHL's Blogs API accepts `rawHTML` on create/update but **never returns it on
+reads** (the list endpoint omits the field; no single-post GET exists). Post
+bodies are therefore persisted to **Vercel Blob** (`blog/{postId}.json`) at
+publish time and read back for the public post page and the admin editor.
+Without the store, publishing still works but post pages fall back to the
+~160-char description.
+
+- [ ] **[DEV]** `vercel blob create-store <gym>-blog --access public` → answer
+      **Y** to link it to the project (all environments). This injects
+      `BLOB_READ_WRITE_TOKEN`. Locally: `vercel env pull` (or copy the token
+      into `.env.local`). **Done when:** publishing a post from `/admin/blog`
+      shows its body on `/blog/<slug>`.
+
 ## 4. Create the "Website Blog" custom menu
 
 The admin editor is reached through a GHL custom-menu link whose URL embeds a

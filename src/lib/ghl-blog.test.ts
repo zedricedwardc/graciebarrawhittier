@@ -8,8 +8,15 @@ vi.mock('./ghl-rate-limit', async () => {
     ghlFetch: vi.fn(),
   };
 });
+// Mock the blob body store — GHL never returns rawHTML, so reads merge from here.
+vi.mock('./blog-body-store', () => ({
+  saveBody: vi.fn(async () => {}),
+  readBody: vi.fn(async () => ''),
+  deleteBody: vi.fn(async () => {}),
+}));
 
 import { ghlFetch } from './ghl-rate-limit';
+import { saveBody, readBody, deleteBody } from './blog-body-store';
 import {
   slugify,
   deriveDescription,
@@ -27,9 +34,15 @@ import {
 } from './ghl-blog';
 
 const ghlFetchMock = vi.mocked(ghlFetch);
+const saveBodyMock = vi.mocked(saveBody);
+const readBodyMock = vi.mocked(readBody);
+const deleteBodyMock = vi.mocked(deleteBody);
 
 beforeEach(() => {
   ghlFetchMock.mockReset();
+  saveBodyMock.mockReset().mockResolvedValue(undefined);
+  readBodyMock.mockReset().mockResolvedValue('');
+  deleteBodyMock.mockReset().mockResolvedValue(undefined);
   __clearBlogCache();
   vi.stubEnv('GHL_LOCATION_ID', 'loc_123');
   vi.stubEnv('GHL_BLOG_ID', 'blog_1');
@@ -179,6 +192,16 @@ describe('createPost', () => {
     const res = await createPost({ title: 'My Post', rawHTML: '<p>Hi.</p>', imageUrl: 'https://cdn/x.jpg' });
     expect(res.slug).toBe('my-post');
     expect(res.id).toBe('');
+    expect(saveBodyMock).not.toHaveBeenCalled(); // no id to key the body on
+  });
+
+  it('persists the (HTML-wrapped) body to the blob store keyed by the new id', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({ exists: false })                                  // slug check
+      .mockResolvedValueOnce({ blogPost: { _id: 'bp_2', urlSlug: 'my-post' } }); // create
+
+    await createPost({ title: 'My Post', rawHTML: 'bare body text', imageUrl: 'u' });
+    expect(saveBodyMock).toHaveBeenCalledWith('bp_2', '<p>bare body text</p>');
   });
 });
 
@@ -264,21 +287,35 @@ describe('listPublishedPosts', () => {
 });
 
 describe('getPostBySlug', () => {
-  it('returns the matching post mapped with rawHTML + status + resolved names', async () => {
+  it('merges the body from the blob store (GHL never returns rawHTML)', async () => {
     ghlFetchMock
       .mockResolvedValueOnce({
         blogs: [
           { _id: 'a', urlSlug: 'other', title: 'Other' },
-          { _id: 'b', urlSlug: 'wanted', title: 'Wanted', rawHTML: '<p>Body</p>', status: 'PUBLISHED', publishedAt: '2026-06-01T00:00:00Z', author: 'author_1', blogId: 'blog_1' },
+          { _id: 'b', urlSlug: 'wanted', title: 'Wanted', status: 'PUBLISHED', publishedAt: '2026-06-01T00:00:00Z', author: 'author_1', blogId: 'blog_1' },
         ],
       }) // list page
       .mockResolvedValueOnce({ authors: [{ _id: 'author_1', fullName: 'Coach Carlos' }] }) // authors map
       .mockResolvedValueOnce({ data: [{ _id: 'blog_1', name: 'GBW Blog' }] }); // blogs map
+    readBodyMock.mockResolvedValueOnce('<p>Stored body</p>');
     const post = await getPostBySlug('wanted');
+    expect(readBodyMock).toHaveBeenCalledWith('b');
     expect(post).toMatchObject({
-      id: 'b', slug: 'wanted', rawHTML: '<p>Body</p>', status: 'PUBLISHED',
+      id: 'b', slug: 'wanted', rawHTML: '<p>Stored body</p>', status: 'PUBLISHED',
       authorName: 'Coach Carlos', blogName: 'GBW Blog',
     });
+  });
+
+  it('falls back to the GHL description when no stored body exists (pre-blob posts)', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({
+        blogs: [{ _id: 'b', urlSlug: 'wanted', title: 'Wanted', description: 'Saved summary text.', publishedAt: '2026-06-01T00:00:00Z' }],
+      })
+      .mockResolvedValueOnce({ authors: [] })
+      .mockResolvedValueOnce({ data: [] });
+    readBodyMock.mockResolvedValueOnce(''); // nothing in the blob store
+    const post = await getPostBySlug('wanted');
+    expect(post?.rawHTML).toBe('<p>Saved summary text.</p>');
   });
 
   it('returns null when no post matches the slug', async () => {

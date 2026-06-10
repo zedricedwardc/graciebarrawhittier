@@ -19,6 +19,7 @@
 
 import { ghlFetch, GhlError } from './ghl-rate-limit';
 import { readEnv } from './ghl';
+import { saveBody, readBody, deleteBody } from './blog-body-store';
 
 // ── Public model ───────────────────────────────────────────────────────────
 
@@ -255,6 +256,15 @@ export function __clearBlogCache(): void {
   cache.clear();
 }
 
+/**
+ * Drop all cached reads after a write so the admin list and /blog reflect the
+ * change immediately instead of after the 5-min TTL ("my post disappeared").
+ * Clearing everything (incl. author/blog maps) is fine — they're cheap refetches.
+ */
+function invalidateBlogCache(): void {
+  cache.clear();
+}
+
 // ── Author / blog name lookups (cached, last-good/{} on error) ───────────────
 
 interface GhlAuthor {
@@ -409,62 +419,57 @@ export async function listPublishedPosts(opts: { limit?: number } = {}): Promise
   });
 }
 
-/** Fetch a single PUBLISHED post by slug. null if not found. Cached (~5 min). */
+/**
+ * Enrich a matched raw post: resolve author/blog names and merge in the body.
+ * GHL never returns rawHTML on reads (the list omits it; no single-post GET
+ * exists), so the body comes from our blob store — falling back to the saved
+ * description so pre-blob posts aren't blank.
+ */
+async function enrichPost(match: GhlBlogPost): Promise<BlogPost> {
+  const post = mapPost(match);
+  const [authorsMap, blogsMap, body] = await Promise.all([
+    getAuthorsMap(),
+    getBlogsMap(),
+    readBody(post.id),
+  ]);
+  post.authorName = resolveAuthorName(authorsMap, postAuthorId(match));
+  post.blogName = resolveBlogName(blogsMap, postBlogId(match));
+  post.rawHTML = body || ensureHtml(post.description);
+  return post;
+}
+
+/** Page through PUBLISHED posts until `pick` matches. GHL 422s on limit > 50. */
+async function findPublishedPost(pick: (p: GhlBlogPost) => boolean): Promise<GhlBlogPost | null> {
+  const PAGE = 50;
+  for (let offset = 0; ; offset += PAGE) {
+    const params = new URLSearchParams({
+      locationId: locationId(),
+      blogId: blogId(),
+      limit: String(PAGE),
+      offset: String(offset),
+      status: 'PUBLISHED',
+    });
+    const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
+    const raw = data.blogs ?? data.posts ?? data.data ?? [];
+    const match = raw.find(pick);
+    if (match) return match;
+    if (raw.length < PAGE) return null; // last page, no match
+  }
+}
+
+/** Fetch a single PUBLISHED post by slug (body merged from the blob store). Cached (~5 min). */
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  const key = `slug:${slug}`;
-  return cached<BlogPost | null>(key, null, async () => {
-    // GHL's list endpoint has no slug filter, so we page and match client-side.
-    // GHL rejects limit > 50 with a 422, so page in batches of 50 until the
-    // slug is found or a short page signals the end of the list.
-    const PAGE = 50;
-    for (let offset = 0; ; offset += PAGE) {
-      const params = new URLSearchParams({
-        locationId: locationId(),
-        blogId: blogId(),
-        limit: String(PAGE),
-        offset: String(offset),
-        status: 'PUBLISHED',
-      });
-      const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
-      const raw = data.blogs ?? data.posts ?? data.data ?? [];
-      const match = raw.find((p) => p.urlSlug === slug);
-      if (match) {
-        const post = mapPost(match);
-        const [authorsMap, blogsMap] = await Promise.all([getAuthorsMap(), getBlogsMap()]);
-        post.authorName = resolveAuthorName(authorsMap, postAuthorId(match));
-        post.blogName = resolveBlogName(blogsMap, postBlogId(match));
-        return post;
-      }
-      if (raw.length < PAGE) return null; // last page, no match
-    }
+  return cached<BlogPost | null>(`slug:${slug}`, null, async () => {
+    const match = await findPublishedPost((p) => p.urlSlug === slug);
+    return match ? enrichPost(match) : null;
   });
 }
 
-/** Fetch a single PUBLISHED post by GHL id (incl. rawHTML). null if not found. Cached. */
+/** Fetch a single PUBLISHED post by GHL id (body merged from the blob store). Cached. */
 export async function getPostById(id: string): Promise<BlogPost | null> {
-  const key = `id:${id}`;
-  return cached<BlogPost | null>(key, null, async () => {
-    const PAGE = 50;
-    for (let offset = 0; ; offset += PAGE) {
-      const params = new URLSearchParams({
-        locationId: locationId(),
-        blogId: blogId(),
-        limit: String(PAGE),
-        offset: String(offset),
-        status: 'PUBLISHED',
-      });
-      const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
-      const raw = data.blogs ?? data.posts ?? data.data ?? [];
-      const match = raw.find((p) => (p._id ?? p.id) === id);
-      if (match) {
-        const post = mapPost(match);
-        const [authorsMap, blogsMap] = await Promise.all([getAuthorsMap(), getBlogsMap()]);
-        post.authorName = resolveAuthorName(authorsMap, postAuthorId(match));
-        post.blogName = resolveBlogName(blogsMap, postBlogId(match));
-        return post;
-      }
-      if (raw.length < PAGE) return null; // last page, no match
-    }
+  return cached<BlogPost | null>(`id:${id}`, null, async () => {
+    const match = await findPublishedPost((p) => (p._id ?? p.id) === id);
+    return match ? enrichPost(match) : null;
   });
 }
 
@@ -517,6 +522,10 @@ export async function createPost(input: CreatePostInput): Promise<{ id: string; 
     // request — the admin UI reloads the list (which carries ids) regardless.
     console.warn('[ghl-blog] createPost: post created but no id in response', JSON.stringify(data).slice(0, 200));
   }
+  // GHL accepts rawHTML but never returns it — persist the body where we can
+  // read it back (public post page + admin edit prefill).
+  if (id) await saveBody(id, payload.rawHTML as string);
+  invalidateBlogCache();
   return { id, slug: post.urlSlug ?? urlSlug };
 }
 
@@ -545,9 +554,11 @@ export async function updatePost(id: string, input: Partial<CreatePostInput>): P
     payload.imageAltText = input.imageAltText.trim() || input.title || '';
   }
   await ghlFetch(`/blogs/posts/${encodeURIComponent(id)}`, { method: 'PUT', json: payload });
+  if (payload.rawHTML !== undefined) await saveBody(id, payload.rawHTML as string);
+  invalidateBlogCache();
 }
 
-/** Soft-delete: set status ARCHIVED. */
+/** Soft-delete: set status ARCHIVED. Drops the stored body + cache. */
 export async function archivePost(id: string): Promise<void> {
   await ghlFetch(`/blogs/posts/${encodeURIComponent(id)}`, {
     method: 'PUT',
@@ -557,6 +568,8 @@ export async function archivePost(id: string): Promise<void> {
       status: 'ARCHIVED',
     },
   });
+  await deleteBody(id);
+  invalidateBlogCache();
 }
 
 // ── Image upload ─────────────────────────────────────────────────────────────
