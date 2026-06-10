@@ -126,6 +126,15 @@ long-lived signed admin token (`/admin/blog?t=<token>`, signed with
   > the menu step if the gym's domain differs from the default in
   > `scripts/onboard-blog.ts` (`SITE_URL_DEFAULT`, the astro.config `site`).
 
+  > ⚠️ **Whitelabel domains:** `/admin/blog` sends a `frame-ancestors` CSP that
+  > allows GHL's own domains plus `*.localcraze.com` (see
+  > `src/pages/admin/blog/index.astro`). `frame-ancestors` checks the domain in
+  > the **staff member's address bar** — if they log in through a different
+  > agency whitelabel domain, the menu shows "*\<site\> refused to connect*"
+  > even though it works fine from `app.gohighlevel.com`. Fix: add the
+  > whitelabel origin to `ADMIN_FRAME_ANCESTORS` (space-separated, e.g.
+  > `https://*.myagency.com`) in Vercel → Environment Variables and redeploy.
+
 ## 5. End-to-end verification (do not skip)
 
 - [ ] **[ADMIN/DEV]** From the GHL "Website Blog" menu, publish a test post with
@@ -138,6 +147,11 @@ long-lived signed admin token (`/admin/blog?t=<token>`, signed with
   > description — which is *identical* to a short body. A short test post will
   > look correct even when the system is broken. Only a 160+ char body proves
   > the Blob round-trip.
+
+- [ ] **[ADMIN]** Open the "Website Blog" menu while logged in at the **agency
+      whitelabel domain** (not `app.gohighlevel.com`) — that is how the gym's
+      staff will access it, and the two differ exactly on the `frame-ancestors`
+      header (see §4). **Done when:** the editor loads from the whitelabel URL.
 
 ## 6. Token rotation note
 

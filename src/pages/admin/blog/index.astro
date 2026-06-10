@@ -32,9 +32,28 @@ import '../../../styles/tokens.css';
 
 // Allow GHL to iframe this page. Must be set before any early return so the
 // 401 response is also frameable inside the GHL admin shell.
+//
+// frame-ancestors checks the domain in the BROWSER's address bar — staff who
+// log in through an agency whitelabel domain (not app.gohighlevel.com) get
+// "refused to connect" unless that domain is listed. Defaults cover GHL's own
+// domains plus the LocalCraze whitelabel; other agencies append theirs via
+// ADMIN_FRAME_ANCESTORS (space-separated CSP sources, e.g. "https://*.agency.com").
+const DEFAULT_FRAME_ANCESTORS = [
+  'https://*.gohighlevel.com',
+  'https://*.leadconnectorhq.com',
+  'https://app.gohighlevel.com',
+  'https://*.localcraze.com',
+];
+const extraFrameAncestors = (
+  (import.meta.env as Record<string, string | undefined>).ADMIN_FRAME_ANCESTORS ??
+  process.env.ADMIN_FRAME_ANCESTORS ??
+  ''
+)
+  .split(/\s+/)
+  .filter(Boolean);
 Astro.response.headers.set(
   'Content-Security-Policy',
-  'frame-ancestors https://*.gohighlevel.com https://*.leadconnectorhq.com https://app.gohighlevel.com',
+  `frame-ancestors ${[...DEFAULT_FRAME_ANCESTORS, ...extraFrameAncestors].join(' ')}`,
 );
 
 const t = Astro.url.searchParams.get('t');
