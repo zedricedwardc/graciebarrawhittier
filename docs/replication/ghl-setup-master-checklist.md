@@ -72,7 +72,10 @@ See [`blog-setup.md`](./blog-setup.md) for full detail (PIT scopes + click-paths
 - [ ] **[ADMIN]** Create a blog site + author + category in GHL → Sites → Blogs — [blog › §2](./blog-setup.md) — **done when:** one of each exists.
 - [ ] **[DEV]** Run `npm run onboard:blog discover` — [blog › §3](./blog-setup.md) — **done when:** `.env.client.local` has non-empty `GHL_BLOG_ID`, `GHL_BLOG_AUTHOR_ID`, `GHL_BLOG_DEFAULT_CATEGORY_ID`.
 - [ ] **[DEV]** Set `ADMIN_SIGNING_KEY` (>= 32 chars) + paste the three `GHL_BLOG_*` IDs into Vercel; redeploy — [blog › §3](./blog-setup.md) — **done when:** `/blog` renders on the deployed site.
+- [ ] **[DEV]** Connect a Vercel Blob store: `vercel blob create-store <gym>-blog --access public --yes` (links the project + injects `BLOB_READ_WRITE_TOKEN` in all envs) — [blog › §3b](./blog-setup.md) — **done when:** `vercel env ls` shows `BLOB_READ_WRITE_TOKEN`. **Required** — GHL's API never returns post bodies, so they persist in Blob; without it every post renders only its short description.
+- [ ] **[DEV]** Set `BLOB_STORE_BASE_URL` (from `vercel blob get-store <store-id>`) in Vercel, all envs — [blog › §3b](./blog-setup.md) — **done when:** the var is set. (Recommended: makes the very first post's body render immediately on every instance.)
 - [ ] **[DEV]** Dry-run then create the menu: `npm run onboard:blog menu` → `npm run onboard:blog menu -- --write` — [blog › §4](./blog-setup.md) — **done when:** "Website Blog" appears in the sub-account sidebar and opens the editor in an iframe. (Rotating `ADMIN_SIGNING_KEY` later invalidates the link — re-run this step.)
+- [ ] **[DEV]** End-to-end verify: publish a test post **with a body longer than 160 characters**, confirm the FULL body renders on `/blog/<slug>`, then delete it — **done when:** the long body renders. ⚠️ A short test body cannot catch Blob failures — the auto-derived description is identical to a short body, so the page *looks* correct even when body persistence is broken.
 
 ---
 

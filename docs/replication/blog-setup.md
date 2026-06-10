@@ -1,10 +1,38 @@
 # Blog Setup — GHL config
 
 How to wire up the website blog for a new gym. The blog stores posts in **GHL
-Blogs** (GHL is the store; the website only replaces the editor with a minimal
-custom form at `/admin/blog`, surfaced as a GHL custom-menu link). Templatable
-for any gym — the only per-gym values are the three resolved IDs, the signing
-key, and the site URL.
+Blogs** (GHL is the index; the website replaces the editor with a Shopify-style
+admin at `/admin/blog`, surfaced as a GHL custom-menu link). Templatable for any
+gym — the only per-gym values are the three resolved IDs, the signing key, the
+Blob store, and the site URL.
+
+## Architecture (what you're wiring up)
+
+```
+GHL sidebar (custom menu, admin role) ──iframe──▶ /admin/blog?t=<signed token>
+                                                        │ x-admin-token on every call
+                                                        ▼
+                                          /api/admin/blog/* (create/update/archive/upload)
+                                                        │
+                              ┌─────────────────────────┼──────────────────────┐
+                              ▼                         ▼                      ▼
+                     GHL Blogs (index:          Vercel Blob (body:      GHL Medias
+                     title/slug/image/           blog/{postId}.json)    (images)
+                     date/description)
+                              ▲                         ▲
+                              └────── /blog + /blog/[slug] (SSR, cached 5 min,
+                                      realtime-invalidated on writes via Vercel
+                                      Runtime Cache expireTag) ────────────────┘
+```
+
+- **Why two stores:** GHL's Blogs API accepts `rawHTML` on create/update but
+  **never returns it on any read** — bodies must live in Vercel Blob.
+- **Code map:** `src/lib/ghl-blog.ts` (GHL client, cache, sanitizer),
+  `src/lib/blog-body-store.ts` (Blob), `src/lib/admin-token.ts` (HMAC gate),
+  `src/lib/blog-pagination.ts` (sort/9-per-page), `src/pages/admin/blog/`
+  (editor), `src/pages/api/admin/blog/` (routes), `src/pages/blog/` (public).
+- Public list sorts newest-first with a visitor sort control and 9-per-page
+  pagination; all controls hide when there's nothing to sort/page.
 
 **Phase legend**: `[DEV]` = developer (terminal). `[ADMIN]` = studio admin (GHL UI).
 
@@ -98,7 +126,20 @@ long-lived signed admin token (`/admin/blog?t=<token>`, signed with
   > the menu step if the gym's domain differs from the default in
   > `scripts/onboard-blog.ts` (`SITE_URL_DEFAULT`, the astro.config `site`).
 
-## 5. Token rotation note
+## 5. End-to-end verification (do not skip)
+
+- [ ] **[ADMIN/DEV]** From the GHL "Website Blog" menu, publish a test post with
+      a **body longer than 160 characters**, then confirm the FULL body renders
+      on `/blog/<slug>` and that re-opening Edit prefills that body. Delete the
+      test post afterwards. **Done when:** the long body renders publicly.
+
+  > ⚠️ **Why the long body matters:** when Blob persistence is broken (missing
+  > token, store not linked), the page falls back to the auto-derived ~160-char
+  > description — which is *identical* to a short body. A short test post will
+  > look correct even when the system is broken. Only a 160+ char body proves
+  > the Blob round-trip.
+
+## 6. Token rotation note
 
 The custom-menu URL embeds a long-lived signed token (default TTL 365 days).
 **Rotating `ADMIN_SIGNING_KEY` invalidates that link** — the embedded token no
