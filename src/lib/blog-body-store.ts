@@ -8,6 +8,15 @@
  * and read back for the public post page and the admin editor.
  *
  * Pathname: blog/{postId}.json  →  { rawHTML }
+ *
+ * READS ARE DIRECT-URL, NOT list(): @vercel/blob's list() is eventually
+ * consistent — a blob written moments ago can be missing from list() for up to
+ * ~1 min, which made fresh edits read back stale (and the stale result then sat
+ * in the 5-min app cache). With addRandomSuffix:false the URL is deterministic
+ * (`{storeBase}/blog/{postId}.json`), so we learn the store base once — from a
+ * put() result, the BLOB_STORE_BASE_URL env if set, or a one-time list() — and
+ * fetch the URL directly with a cache-busting query param.
+ *
  * Store is public-access; bodies are public content anyway (they render on the
  * website). Requires BLOB_READ_WRITE_TOKEN (auto-injected when the Blob store
  * is connected to the Vercel project; pull locally via `vercel env pull`).
@@ -18,13 +27,56 @@
  */
 
 import { put, del, list } from '@vercel/blob';
+import { readEnv } from './ghl';
 
 function pathFor(postId: string): string {
   return `blog/${postId}.json`;
 }
 
+/**
+ * The @vercel/blob SDK reads process.env.BLOB_READ_WRITE_TOKEN internally, but
+ * in `astro dev` env files land on import.meta.env, not process.env. Resolve
+ * the token through readEnv (import.meta.env ?? process.env) and bridge it
+ * into process.env so the SDK sees it in every environment.
+ */
 function hasToken(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  const t = readEnv('BLOB_READ_WRITE_TOKEN');
+  if (!t) return false;
+  if (!process.env.BLOB_READ_WRITE_TOKEN) process.env.BLOB_READ_WRITE_TOKEN = t;
+  return true;
+}
+
+// Store base URL (e.g. https://xxxx.public.blob.vercel-storage.com). Constant
+// per store; learned once per instance and remembered.
+let storeBase: string | null = null;
+
+function learnBase(blobUrl: string, pathname: string): void {
+  // blobUrl ends with /<pathname>; strip it to get the base.
+  if (blobUrl.endsWith(`/${pathname}`)) {
+    storeBase = blobUrl.slice(0, blobUrl.length - pathname.length - 1);
+  }
+}
+
+async function resolveBase(): Promise<string | null> {
+  if (storeBase) return storeBase;
+  const fromEnv = readEnv('BLOB_STORE_BASE_URL');
+  if (fromEnv) {
+    storeBase = fromEnv.replace(/\/+$/, '');
+    return storeBase;
+  }
+  // One-time learn from any existing blob. list() consistency doesn't matter
+  // here — ANY blob (however old) reveals the store base.
+  try {
+    const { blobs } = await list({ prefix: 'blog/', limit: 1 });
+    const blob = blobs[0];
+    if (blob) {
+      learnBase(blob.url, blob.pathname);
+      return storeBase;
+    }
+  } catch {
+    /* fall through */
+  }
+  return null;
 }
 
 /** Persist a post's body HTML. Best-effort: logs + swallows failures. */
@@ -35,14 +87,15 @@ export async function saveBody(postId: string, rawHTML: string): Promise<void> {
     return;
   }
   try {
-    await put(pathFor(postId), JSON.stringify({ rawHTML }), {
+    const result = await put(pathFor(postId), JSON.stringify({ rawHTML }), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
       allowOverwrite: true,
-      // Bodies change on edit — don't let the CDN pin an old version for long.
+      // Bodies change on edit; reads cache-bust anyway. Keep CDN TTL minimal.
       cacheControlMaxAge: 60,
     });
+    learnBase(result.url, pathFor(postId));
   } catch (err) {
     console.error('[blog-body-store] save failed (post exists in GHL; body not readable until re-saved)', {
       postId,
@@ -53,21 +106,17 @@ export async function saveBody(postId: string, rawHTML: string): Promise<void> {
 
 /**
  * Read a post's body HTML. Returns '' when absent/unreachable (callers fall
- * back to the GHL description). Resolves the blob URL via list() so we never
- * have to hardcode the store's base URL.
+ * back to the GHL description). Direct deterministic-URL fetch with a
+ * cache-buster — immune to list()'s eventual consistency, so a body saved
+ * milliseconds ago reads back correctly.
  */
 export async function readBody(postId: string): Promise<string> {
   if (!postId || !hasToken()) return '';
   try {
-    const { blobs } = await list({ prefix: pathFor(postId), limit: 1 });
-    const blob = blobs[0];
-    if (!blob) return '';
-    // Cache-bust by upload version: allowOverwrite keeps the same blob URL, so
-    // the CDN could otherwise serve the previous body for up to cacheControlMaxAge
-    // after an edit. uploadedAt changes on every save → fresh URL per version.
-    const version = blob.uploadedAt ? new Date(blob.uploadedAt).getTime() : Date.now();
-    const res = await fetch(`${blob.url}?v=${version}`, { cache: 'no-store' });
-    if (!res.ok) return '';
+    const base = await resolveBase();
+    if (!base) return ''; // empty store and no env override — nothing to read
+    const res = await fetch(`${base}/${pathFor(postId)}?v=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return ''; // 404 = no stored body (pre-blob post)
     const data = (await res.json()) as { rawHTML?: string };
     return typeof data.rawHTML === 'string' ? data.rawHTML : '';
   } catch (err) {
@@ -80,9 +129,20 @@ export async function readBody(postId: string): Promise<string> {
 export async function deleteBody(postId: string): Promise<void> {
   if (!postId || !hasToken()) return;
   try {
+    const base = await resolveBase();
+    if (base) {
+      await del(`${base}/${pathFor(postId)}`);
+      return;
+    }
+    // No base learnable — fall back to list lookup.
     const { blobs } = await list({ prefix: pathFor(postId), limit: 1 });
     if (blobs[0]) await del(blobs[0].url);
   } catch (err) {
     console.warn('[blog-body-store] delete failed (non-fatal)', { postId, err: String(err).slice(0, 200) });
   }
+}
+
+/** Test-only: reset the learned store base. */
+export function __resetBodyStore(): void {
+  storeBase = null;
 }
