@@ -32,6 +32,7 @@ import {
   createPost,
   updatePost,
   listPublishedPosts,
+  listAllPublishedPosts,
   getPostBySlug,
   getAuthorsMap,
   getBlogsMap,
@@ -414,6 +415,88 @@ describe('listPublishedPosts', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('listAllPublishedPosts', () => {
+  /** Generate `n` raw GHL posts with distinct, increasing publishedAt dates. */
+  function makePosts(n: number, startIndex = 0) {
+    return Array.from({ length: n }, (_, i) => {
+      const idx = startIndex + i;
+      return {
+        _id: `post_${idx}`,
+        title: `Post ${idx}`,
+        urlSlug: `post-${idx}`,
+        publishedAt: new Date(Date.UTC(2025, 0, 1 + idx)).toISOString(),
+        author: 'author_1',
+        blogId: 'blog_1',
+      };
+    });
+  }
+
+  it('collects across multiple pages until a short page, newest first', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({ blogs: makePosts(50) })     // page 1 — full (50)
+      .mockResolvedValueOnce({ blogs: makePosts(2, 50) })  // page 2 — short (2) ends paging
+      .mockResolvedValueOnce({ authors: [{ _id: 'author_1', name: 'Jane Coach' }] }) // authors map
+      .mockResolvedValueOnce({ data: [{ _id: 'blog_1', name: 'GBW Blog' }] }); // blogs map
+
+    const posts = await listAllPublishedPosts();
+    expect(posts).toHaveLength(52);
+
+    // Newest first by publishedAt.
+    const dates = posts.map((p) => p.publishedAt);
+    expect(dates).toEqual([...dates].sort((a, b) => b.localeCompare(a)));
+    expect(posts[0]!.id).toBe('post_51'); // highest date came from page 2
+    expect(posts[51]!.id).toBe('post_0'); // oldest last
+
+    // Two list pages requested at 50/batch with advancing offsets.
+    const [page1] = ghlFetchMock.mock.calls[0]!;
+    expect(page1).toContain('/blogs/posts/all');
+    expect(page1).toContain('limit=50');
+    expect(page1).toContain('offset=0');
+    expect(page1).toContain('status=PUBLISHED');
+    const [page2] = ghlFetchMock.mock.calls[1]!;
+    expect(page2).toContain('limit=50');
+    expect(page2).toContain('offset=50');
+  });
+
+  it('works with a single short page (typical small gym)', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({ blogs: makePosts(3) }) // one short page — no second request
+      .mockResolvedValueOnce({ authors: [] }) // authors map
+      .mockResolvedValueOnce({ data: [] }); // blogs map
+    const posts = await listAllPublishedPosts();
+    expect(posts).toHaveLength(3);
+    expect(posts.map((p) => p.id)).toEqual(['post_2', 'post_1', 'post_0']);
+    // Only one list page was fetched (3 calls total: list + authors + blogs).
+    expect(ghlFetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('joins author/blog display names onto every post', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({ blogs: makePosts(2) })
+      .mockResolvedValueOnce({ authors: [{ _id: 'author_1', name: 'Jane Coach' }] })
+      .mockResolvedValueOnce({ data: [{ _id: 'blog_1', name: 'GBW Blog' }] });
+    const posts = await listAllPublishedPosts();
+    for (const p of posts) {
+      expect(p.authorName).toBe('Jane Coach');
+      expect(p.blogName).toBe('GBW Blog');
+    }
+  });
+
+  it('serves the cache on a second call within the TTL (no re-fetch)', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({ blogs: makePosts(2) })
+      .mockResolvedValueOnce({ authors: [] })
+      .mockResolvedValueOnce({ data: [] });
+    const first = await listAllPublishedPosts();
+    expect(first).toHaveLength(2);
+    const callsAfterFirst = ghlFetchMock.mock.calls.length;
+
+    const second = await listAllPublishedPosts();
+    expect(second).toEqual(first);
+    expect(ghlFetchMock.mock.calls.length).toBe(callsAfterFirst); // not called again
   });
 });
 

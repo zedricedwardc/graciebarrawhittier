@@ -449,6 +449,24 @@ interface ListResponse {
   data?: GhlBlogPost[];
 }
 
+// GHL 422s on limit > 50 for /blogs/posts/all.
+const LIST_PAGE_SIZE = 50;
+// Safety cap (1000 posts) so a pathological response can't loop forever.
+const MAX_PAGES = 20;
+
+/** Fetch one page of PUBLISHED posts for the configured blog (limit ≤ 50). */
+async function fetchPublishedPage(limit: number, offset: number): Promise<GhlBlogPost[]> {
+  const params = new URLSearchParams({
+    locationId: locationId(),
+    blogId: blogId(),
+    limit: String(limit),
+    offset: String(offset),
+    status: 'PUBLISHED',
+  });
+  const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
+  return data.blogs ?? data.posts ?? data.data ?? [];
+}
+
 /**
  * Resolve an author display name from the authors map, falling back to the
  * configured default author (so single-author accounts always show a real name)
@@ -486,30 +504,52 @@ function resolveBlogName(blogsMap: Record<string, string>, postBlog: string): st
   return fallback ?? '—';
 }
 
+/**
+ * Join author/blog display names onto raw posts (one Promise.all over the
+ * separately cached maps), then sort newest first by publishedAt.
+ */
+async function joinAndSortSummaries(raw: GhlBlogPost[]): Promise<BlogPostSummary[]> {
+  const [authorsMap, blogsMap] = await Promise.all([getAuthorsMap(), getBlogsMap()]);
+  const mapped = raw.map((p) => {
+    const summary = mapSummary(p);
+    summary.authorName = resolveAuthorName(authorsMap, postAuthorId(p));
+    summary.blogName = resolveBlogName(blogsMap, postBlogId(p));
+    return summary;
+  });
+  mapped.sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''));
+  return mapped;
+}
+
 /** List PUBLISHED posts for the configured blog, newest first. Cached (~5 min). */
 export async function listPublishedPosts(opts: { limit?: number } = {}): Promise<BlogPostSummary[]> {
   const limit = opts.limit ?? 50;
   const key = `list:${limit}`;
   return cached<BlogPostSummary[]>(key, [], async () => {
-    const params = new URLSearchParams({
-      locationId: locationId(),
-      blogId: blogId(),
-      limit: String(limit),
-      offset: '0',
-      status: 'PUBLISHED',
-    });
-    const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
-    const raw = data.blogs ?? data.posts ?? data.data ?? [];
-    // Resolve author/blog display names from their own (separately cached) maps.
-    const [authorsMap, blogsMap] = await Promise.all([getAuthorsMap(), getBlogsMap()]);
-    const mapped = raw.map((p) => {
-      const summary = mapSummary(p);
-      summary.authorName = resolveAuthorName(authorsMap, postAuthorId(p));
-      summary.blogName = resolveBlogName(blogsMap, postBlogId(p));
-      return summary;
-    });
-    mapped.sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''));
-    return mapped;
+    const raw = await fetchPublishedPage(limit, 0);
+    return joinAndSortSummaries(raw);
+  });
+}
+
+/** ALL published posts, newest first, with author/blog names joined. Cached. */
+export async function listAllPublishedPosts(): Promise<BlogPostSummary[]> {
+  return cached<BlogPostSummary[]>('list-all', [], async () => {
+    const collected: GhlBlogPost[] = [];
+    let hitCap = true;
+    for (let page = 0, offset = 0; page < MAX_PAGES; page++, offset += LIST_PAGE_SIZE) {
+      const raw = await fetchPublishedPage(LIST_PAGE_SIZE, offset);
+      collected.push(...raw);
+      if (raw.length < LIST_PAGE_SIZE) {
+        hitCap = false; // short page — end of the catalog
+        break;
+      }
+    }
+    if (hitCap) {
+      // Partial catalog beats nothing — warn and return what we collected.
+      console.warn(
+        `[ghl-blog] listAllPublishedPosts: page cap (${MAX_PAGES}) hit — returning the first ${collected.length} posts`,
+      );
+    }
+    return joinAndSortSummaries(collected);
   });
 }
 
@@ -540,21 +580,11 @@ async function enrichPost(match: GhlBlogPost): Promise<BlogPost> {
 
 /** Page through PUBLISHED posts until `pick` matches. GHL 422s on limit > 50. */
 async function findPublishedPost(pick: (p: GhlBlogPost) => boolean): Promise<GhlBlogPost | null> {
-  const PAGE = 50;
-  const MAX_PAGES = 20; // safety cap (1000 posts) so a pathological response can't loop forever
-  for (let page = 0, offset = 0; page < MAX_PAGES; page++, offset += PAGE) {
-    const params = new URLSearchParams({
-      locationId: locationId(),
-      blogId: blogId(),
-      limit: String(PAGE),
-      offset: String(offset),
-      status: 'PUBLISHED',
-    });
-    const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
-    const raw = data.blogs ?? data.posts ?? data.data ?? [];
+  for (let page = 0, offset = 0; page < MAX_PAGES; page++, offset += LIST_PAGE_SIZE) {
+    const raw = await fetchPublishedPage(LIST_PAGE_SIZE, offset);
     const match = raw.find(pick);
     if (match) return match;
-    if (raw.length < PAGE) return null; // last page, no match
+    if (raw.length < LIST_PAGE_SIZE) return null; // last page, no match
   }
   console.warn(`[ghl-blog] findPublishedPost: page cap (${MAX_PAGES}) hit without a match`);
   return null;
