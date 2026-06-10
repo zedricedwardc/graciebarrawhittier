@@ -217,31 +217,87 @@ function mapPost(p: GhlBlogPost): BlogPost {
   };
 }
 
-// ── Cache (~5 min TTL, last-good fallback) ───────────────────────────────────
+// ── Cache (~5 min freshness, last-good fallback, realtime invalidation) ──────
+//
+// Two layers, one set of semantics:
+//   1. Vercel Runtime Cache (shared across ALL function instances in the
+//      region) — what makes an admin edit show on the website in realtime:
+//      writes call expireTag('blog'), which propagates to every instance in
+//      ~300ms. Entries are stored with a LONG ttl and a `storedAt` stamp; code
+//      treats entries older than 5 min as stale-but-servable (last-good).
+//   2. Module-scoped Map fallback for environments without the Runtime Cache
+//      (plain `astro dev`, vitest) — same entry shape, same freshness logic.
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_FRESH_MS = 5 * 60 * 1000;
+const CACHE_KEEP_TTL_S = 24 * 60 * 60; // runtime-cache retention (last-good window)
+const CACHE_TAG = 'blog';
+const CACHE_NS = 'ghl-blog';
 
 interface CacheEntry<T> {
   value: T;
   storedAt: number;
 }
 
-// Module-scoped — lives on a warm Fluid Compute instance. Cold starts repopulate.
-const cache = new Map<string, CacheEntry<unknown>>();
+interface RuntimeCacheLike {
+  get(key: string): Promise<unknown>;
+  set(key: string, value: unknown, opts?: { ttl?: number; tags?: string[] }): Promise<void>;
+  expireTag(tag: string): Promise<void>;
+}
+
+// Module-scoped fallback — lives on a warm instance. Cold starts repopulate.
+const memCache = new Map<string, CacheEntry<unknown>>();
+
+let runtimeCache: RuntimeCacheLike | null | undefined; // undefined = not probed yet
+async function getRuntimeCache(): Promise<RuntimeCacheLike | null> {
+  if (runtimeCache !== undefined) return runtimeCache;
+  try {
+    const { getCache } = await import('@vercel/functions');
+    runtimeCache = getCache({ namespace: CACHE_NS }) as unknown as RuntimeCacheLike;
+  } catch {
+    runtimeCache = null; // SDK unavailable — fall back to the in-memory Map
+  }
+  return runtimeCache;
+}
+
+async function cacheRead<T>(key: string): Promise<CacheEntry<T> | undefined> {
+  const rc = await getRuntimeCache();
+  if (rc) {
+    try {
+      const hit = (await rc.get(key)) as CacheEntry<T> | undefined | null;
+      if (hit && typeof hit.storedAt === 'number') return hit;
+      return undefined;
+    } catch {
+      /* fall through to memory */
+    }
+  }
+  return memCache.get(key) as CacheEntry<T> | undefined;
+}
+
+async function cacheWrite<T>(key: string, entry: CacheEntry<T>): Promise<void> {
+  const rc = await getRuntimeCache();
+  if (rc) {
+    try {
+      await rc.set(key, entry, { ttl: CACHE_KEEP_TTL_S, tags: [CACHE_TAG] });
+      return;
+    } catch {
+      /* fall through to memory */
+    }
+  }
+  memCache.set(key, entry);
+}
 
 /**
- * Cache wrapper with last-good fallback. On fetch success, refreshes + returns
- * the value. On fetch error: serves last-good cached value if present, else the
- * provided `fallback` (so pages degrade gracefully). Fresh (< TTL) entries are
- * served without re-fetching.
+ * Cache wrapper with last-good fallback. Fresh (< 5 min) entries are served
+ * without re-fetching. On fetch success, refreshes + returns the value. On
+ * fetch error: serves the last-good cached value if present, else `fallback`.
  */
 async function cached<T>(key: string, fallback: T, fetcher: () => Promise<T>): Promise<T> {
   const now = Date.now();
-  const hit = cache.get(key) as CacheEntry<T> | undefined;
-  if (hit && now - hit.storedAt < CACHE_TTL_MS) return hit.value;
+  const hit = await cacheRead<T>(key);
+  if (hit && now - hit.storedAt < CACHE_FRESH_MS) return hit.value;
   try {
     const value = await fetcher();
-    cache.set(key, { value, storedAt: now });
+    await cacheWrite(key, { value, storedAt: now });
     return value;
   } catch (err) {
     console.error('[ghl-blog] fetch failed, serving last-good cache',
@@ -253,16 +309,24 @@ async function cached<T>(key: string, fallback: T, fetcher: () => Promise<T>): P
 
 /** Test-only: clear the in-memory cache between cases. */
 export function __clearBlogCache(): void {
-  cache.clear();
+  memCache.clear();
 }
 
 /**
- * Drop all cached reads after a write so the admin list and /blog reflect the
- * change immediately instead of after the 5-min TTL ("my post disappeared").
- * Clearing everything (incl. author/blog maps) is fine — they're cheap refetches.
+ * Drop all cached blog reads after a write so the admin list and /blog reflect
+ * the change in realtime. expireTag propagates to every function instance in
+ * the region within ~300ms; the Map clear covers the no-runtime-cache fallback.
  */
-function invalidateBlogCache(): void {
-  cache.clear();
+async function invalidateBlogCache(): Promise<void> {
+  memCache.clear();
+  const rc = await getRuntimeCache();
+  if (rc) {
+    try {
+      await rc.expireTag(CACHE_TAG);
+    } catch (err) {
+      console.warn('[ghl-blog] expireTag failed (cache will age out via freshness window)', String(err).slice(0, 120));
+    }
+  }
 }
 
 // ── Author / blog name lookups (cached, last-good/{} on error) ───────────────
@@ -525,7 +589,7 @@ export async function createPost(input: CreatePostInput): Promise<{ id: string; 
   // GHL accepts rawHTML but never returns it — persist the body where we can
   // read it back (public post page + admin edit prefill).
   if (id) await saveBody(id, payload.rawHTML as string);
-  invalidateBlogCache();
+  await invalidateBlogCache();
   return { id, slug: post.urlSlug ?? urlSlug };
 }
 
@@ -555,7 +619,7 @@ export async function updatePost(id: string, input: Partial<CreatePostInput>): P
   }
   await ghlFetch(`/blogs/posts/${encodeURIComponent(id)}`, { method: 'PUT', json: payload });
   if (payload.rawHTML !== undefined) await saveBody(id, payload.rawHTML as string);
-  invalidateBlogCache();
+  await invalidateBlogCache();
 }
 
 /** Soft-delete: set status ARCHIVED. Drops the stored body + cache. */
@@ -569,7 +633,7 @@ export async function archivePost(id: string): Promise<void> {
     },
   });
   await deleteBody(id);
-  invalidateBlogCache();
+  await invalidateBlogCache();
 }
 
 // ── Image upload ─────────────────────────────────────────────────────────────

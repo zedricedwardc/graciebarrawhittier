@@ -62,7 +62,11 @@ export async function readBody(postId: string): Promise<string> {
     const { blobs } = await list({ prefix: pathFor(postId), limit: 1 });
     const blob = blobs[0];
     if (!blob) return '';
-    const res = await fetch(blob.url, { cache: 'no-store' });
+    // Cache-bust by upload version: allowOverwrite keeps the same blob URL, so
+    // the CDN could otherwise serve the previous body for up to cacheControlMaxAge
+    // after an edit. uploadedAt changes on every save → fresh URL per version.
+    const version = blob.uploadedAt ? new Date(blob.uploadedAt).getTime() : Date.now();
+    const res = await fetch(`${blob.url}?v=${version}`, { cache: 'no-store' });
     if (!res.ok) return '';
     const data = (await res.json()) as { rawHTML?: string };
     return typeof data.rawHTML === 'string' ? data.rawHTML : '';

@@ -14,6 +14,10 @@ vi.mock('./blog-body-store', () => ({
   readBody: vi.fn(async () => ''),
   deleteBody: vi.fn(async () => {}),
 }));
+// Force the in-memory cache fallback (deterministic; __clearBlogCache resets it).
+vi.mock('@vercel/functions', () => ({
+  getCache: () => { throw new Error('runtime cache unavailable in tests'); },
+}));
 
 import { ghlFetch } from './ghl-rate-limit';
 import { saveBody, readBody, deleteBody } from './blog-body-store';
