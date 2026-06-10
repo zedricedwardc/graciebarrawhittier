@@ -98,6 +98,17 @@ long-lived signed admin token (`/admin/blog?t=<token>`, signed with
   > the menu step if the gym's domain differs from the default in
   > `scripts/onboard-blog.ts` (`SITE_URL_DEFAULT`, the astro.config `site`).
 
+  > ⚠️ **Whitelabel domains:** `/admin/blog` sends a `frame-ancestors` CSP that
+  > allows GHL's own domains plus `*.localcraze.com` (see
+  > `src/pages/admin/blog/index.astro`). `frame-ancestors` checks the domain in
+  > the **staff member's address bar** — if they log in through a different
+  > agency whitelabel domain, the menu shows "*\<site\> refused to connect*"
+  > even though it works fine from `app.gohighlevel.com`. Fix: add the
+  > whitelabel origin to `ADMIN_FRAME_ANCESTORS` (space-separated, e.g.
+  > `https://*.myagency.com`) in Vercel → Environment Variables and redeploy.
+  > Verify from the whitelabel URL, not `app.gohighlevel.com` — the two differ
+  > exactly on this header.
+
 ## 5. Token rotation note
 
 The custom-menu URL embeds a long-lived signed token (default TTL 365 days).
