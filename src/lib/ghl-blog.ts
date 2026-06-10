@@ -270,6 +270,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
 
 interface CreateResponse {
   data?: GhlBlogPost;
+  blogPost?: GhlBlogPost;
   blog?: GhlBlogPost;
   post?: GhlBlogPost;
   _id?: string;
@@ -304,11 +305,15 @@ export async function createPost(input: CreatePostInput): Promise<{ id: string; 
   const urlSlug = await ensureUniqueSlug(input.title);
   const publishedAt = new Date().toISOString();
   const payload = buildCreatePayload(input, urlSlug, publishedAt);
+  // Reaching here means ghlFetch returned a 2xx — the post was created. GHL
+  // nests the created record under `blogPost`; fall back through other shapes.
   const data = (await ghlFetch('/blogs/posts', { method: 'POST', json: payload })) as CreateResponse;
-  const post = data.data ?? data.blog ?? data.post ?? data;
-  const id = post._id ?? post.id;
+  const post = data.data ?? data.blogPost ?? data.blog ?? data.post ?? data;
+  const id = post._id ?? post.id ?? '';
   if (!id) {
-    throw new GhlError(500, JSON.stringify(data), '/blogs/posts', 'createPost: no post id in response');
+    // Created successfully but the id wasn't where we expected. Don't fail the
+    // request — the admin UI reloads the list (which carries ids) regardless.
+    console.warn('[ghl-blog] createPost: post created but no id in response', JSON.stringify(data).slice(0, 200));
   }
   return { id, slug: post.urlSlug ?? urlSlug };
 }

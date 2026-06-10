@@ -146,6 +146,25 @@ describe('createPost', () => {
     expect(typeof body.publishedAt).toBe('string');
     expect(body.categories).toEqual(['cat_1']);
   });
+
+  it('parses GHL’s blogPost-keyed create response (regression)', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({ exists: false })                                   // slug check
+      .mockResolvedValueOnce({ blogPost: { _id: 'bp_1', urlSlug: 'my-post' } });   // create — GHL nests under blogPost
+
+    const res = await createPost({ title: 'My Post', rawHTML: '<p>Hi.</p>', imageUrl: 'https://cdn/x.jpg' });
+    expect(res).toEqual({ id: 'bp_1', slug: 'my-post' });
+  });
+
+  it('does not throw when a 2xx create response has no parseable id', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({ exists: false })  // slug check
+      .mockResolvedValueOnce({ success: true }); // odd shape, but request succeeded
+
+    const res = await createPost({ title: 'My Post', rawHTML: '<p>Hi.</p>', imageUrl: 'https://cdn/x.jpg' });
+    expect(res.slug).toBe('my-post');
+    expect(res.id).toBe('');
+  });
 });
 
 describe('listPublishedPosts', () => {
