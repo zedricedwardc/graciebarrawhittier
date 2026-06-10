@@ -98,6 +98,27 @@ export function deriveDescription(rawHTML: string): string {
   return `${text.slice(0, DESCRIPTION_MAX).trimEnd()}…`;
 }
 
+const BLOCK_TAG_RE = /<(p|div|h[1-6]|ul|ol|li|blockquote|figure|img|pre|table|section|article)\b/i;
+
+/**
+ * Ensure body content is block-level HTML. GHL's blog `rawHTML` field silently
+ * drops content that isn't well-formed HTML — a bare text node like "hello"
+ * (which a contenteditable emits for an unformatted line) is stored as an empty
+ * body. Wrap plain-text / inline-only content in <p> so the body persists.
+ * Already-block HTML passes through untouched.
+ */
+export function ensureHtml(raw: string): string {
+  const s = (raw ?? '').trim();
+  if (!s) return '';
+  if (BLOCK_TAG_RE.test(s)) return s; // already has block structure
+  const paras = s
+    .split(/\r?\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `<p>${line}</p>`);
+  return paras.length ? paras.join('') : `<p>${s}</p>`;
+}
+
 /** Slugify a title: lowercase, ascii-ish, hyphen-separated. */
 export function slugify(title: string): string {
   const base = title
@@ -419,6 +440,34 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   });
 }
 
+/** Fetch a single PUBLISHED post by GHL id (incl. rawHTML). null if not found. Cached. */
+export async function getPostById(id: string): Promise<BlogPost | null> {
+  const key = `id:${id}`;
+  return cached<BlogPost | null>(key, null, async () => {
+    const PAGE = 50;
+    for (let offset = 0; ; offset += PAGE) {
+      const params = new URLSearchParams({
+        locationId: locationId(),
+        blogId: blogId(),
+        limit: String(PAGE),
+        offset: String(offset),
+        status: 'PUBLISHED',
+      });
+      const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
+      const raw = data.blogs ?? data.posts ?? data.data ?? [];
+      const match = raw.find((p) => (p._id ?? p.id) === id);
+      if (match) {
+        const post = mapPost(match);
+        const [authorsMap, blogsMap] = await Promise.all([getAuthorsMap(), getBlogsMap()]);
+        post.authorName = resolveAuthorName(authorsMap, postAuthorId(match));
+        post.blogName = resolveBlogName(blogsMap, postBlogId(match));
+        return post;
+      }
+      if (raw.length < PAGE) return null; // last page, no match
+    }
+  });
+}
+
 // ── Writes ─────────────────────────────────────────────────────────────────
 
 interface CreateResponse {
@@ -443,7 +492,7 @@ export function buildCreatePayload(input: CreatePostInput, urlSlug: string, publ
     blogId: blogId(),
     imageUrl: input.imageUrl,
     description,
-    rawHTML: input.rawHTML,
+    rawHTML: ensureHtml(input.rawHTML),
     status: 'PUBLISHED',
     imageAltText: input.imageAltText?.trim() || input.title,
     categories: [defaultCategoryId()],
@@ -487,7 +536,7 @@ export async function updatePost(id: string, input: Partial<CreatePostInput>): P
     payload.title = input.title;
     payload.urlSlug = await ensureUniqueSlug(input.title, id);
   }
-  if (input.rawHTML !== undefined) payload.rawHTML = input.rawHTML;
+  if (input.rawHTML !== undefined) payload.rawHTML = ensureHtml(input.rawHTML);
   if (input.imageUrl !== undefined) payload.imageUrl = input.imageUrl;
   if (input.description !== undefined) {
     payload.description = input.description.trim() || deriveDescription(input.rawHTML ?? '');

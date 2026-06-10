@@ -13,6 +13,7 @@ import { ghlFetch } from './ghl-rate-limit';
 import {
   slugify,
   deriveDescription,
+  ensureHtml,
   stripHtml,
   buildCreatePayload,
   ensureUniqueSlug,
@@ -55,6 +56,18 @@ describe('pure helpers', () => {
     expect(desc.endsWith('…')).toBe(true);
     const short = '<p>Short body.</p>';
     expect(deriveDescription(short)).toBe('Short body.');
+  });
+
+  it('ensureHtml wraps bare text so GHL persists the body', () => {
+    // GHL drops non-HTML rawHTML — bare text must be wrapped.
+    expect(ensureHtml('testtt')).toBe('<p>testtt</p>');
+    expect(ensureHtml('line one\nline two')).toBe('<p>line one</p><p>line two</p>');
+    expect(ensureHtml('  ')).toBe('');
+    // Inline-only content still needs a block wrapper.
+    expect(ensureHtml('<b>bold</b> text')).toBe('<p><b>bold</b> text</p>');
+    // Already-block HTML passes through untouched.
+    expect(ensureHtml('<p>already</p>')).toBe('<p>already</p>');
+    expect(ensureHtml('<h2>Title</h2><p>body</p>')).toBe('<h2>Title</h2><p>body</p>');
   });
 });
 

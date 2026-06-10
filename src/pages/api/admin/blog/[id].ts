@@ -9,10 +9,32 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { GhlError } from '../../../../lib/ghl-rate-limit';
-import { updatePost, archivePost } from '../../../../lib/ghl-blog';
+import { updatePost, archivePost, getPostById } from '../../../../lib/ghl-blog';
 import { requireAdmin, json } from '../../../../lib/admin-api';
 
 export const prerender = false;
+
+// GET /api/admin/blog/[id] — fetch one post (incl. rawHTML) to prefill the editor.
+export const GET: APIRoute = async ({ request, url, params }) => {
+  const auth = requireAdmin(request, url);
+  if (!auth.ok) return json(401, { ok: false, code: 'INVALID_TOKEN' });
+
+  const id = params.id;
+  if (!id) return json(400, { ok: false, code: 'INVALID_INPUT' });
+
+  try {
+    const post = await getPostById(id);
+    if (!post) return json(404, { ok: false, code: 'NOT_FOUND' });
+    return json(200, {
+      ok: true,
+      post: { id: post.id, title: post.title, rawHTML: post.rawHTML, imageUrl: post.imageUrl, slug: post.slug },
+    });
+  } catch (err) {
+    console.error('[admin/blog get] failed',
+      err instanceof GhlError ? { status: err.status, body: err.bodyText.slice(0, 200), path: err.path } : { err: String(err) });
+    return json(502, { ok: false, code: 'GHL_FAILED', message: 'Could not load the post.' });
+  }
+};
 
 const UpdatePostRequest = z.object({
   title: z.string().min(1).max(300).optional(),

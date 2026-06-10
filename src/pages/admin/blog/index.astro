@@ -54,13 +54,6 @@ if (!v.ok) {
   Astro.response.status = 401;
 }
 
-// "Manage in GHL" deep link — built from the public location id. Falls back to
-// the GHL app root when the env var is unset.
-const ghlLocationId = import.meta.env.PUBLIC_GHL_LOCATION_ID as string | undefined;
-const ghlBlogsUrl = ghlLocationId
-  ? `https://app.gohighlevel.com/v2/location/${ghlLocationId}/blogs`
-  : 'https://app.gohighlevel.com';
-
 /** Human date + time for the index table, e.g. "Jun 10, 2026, 2:17 PM". Empty for bad input. */
 function fmtDate(iso: string): string {
   if (!iso) return '';
@@ -126,9 +119,6 @@ const STYLES = `
   .adm-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
   .crumb { display: inline-flex; align-items: center; gap: .3rem; font-size: .82rem; color: var(--p-subdued); margin: 0 0 .35rem; }
   .adm-header h1 { font-size: 1.5rem; font-weight: 700; margin: 0; }
-  .subnav { display: flex; gap: 1.25rem; margin: .55rem 0 0; }
-  .subnav a { font-size: .85rem; color: var(--p-link); text-decoration: none; }
-  .subnav a:hover { text-decoration: underline; }
 
   /* ── Bulk action bar ──────────────────────────────────────────── */
   .bulkbar { display: flex; align-items: center; gap: .75rem; padding: .6rem 1rem; background: #f6f6f7; border-bottom: 1px solid var(--p-border); }
@@ -276,10 +266,6 @@ const STYLES = `
                 <div>
                   <p class="crumb">‹ Website</p>
                   <h1>Blog posts</h1>
-                  <nav class="subnav">
-                    <a href={ghlBlogsUrl} target="_blank" rel="noopener">Manage in GHL ↗</a>
-                    <a href="/blog" target="_blank" rel="noopener">View blog ↗</a>
-                  </nav>
                 </div>
                 <button type="button" id="add-btn" class="btn btn-primary">Add blog post</button>
               </header>
@@ -652,24 +638,43 @@ const STYLES = `
 
             cancelEditBtn?.addEventListener('click', () => { resetForm(); setStatus(formStatusEl, ''); showList(); });
 
-            function startEdit(row: HTMLElement) {
-              if (postIdEl) postIdEl.value = row.dataset.postId ?? '';
+            async function startEdit(row: HTMLElement) {
+              const id = row.dataset.postId ?? '';
+              if (postIdEl) postIdEl.value = id;
               if (titleEl) titleEl.value = row.dataset.title ?? '';
               const imageUrl = row.dataset.imageUrl ?? '';
               if (featuredUrlEl) featuredUrlEl.value = imageUrl;
               if (featuredPreviewEl) {
                 if (imageUrl) { featuredPreviewEl.src = imageUrl; featuredPreviewEl.hidden = false; }
-                else { featuredPreviewEl.hidden = true; }
+                else { featuredPreviewEl.hidden = true; featuredPreviewEl.src = ''; }
               }
-              // SSR summaries carry no rawHTML, so the body starts empty on edit;
-              // the PUT below only sends rawHTML when the editor has content.
               if (bodyEl) bodyEl.innerHTML = '';
               setStatus(featuredStatusEl, '');
-              setStatus(formStatusEl, '');
               if (publishBtn) publishBtn.textContent = 'Update';
               if (cancelEditBtn) cancelEditBtn.hidden = false;
               showEditor();
               titleEl?.focus();
+
+              // The SSR list carries no rawHTML — fetch the full post so the
+              // Content box shows the existing body (not blank).
+              if (!id || !bodyEl) { setStatus(formStatusEl, ''); return; }
+              setStatus(formStatusEl, 'Loading…');
+              try {
+                const res = await fetch(`/api/admin/blog/${encodeURIComponent(id)}`, { headers: authHeaders() });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.ok && data.post) {
+                  bodyEl.innerHTML = data.post.rawHTML ?? '';
+                  if (data.post.imageUrl && featuredUrlEl) {
+                    featuredUrlEl.value = data.post.imageUrl;
+                    if (featuredPreviewEl) { featuredPreviewEl.src = data.post.imageUrl; featuredPreviewEl.hidden = false; }
+                  }
+                  setStatus(formStatusEl, '');
+                } else {
+                  setStatus(formStatusEl, 'Could not load the post body — retype it if you want to change it.', 'err');
+                }
+              } catch {
+                setStatus(formStatusEl, 'Could not load the post body — retype it if you want to change it.', 'err');
+              }
             }
 
             // ── Publish / update ──────────────────────────────────────────
