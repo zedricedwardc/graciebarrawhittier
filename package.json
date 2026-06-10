@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "onboard:ghl": "tsx scripts/onboard-client.ts",
+    "onboard:blog": "tsx scripts/onboard-blog.ts",
     "validate:intake": "tsx scripts/intake-validator.ts",
     "og:home": "node scripts/og-image-home.mjs",
     "og:adults": "node scripts/og-image-adults.mjs",

@@ -45,6 +45,12 @@ export interface GhlFetchOptions {
   json?: unknown;
   /** Raw body string. Mutually exclusive with `json`. */
   body?: string;
+  /**
+   * Multipart body for file uploads (e.g. POST /medias/upload-file). When set,
+   * the JSON Content-Type is omitted so fetch can set the multipart boundary.
+   * Mutually exclusive with `json` and `body`.
+   */
+  formData?: FormData;
   /** Override the Version header for this call. Defaults to DEFAULT_VERSION. */
   version?: string;
   /** Extra headers (e.g. for endpoints that need a special content-type). */
@@ -129,13 +135,19 @@ export async function ghlFetch<T = unknown>(path: string, options: GhlFetchOptio
   const method = options.method ?? 'GET';
   const version = options.version ?? DEFAULT_VERSION;
 
-  if (options.json !== undefined && options.body !== undefined) {
-    throw new Error('ghlFetch: pass either `json` or `body`, not both');
+  const bodyKinds = [options.json !== undefined, options.body !== undefined, options.formData !== undefined].filter(Boolean);
+  if (bodyKinds.length > 1) {
+    throw new Error('ghlFetch: pass only one of `json`, `body`, or `formData`');
   }
 
   if (!options.skipBackPressure) await applyBackPressure();
 
-  const body = options.json !== undefined ? JSON.stringify(options.json) : options.body;
+  const isMultipart = options.formData !== undefined;
+  const body: BodyInit | undefined = isMultipart
+    ? options.formData
+    : options.json !== undefined
+      ? JSON.stringify(options.json)
+      : options.body;
 
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -144,7 +156,8 @@ export async function ghlFetch<T = unknown>(path: string, options: GhlFetchOptio
       Authorization: `Bearer ${token()}`,
       Version: version,
       Accept: 'application/json',
-      'Content-Type': 'application/json',
+      // For multipart, let fetch set Content-Type (with the boundary).
+      ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers ?? {}),
     },
   });

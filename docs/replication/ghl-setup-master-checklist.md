@@ -64,6 +64,16 @@ A combined, dependency-ordered checklist that pairs with [`intro-campaign-setup.
 - [ ] **[ADMIN]** Stage 10C: Verify 30-Day Campaign delivery — [btm › §11.10C](./btm-campaign-setup.md) — **done when:** Workflow Statistics shows enrolled contacts matching import volume; Email 1 delivering.
 - [ ] **[DEV]** Re-run health check after import — both docs — **done when:** `{ ok: true, drift: [] }`.
 
+## Blog (optional — website blog via GHL Blogs)
+
+See [`blog-setup.md`](./blog-setup.md) for full detail (PIT scopes + click-paths).
+
+- [ ] **[ADMIN]** Add the blog PIT scopes (`blogs/*`, `medias.write`, `custom-menu-link.write`) — [blog › §1](./blog-setup.md) — **done when:** the token has all nine scopes ticked.
+- [ ] **[ADMIN]** Create a blog site + author + category in GHL → Sites → Blogs — [blog › §2](./blog-setup.md) — **done when:** one of each exists.
+- [ ] **[DEV]** Run `npm run onboard:blog discover` — [blog › §3](./blog-setup.md) — **done when:** `.env.client.local` has non-empty `GHL_BLOG_ID`, `GHL_BLOG_AUTHOR_ID`, `GHL_BLOG_DEFAULT_CATEGORY_ID`.
+- [ ] **[DEV]** Set `ADMIN_SIGNING_KEY` (>= 32 chars) + paste the three `GHL_BLOG_*` IDs into Vercel; redeploy — [blog › §3](./blog-setup.md) — **done when:** `/blog` renders on the deployed site.
+- [ ] **[DEV]** Dry-run then create the menu: `npm run onboard:blog menu` → `npm run onboard:blog menu -- --write` — [blog › §4](./blog-setup.md) — **done when:** "Website Blog" appears in the sub-account sidebar and opens the editor in an iframe. (Rotating `ADMIN_SIGNING_KEY` later invalidates the link — re-run this step.)
+
 ---
 
 ## If something fails mid-setup

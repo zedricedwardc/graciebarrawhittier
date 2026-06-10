@@ -19,6 +19,7 @@ Deep-dive references (follow links from REPLICATE.md when needed):
 - `./launch-checklist.md` — production go-live items
 - `./intro-campaign-setup.md` — intro funnel GHL setup
 - `./btm-campaign-setup.md` — Back to the Mats campaign GHL setup
+- `./blog-setup.md` — website blog GHL setup (PIT scopes, env IDs, custom menu)
 - `./ghl-api-access-methods.md` — auth + PIT scopes + Conversation AI endpoints
 - `./ghl-workflow-build-from-scratch.md` — internal-backend workflow build
 - `./ghl-chat-widget-bot-content.md` — chat widget bot content

@@ -1,0 +1,64 @@
+---
+/**
+ * BlogCard — a single blog post summary card for the /blog grid.
+ * Mirrors the program-card markup on index.astro (rounded-2xl white card,
+ * image header, padded body, red outline "Read more" CTA) so the blog
+ * inherits the existing Gracie Barra visual language.
+ */
+import CTAButton from '../cta/CTAButton.astro';
+import type { BlogPostSummary } from '../../lib/ghl-blog';
+
+export interface Props {
+  post: BlogPostSummary;
+}
+
+const { post } = Astro.props;
+
+// Simple SSR-safe date format, e.g. "June 9, 2026". Falls back to empty string
+// if publishedAt is missing or unparseable (degrade gracefully).
+function formatDate(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+const href = `/blog/${post.slug}/`;
+const publishedLabel = formatDate(post.publishedAt);
+---
+
+<article class="bg-gb-white rounded-2xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow">
+  {
+    post.imageUrl && (
+      <a href={href} class="block" aria-hidden="true" tabindex="-1">
+        <img
+          src={post.imageUrl}
+          alt={post.imageAltText || post.title}
+          class="w-full h-44 md:h-52 object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      </a>
+    )
+  }
+  <div class="p-6 md:p-8 flex-1 flex flex-col">
+    {
+      publishedLabel && (
+        <p class="text-xs font-semibold uppercase tracking-wide text-gb-text-muted">
+          {publishedLabel}
+        </p>
+      )
+    }
+    <h3 class="mt-2 text-xl md:text-2xl font-extrabold text-gb-navy leading-tight">
+      <a href={href} class="hover:text-gb-red transition-colors">{post.title}</a>
+    </h3>
+    {
+      post.description && (
+        <p class="mt-3 text-sm text-gb-text-muted leading-relaxed flex-1">{post.description}</p>
+      )
+    }
+    <div class="mt-6">
+      <CTAButton variant="program" label="Read more" href={href} ariaLabel={`Read more: ${post.title}`} />
+    </div>
+  </div>
+</article>

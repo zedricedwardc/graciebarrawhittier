@@ -1,0 +1,582 @@
+---
+/**
+ * /admin/blog — internal blog editor, surfaced as a GHL custom menu link
+ * (iframe). Deliberately plain: NO BaseLayout (no public Nav/Footer/CTA in an
+ * embedded admin tool), but it imports tokens.css so inputs/buttons feel like GB.
+ *
+ * SSR token gate
+ * --------------
+ * Reads `t` from the query string and verifies it with verifyAdminToken. If the
+ * token is missing/invalid/expired we render a minimal 401 page and stop. The
+ * same token is embedded into the page (a JS const) so every client fetch can
+ * send it back as the `x-admin-token` header to the /api/admin/blog/* routes.
+ *
+ * Framing header
+ * --------------
+ * Astro/Vercel block framing by default. We set a route-scoped CSP frame-ancestors
+ * header HERE (in this page's frontmatter, before any early return) rather than
+ * via global middleware — global middleware would conflict with the other slices
+ * editing this tree. `output: 'server'` is set in astro.config, so mutating
+ * Astro.response.headers / Astro.response.status takes effect on the SSR response.
+ *
+ * Rich-text editor
+ * ----------------
+ * Lightweight, zero-dependency contenteditable + document.execCommand toolbar
+ * (bold, H2, H3, bullet list, link, inline image). Inline images upload through
+ * /api/admin/blog/upload and are inserted as <img src=hostedUrl>. The editor's
+ * innerHTML is serialized straight to the `rawHTML` field we POST — no extra
+ * sanitization layer here (trusted internal authors; the public renderer owns
+ * any display-side hardening). Documented choice: execCommand is deprecated but
+ * universally supported and avoids shipping a WYSIWYG bundle for a tool that a
+ * single admin uses occasionally.
+ */
+import { verifyAdminToken } from '../../../lib/admin-token';
+import { listPublishedPosts, type BlogPostSummary } from '../../../lib/ghl-blog';
+import '../../../styles/tokens.css';
+
+// Allow GHL to iframe this page. Must be set before any early return so the
+// 401 response is also frameable inside the GHL admin shell.
+Astro.response.headers.set(
+  'Content-Security-Policy',
+  'frame-ancestors https://*.gohighlevel.com https://*.leadconnectorhq.com https://app.gohighlevel.com',
+);
+
+const t = Astro.url.searchParams.get('t');
+const v = t ? verifyAdminToken(t) : { ok: false as const };
+
+// Initial post list (SSR) — only fetched when authed. Degrades to [] on failure
+// (listPublishedPosts already serves last-good cache / empty on GHL errors).
+let posts: BlogPostSummary[] = [];
+if (v.ok) {
+  try {
+    posts = await listPublishedPosts({ limit: 50 });
+  } catch {
+    posts = [];
+  }
+}
+
+if (!v.ok) {
+  Astro.response.status = 401;
+}
+
+// Styles for the minimal 401 page.
+const DENIED_STYLES = `
+  body { font-family: var(--font-sans); background: var(--gb-bg-light); color: var(--gb-text);
+         display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
+  .card { background: var(--gb-white); border-radius: 12px; padding: 2rem 2.25rem; max-width: 26rem;
+          text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  h1 { color: var(--gb-navy); font-size: 1.25rem; margin: 0 0 .5rem; }
+  p { color: var(--gb-text-muted); margin: 0; font-size: .95rem; }
+`;
+
+// Styles for the authed editor. Plain CSS using tokens.css variables (--gb-*)
+// so buttons/inputs read as Gracie Barra without pulling in BaseLayout/Tailwind.
+const STYLES = `
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--gb-bg-light);
+    color: var(--gb-text);
+    margin: 0;
+    padding: 1.5rem 1rem 4rem;
+    line-height: 1.5;
+  }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .page-head { max-width: 880px; margin: 0 auto 1.5rem; }
+  .page-head h1 { color: var(--gb-navy); font-size: 1.5rem; margin: 0 0 .25rem; }
+  .page-head .sub { color: var(--gb-text-muted); margin: 0; font-size: .95rem; }
+  .layout { max-width: 880px; margin: 0 auto; display: grid; gap: 1.25rem; }
+  .panel {
+    background: var(--gb-white);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  }
+  .panel > h2 { color: var(--gb-navy); font-size: 1.05rem; margin: 0 0 1rem; }
+  .field { margin-bottom: 1.25rem; }
+  .field label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .4rem; color: var(--gb-text); }
+  .hint { font-size: .85rem; color: var(--gb-text-muted); margin: .4rem 0 0; }
+  .hint.is-ok { color: var(--gb-green); }
+  .hint.is-err { color: var(--gb-red); }
+  input[type="text"] {
+    width: 100%; height: 44px; padding: 0 .75rem;
+    border: 1px solid #d1d5db; border-radius: 8px; font: inherit; color: var(--gb-text);
+    background: var(--gb-white);
+  }
+  input[type="file"] { font: inherit; }
+  input[type="text"]:focus,
+  input[type="file"]:focus,
+  .editor:focus {
+    outline: none; border-color: var(--gb-red);
+    box-shadow: 0 0 0 3px rgba(204, 34, 0, .18);
+  }
+  .preview {
+    display: block; margin-top: .6rem; max-width: 280px; max-height: 180px;
+    width: auto; height: auto; border-radius: 8px; border: 1px solid #e5e7eb;
+  }
+  .toolbar { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .5rem; }
+  .toolbar button {
+    font: inherit; font-size: .85rem; line-height: 1; padding: .4rem .6rem;
+    border: 1px solid #d1d5db; border-radius: 6px; background: var(--gb-white);
+    color: var(--gb-navy); cursor: pointer;
+  }
+  .toolbar button:hover { background: var(--gb-bg-light); border-color: var(--gb-navy); }
+  .toolbar button:focus-visible { outline: 2px solid var(--gb-red); outline-offset: 1px; }
+  .editor {
+    min-height: 220px; padding: .75rem; border: 1px solid #d1d5db; border-radius: 8px;
+    background: var(--gb-white); overflow-y: auto;
+  }
+  .editor h2 { color: var(--gb-navy); font-size: 1.3rem; margin: .75rem 0 .4rem; }
+  .editor h3 { color: var(--gb-navy); font-size: 1.1rem; margin: .6rem 0 .35rem; }
+  .editor a { color: var(--gb-red); }
+  .editor img { max-width: 100%; height: auto; border-radius: 6px; }
+  .editor ul { padding-left: 1.4rem; }
+  .actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+  .btn {
+    font: inherit; font-weight: 700; cursor: pointer; border: 2px solid transparent;
+    border-radius: var(--btn-radius); padding: 0 var(--btn-padding-x);
+    height: var(--btn-h-desktop); display: inline-flex; align-items: center; justify-content: center;
+  }
+  .btn:disabled { opacity: .6; cursor: not-allowed; }
+  .btn-primary { background: var(--gb-red); color: var(--gb-white); }
+  .btn-primary:hover:not(:disabled) { background: var(--gb-red-dark); }
+  .btn-ghost { background: var(--gb-white); border-color: var(--gb-navy); color: var(--gb-navy); }
+  .btn-ghost:hover:not(:disabled) { background: var(--gb-bg-light); }
+  .btn-small { height: 38px; padding: 0 1rem; font-size: .85rem; background: var(--gb-white); border-color: var(--gb-navy); color: var(--gb-navy); }
+  .btn-small:hover:not(:disabled) { background: var(--gb-bg-light); }
+  .btn-danger { border-color: var(--gb-red); color: var(--gb-red); }
+  .btn-danger:hover:not(:disabled) { background: var(--gb-red); color: var(--gb-white); }
+  .btn:focus-visible { outline: 2px solid var(--gb-navy); outline-offset: 2px; }
+  .status { margin: 0; font-size: .9rem; }
+  .status.is-ok { color: var(--gb-green); }
+  .status.is-err { color: var(--gb-red); }
+  .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+  .post-list .empty { color: var(--gb-text-muted); font-size: .95rem; padding: .5rem 0; }
+  .post-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: .75rem .9rem; border: 1px solid #e5e7eb; border-radius: 8px;
+  }
+  .post-meta { min-width: 0; display: flex; flex-direction: column; }
+  .post-title { font-weight: 600; color: var(--gb-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .post-slug { font-size: .8rem; color: var(--gb-text-muted); }
+  .post-actions { display: flex; gap: .5rem; flex-shrink: 0; }
+`;
+---
+
+{
+  !v.ok ? (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex,nofollow" />
+        <title>Access denied</title>
+        <style set:html={DENIED_STYLES} />
+      </head>
+      <body>
+        <div class="card">
+          <h1>Access denied</h1>
+          <p>This link is invalid or expired.</p>
+        </div>
+      </body>
+    </html>
+  ) : (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex,nofollow" />
+        <title>Blog editor</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        />
+        <style set:html={STYLES} />
+      </head>
+      <body>
+        {/* Token embedded for client fetches → sent as x-admin-token header. */}
+        <div id="admin-root" data-admin-token={t}>
+          <header class="page-head">
+            <h1>Website Blog</h1>
+            <p class="sub">Write a post, add a photo, hit publish. It goes live on the website.</p>
+          </header>
+
+          <main class="layout">
+            {/* ── Editor ───────────────────────────────────────────────── */}
+            <section class="panel" aria-labelledby="editor-heading">
+              <h2 id="editor-heading" class="visually-hidden">Post editor</h2>
+
+              {/* Hidden id field — set when editing an existing post. */}
+              <input type="hidden" id="post-id" value="" />
+
+              <div class="field">
+                <label for="post-title">Title</label>
+                <input id="post-title" type="text" maxlength="300" placeholder="e.g. 5 Benefits of Brazilian Jiu-Jitsu for Kids" autocomplete="off" />
+              </div>
+
+              <div class="field">
+                <label for="featured-file">Featured image</label>
+                <input id="featured-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" />
+                <p class="hint" id="featured-status" aria-live="polite"></p>
+                <img id="featured-preview" class="preview" alt="" hidden />
+                {/* Holds the hosted GHL media URL returned by the upload route. */}
+                <input type="hidden" id="featured-url" value="" />
+              </div>
+
+              <div class="field">
+                <label for="post-body">Body</label>
+                <div class="toolbar" role="toolbar" aria-label="Formatting" aria-controls="post-body">
+                  <button type="button" data-cmd="bold" title="Bold" aria-label="Bold"><b>B</b></button>
+                  <button type="button" data-cmd="h2" title="Heading" aria-label="Heading 2">H2</button>
+                  <button type="button" data-cmd="h3" title="Subheading" aria-label="Heading 3">H3</button>
+                  <button type="button" data-cmd="ul" title="Bullet list" aria-label="Bullet list">• List</button>
+                  <button type="button" data-cmd="link" title="Insert link" aria-label="Insert link">Link</button>
+                  <button type="button" data-cmd="image" title="Insert image" aria-label="Insert image">Image</button>
+                </div>
+                <div id="post-body" class="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Post body"></div>
+                {/* Hidden file input the toolbar's Image button triggers. */}
+                <input type="file" id="inline-file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" hidden />
+              </div>
+
+              <div class="actions">
+                <button type="button" id="publish-btn" class="btn btn-primary">Publish</button>
+                <button type="button" id="cancel-edit-btn" class="btn btn-ghost" hidden>Cancel edit</button>
+                <p class="status" id="form-status" role="status" aria-live="polite"></p>
+              </div>
+            </section>
+
+            {/* ── Existing posts ───────────────────────────────────────── */}
+            <section class="panel" aria-labelledby="posts-heading">
+              <h2 id="posts-heading">Published posts</h2>
+              <ul class="post-list" id="post-list">
+                {posts.length === 0 ? (
+                  <li class="empty" data-empty>No posts published yet.</li>
+                ) : (
+                  posts.map((p) => (
+                    <li
+                      class="post-row"
+                      data-post-id={p.id}
+                      data-title={p.title}
+                      data-image-url={p.imageUrl}
+                      data-description={p.description}
+                      data-image-alt={p.imageAltText}
+                      data-slug={p.slug}
+                    >
+                      <div class="post-meta">
+                        <span class="post-title">{p.title}</span>
+                        <span class="post-slug">/{p.slug}</span>
+                      </div>
+                      <div class="post-actions">
+                        <button type="button" class="btn btn-small" data-edit>Edit</button>
+                        <button type="button" class="btn btn-small btn-danger" data-delete>Delete</button>
+                      </div>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </section>
+          </main>
+        </div>
+
+        <script>
+          // ─── /admin/blog client controller ──────────────────────────────
+          // Editing the body uses a contenteditable + execCommand toolbar (see
+          // the frontmatter comment for why). The token comes from the page's
+          // data-admin-token attr and rides on every API call as x-admin-token.
+
+          const root = document.getElementById('admin-root');
+          if (root) {
+            const token = root.dataset.adminToken ?? '';
+
+            const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
+              document.getElementById(id) as T | null;
+
+            const postIdEl = $<HTMLInputElement>('post-id');
+            const titleEl = $<HTMLInputElement>('post-title');
+            const featuredFileEl = $<HTMLInputElement>('featured-file');
+            const featuredStatusEl = $('featured-status');
+            const featuredPreviewEl = $<HTMLImageElement>('featured-preview');
+            const featuredUrlEl = $<HTMLInputElement>('featured-url');
+            const bodyEl = $('post-body');
+            const inlineFileEl = $<HTMLInputElement>('inline-file');
+            const publishBtn = $<HTMLButtonElement>('publish-btn');
+            const cancelEditBtn = $<HTMLButtonElement>('cancel-edit-btn');
+            const formStatusEl = $('form-status');
+            const postListEl = $('post-list');
+
+            // ── Helpers ───────────────────────────────────────────────────
+            function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+              return { 'x-admin-token': token, ...extra };
+            }
+
+            function setStatus(el: HTMLElement | null, msg: string, kind: 'ok' | 'err' | '' = '') {
+              if (!el) return;
+              el.textContent = msg;
+              el.classList.remove('is-ok', 'is-err');
+              if (kind === 'ok') el.classList.add('is-ok');
+              if (kind === 'err') el.classList.add('is-err');
+            }
+
+            // ── Rich-text toolbar ─────────────────────────────────────────
+            function exec(command: string, value?: string) {
+              bodyEl?.focus();
+              document.execCommand(command, false, value);
+            }
+
+            document.querySelectorAll<HTMLButtonElement>('.toolbar button[data-cmd]').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const cmd = btn.dataset.cmd;
+                switch (cmd) {
+                  case 'bold': exec('bold'); break;
+                  case 'h2': exec('formatBlock', 'H2'); break;
+                  case 'h3': exec('formatBlock', 'H3'); break;
+                  case 'ul': exec('insertUnorderedList'); break;
+                  case 'link': {
+                    const url = window.prompt('Link URL (include https://)');
+                    if (url) exec('createLink', url);
+                    break;
+                  }
+                  case 'image':
+                    inlineFileEl?.click();
+                    break;
+                }
+              });
+            });
+
+            // ── Image upload (shared) ─────────────────────────────────────
+            async function uploadImage(file: File): Promise<string | null> {
+              const fd = new FormData();
+              fd.append('file', file);
+              const res = await fetch('/api/admin/blog/upload', {
+                method: 'POST',
+                headers: authHeaders(), // do NOT set Content-Type; the browser adds the multipart boundary
+                body: fd,
+              });
+              const data = await res.json().catch(() => ({}));
+              if (res.ok && data.ok && data.url) return data.url as string;
+              throw new Error(data.message ?? data.code ?? `Upload failed (${res.status})`);
+            }
+
+            // Featured image
+            featuredFileEl?.addEventListener('change', async () => {
+              const file = featuredFileEl.files?.[0];
+              if (!file) return;
+              setStatus(featuredStatusEl, 'Uploading…');
+              try {
+                const url = await uploadImage(file);
+                if (!url) throw new Error('No URL returned.');
+                if (featuredUrlEl) featuredUrlEl.value = url;
+                if (featuredPreviewEl) {
+                  featuredPreviewEl.src = url;
+                  featuredPreviewEl.hidden = false;
+                }
+                setStatus(featuredStatusEl, 'Image uploaded.', 'ok');
+              } catch (err) {
+                setStatus(featuredStatusEl, err instanceof Error ? err.message : 'Upload failed.', 'err');
+              }
+            });
+
+            // Inline (body) image
+            inlineFileEl?.addEventListener('change', async () => {
+              const file = inlineFileEl.files?.[0];
+              if (!file) return;
+              setStatus(formStatusEl, 'Uploading image…');
+              try {
+                const url = await uploadImage(file);
+                if (!url) throw new Error('No URL returned.');
+                exec('insertImage', url);
+                setStatus(formStatusEl, '', '');
+              } catch (err) {
+                setStatus(formStatusEl, err instanceof Error ? err.message : 'Image upload failed.', 'err');
+              } finally {
+                inlineFileEl.value = '';
+              }
+            });
+
+            // ── Form reset / edit prefill ─────────────────────────────────
+            function resetForm() {
+              if (postIdEl) postIdEl.value = '';
+              if (titleEl) titleEl.value = '';
+              if (featuredUrlEl) featuredUrlEl.value = '';
+              if (featuredFileEl) featuredFileEl.value = '';
+              if (featuredPreviewEl) { featuredPreviewEl.hidden = true; featuredPreviewEl.src = ''; }
+              if (bodyEl) bodyEl.innerHTML = '';
+              setStatus(featuredStatusEl, '');
+              if (publishBtn) publishBtn.textContent = 'Publish';
+              if (cancelEditBtn) cancelEditBtn.hidden = true;
+            }
+
+            cancelEditBtn?.addEventListener('click', () => {
+              resetForm();
+              setStatus(formStatusEl, '');
+            });
+
+            function startEdit(row: HTMLElement) {
+              if (postIdEl) postIdEl.value = row.dataset.postId ?? '';
+              if (titleEl) titleEl.value = row.dataset.title ?? '';
+              const imageUrl = row.dataset.imageUrl ?? '';
+              if (featuredUrlEl) featuredUrlEl.value = imageUrl;
+              if (featuredPreviewEl) {
+                if (imageUrl) { featuredPreviewEl.src = imageUrl; featuredPreviewEl.hidden = false; }
+                else { featuredPreviewEl.hidden = true; }
+              }
+              // NOTE: the SSR list (listPublishedPosts) returns summaries without
+              // rawHTML, so the body starts empty on edit — re-author the body or
+              // leave it untouched (an empty body would clear it, so we guard the
+              // PUT below to only send rawHTML when the editor has content).
+              if (bodyEl) bodyEl.innerHTML = '';
+              setStatus(featuredStatusEl, '');
+              if (publishBtn) publishBtn.textContent = 'Update';
+              if (cancelEditBtn) cancelEditBtn.hidden = false;
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              titleEl?.focus();
+            }
+
+            // ── Publish / update ──────────────────────────────────────────
+            publishBtn?.addEventListener('click', async () => {
+              const id = postIdEl?.value ?? '';
+              const title = (titleEl?.value ?? '').trim();
+              const rawHTML = (bodyEl?.innerHTML ?? '').trim();
+              const imageUrl = featuredUrlEl?.value ?? '';
+              const isEditing = !!id;
+
+              if (!title) { setStatus(formStatusEl, 'Please add a title.', 'err'); return; }
+              if (!isEditing && !rawHTML) { setStatus(formStatusEl, 'Please write the post body.', 'err'); return; }
+              if (!isEditing && !imageUrl) { setStatus(formStatusEl, 'Please add a featured image.', 'err'); return; }
+
+              publishBtn.disabled = true;
+              setStatus(formStatusEl, isEditing ? 'Updating…' : 'Publishing…');
+
+              try {
+                let res: Response;
+                if (isEditing) {
+                  // Only send fields the editor actually has, so an untouched
+                  // body/image on edit doesn't wipe the stored content.
+                  const body: Record<string, string> = { title };
+                  if (rawHTML) body.rawHTML = rawHTML;
+                  if (imageUrl) body.imageUrl = imageUrl;
+                  res = await fetch(`/api/admin/blog/${encodeURIComponent(id)}`, {
+                    method: 'PUT',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify(body),
+                  });
+                } else {
+                  res = await fetch('/api/admin/blog', {
+                    method: 'POST',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ title, rawHTML, imageUrl }),
+                  });
+                }
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) {
+                  throw new Error(data.message ?? data.code ?? `Request failed (${res.status})`);
+                }
+                setStatus(formStatusEl, isEditing ? 'Post updated.' : 'Post published.', 'ok');
+                resetForm();
+                // Reflect the change in the list without a full reload.
+                if (isEditing) {
+                  const row = postListEl?.querySelector<HTMLElement>(`[data-post-id="${cssEscape(id)}"]`);
+                  if (row) {
+                    row.dataset.title = title;
+                    if (imageUrl) row.dataset.imageUrl = imageUrl;
+                    const titleSpan = row.querySelector('.post-title');
+                    if (titleSpan) titleSpan.textContent = title;
+                  }
+                } else {
+                  addPostRow({ id: data.id as string, title, slug: (data.slug as string) ?? '', imageUrl });
+                }
+              } catch (err) {
+                setStatus(formStatusEl, err instanceof Error ? err.message : 'Something went wrong.', 'err');
+              } finally {
+                publishBtn.disabled = false;
+              }
+            });
+
+            // ── Delete (archive) ──────────────────────────────────────────
+            async function deletePost(row: HTMLElement) {
+              const id = row.dataset.postId ?? '';
+              if (!id) return;
+              const title = row.dataset.title ?? 'this post';
+              if (!window.confirm(`Delete "${title}"? This removes it from the website.`)) return;
+
+              const delBtn = row.querySelector<HTMLButtonElement>('[data-delete]');
+              if (delBtn) delBtn.disabled = true;
+              try {
+                const res = await fetch(`/api/admin/blog/${encodeURIComponent(id)}`, {
+                  method: 'DELETE',
+                  headers: authHeaders(),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.message ?? data.code ?? `Delete failed (${res.status})`);
+                row.remove();
+                ensureEmptyState();
+                setStatus(formStatusEl, 'Post deleted.', 'ok');
+              } catch (err) {
+                if (delBtn) delBtn.disabled = false;
+                setStatus(formStatusEl, err instanceof Error ? err.message : 'Could not delete.', 'err');
+              }
+            }
+
+            // ── Post-list DOM helpers ─────────────────────────────────────
+            function cssEscape(s: string): string {
+              return s.replace(/["\\]/g, '\\$&');
+            }
+
+            function escapeHtml(s: string): string {
+              return s.replace(/[&<>"']/g, (c) =>
+                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!),
+              );
+            }
+
+            function bindRow(row: HTMLElement) {
+              row.querySelector('[data-edit]')?.addEventListener('click', () => startEdit(row));
+              row.querySelector('[data-delete]')?.addEventListener('click', () => deletePost(row));
+            }
+
+            function addPostRow(p: { id: string; title: string; slug: string; imageUrl: string }) {
+              if (!postListEl) return;
+              postListEl.querySelector('[data-empty]')?.remove();
+              const li = document.createElement('li');
+              li.className = 'post-row';
+              li.dataset.postId = p.id;
+              li.dataset.title = p.title;
+              li.dataset.imageUrl = p.imageUrl;
+              li.dataset.slug = p.slug;
+              li.innerHTML = `
+                <div class="post-meta">
+                  <span class="post-title">${escapeHtml(p.title)}</span>
+                  <span class="post-slug">/${escapeHtml(p.slug)}</span>
+                </div>
+                <div class="post-actions">
+                  <button type="button" class="btn btn-small" data-edit>Edit</button>
+                  <button type="button" class="btn btn-small btn-danger" data-delete>Delete</button>
+                </div>`;
+              postListEl.prepend(li);
+              bindRow(li);
+            }
+
+            function ensureEmptyState() {
+              if (!postListEl) return;
+              if (!postListEl.querySelector('.post-row')) {
+                const li = document.createElement('li');
+                li.className = 'empty';
+                li.dataset.empty = '';
+                li.textContent = 'No posts published yet.';
+                postListEl.appendChild(li);
+              }
+            }
+
+            // Bind existing SSR-rendered rows.
+            postListEl?.querySelectorAll<HTMLElement>('.post-row').forEach(bindRow);
+          }
+        </script>
+      </body>
+    </html>
+  )
+}
