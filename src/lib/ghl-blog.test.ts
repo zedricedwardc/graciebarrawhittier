@@ -19,6 +19,8 @@ import {
   createPost,
   listPublishedPosts,
   getPostBySlug,
+  getAuthorsMap,
+  getBlogsMap,
   uploadBlogImage,
   __clearBlogCache,
 } from './ghl-blog';
@@ -169,20 +171,56 @@ describe('createPost', () => {
 
 describe('listPublishedPosts', () => {
   it('maps GHL posts to summaries, newest first', async () => {
-    ghlFetchMock.mockResolvedValueOnce({
-      blogs: [
-        { _id: 'a', title: 'Old', urlSlug: 'old', publishedAt: '2026-01-01T00:00:00Z', imageUrl: 'i1', description: 'd1' },
-        { _id: 'b', title: 'New', urlSlug: 'new', publishedAt: '2026-06-01T00:00:00Z', imageUrl: 'i2', description: 'd2', imageAltText: 'alt2' },
-      ],
-    });
+    ghlFetchMock
+      .mockResolvedValueOnce({
+        blogs: [
+          { _id: 'a', title: 'Old', urlSlug: 'old', publishedAt: '2026-01-01T00:00:00Z', imageUrl: 'i1', description: 'd1', author: 'author_1', blogId: 'blog_1' },
+          { _id: 'b', title: 'New', urlSlug: 'new', publishedAt: '2026-06-01T00:00:00Z', imageUrl: 'i2', description: 'd2', imageAltText: 'alt2', author: 'author_1', blogId: 'blog_1' },
+        ],
+      }) // list
+      .mockResolvedValueOnce({ authors: [{ _id: 'author_1', name: 'Jane Coach' }] }) // authors map
+      .mockResolvedValueOnce({ data: [{ _id: 'blog_1', name: 'GBW Blog' }] }); // blogs map
     const posts = await listPublishedPosts();
     expect(posts.map((p) => p.id)).toEqual(['b', 'a']);
     expect(posts[0]).toEqual({
       id: 'b', title: 'New', slug: 'new', description: 'd2', imageUrl: 'i2', imageAltText: 'alt2', publishedAt: '2026-06-01T00:00:00Z',
+      authorName: 'Jane Coach', blogName: 'GBW Blog',
     });
     const [path] = ghlFetchMock.mock.calls[0]!;
     expect(path).toContain('status=PUBLISHED');
     expect(path).toContain('blogId=blog_1');
+  });
+
+  it('falls back to the default author/blog name for unknown ids', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({
+        blogs: [
+          // post carries no author/blog id at all
+          { _id: 'a', title: 'A', urlSlug: 'a', publishedAt: '2026-01-01T00:00:00Z' },
+          // post carries an author id the map doesn't know
+          { _id: 'b', title: 'B', urlSlug: 'b', publishedAt: '2026-02-01T00:00:00Z', author: 'unknown_author', blogId: 'unknown_blog' },
+        ],
+      }) // list
+      .mockResolvedValueOnce({ authors: [{ _id: 'author_1', name: 'Default Author' }] }) // authors map (only the configured default)
+      .mockResolvedValueOnce({ data: [{ _id: 'blog_1', name: 'Default Blog' }] }); // blogs map
+    const posts = await listPublishedPosts();
+    // Both posts fall back to the configured default (GHL_BLOG_AUTHOR_ID/GHL_BLOG_ID) names.
+    for (const p of posts) {
+      expect(p.authorName).toBe('Default Author');
+      expect(p.blogName).toBe('Default Blog');
+    }
+  });
+
+  it('uses the — placeholder when no name resolves at all', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({
+        blogs: [{ _id: 'a', title: 'A', urlSlug: 'a', publishedAt: '2026-01-01T00:00:00Z', author: 'x', blogId: 'y' }],
+      }) // list
+      .mockResolvedValueOnce({ authors: [] }) // empty authors map
+      .mockResolvedValueOnce({ data: [] }); // empty blogs map
+    const posts = await listPublishedPosts();
+    expect(posts[0]!.authorName).toBe('—');
+    expect(posts[0]!.blogName).toBe('—');
   });
 
   it('serves [] on fetch error when no cache exists', async () => {
@@ -194,7 +232,10 @@ describe('listPublishedPosts', () => {
   it('serves last-good cache on a later fetch error', async () => {
     vi.useFakeTimers();
     try {
-      ghlFetchMock.mockResolvedValueOnce({ blogs: [{ _id: 'a', title: 'A', urlSlug: 'a', publishedAt: '2026-01-01T00:00:00Z' }] });
+      ghlFetchMock
+        .mockResolvedValueOnce({ blogs: [{ _id: 'a', title: 'A', urlSlug: 'a', publishedAt: '2026-01-01T00:00:00Z' }] }) // list
+        .mockResolvedValueOnce({ authors: [] }) // authors map
+        .mockResolvedValueOnce({ data: [] }); // blogs map
       const first = await listPublishedPosts();
       expect(first).toHaveLength(1);
 
@@ -210,20 +251,85 @@ describe('listPublishedPosts', () => {
 });
 
 describe('getPostBySlug', () => {
-  it('returns the matching post mapped with rawHTML + status', async () => {
-    ghlFetchMock.mockResolvedValueOnce({
-      blogs: [
-        { _id: 'a', urlSlug: 'other', title: 'Other' },
-        { _id: 'b', urlSlug: 'wanted', title: 'Wanted', rawHTML: '<p>Body</p>', status: 'PUBLISHED', publishedAt: '2026-06-01T00:00:00Z' },
-      ],
-    });
+  it('returns the matching post mapped with rawHTML + status + resolved names', async () => {
+    ghlFetchMock
+      .mockResolvedValueOnce({
+        blogs: [
+          { _id: 'a', urlSlug: 'other', title: 'Other' },
+          { _id: 'b', urlSlug: 'wanted', title: 'Wanted', rawHTML: '<p>Body</p>', status: 'PUBLISHED', publishedAt: '2026-06-01T00:00:00Z', author: 'author_1', blogId: 'blog_1' },
+        ],
+      }) // list page
+      .mockResolvedValueOnce({ authors: [{ _id: 'author_1', fullName: 'Coach Carlos' }] }) // authors map
+      .mockResolvedValueOnce({ data: [{ _id: 'blog_1', name: 'GBW Blog' }] }); // blogs map
     const post = await getPostBySlug('wanted');
-    expect(post).toMatchObject({ id: 'b', slug: 'wanted', rawHTML: '<p>Body</p>', status: 'PUBLISHED' });
+    expect(post).toMatchObject({
+      id: 'b', slug: 'wanted', rawHTML: '<p>Body</p>', status: 'PUBLISHED',
+      authorName: 'Coach Carlos', blogName: 'GBW Blog',
+    });
   });
 
   it('returns null when no post matches the slug', async () => {
     ghlFetchMock.mockResolvedValueOnce({ blogs: [{ _id: 'a', urlSlug: 'x' }] });
     expect(await getPostBySlug('missing')).toBeNull();
+  });
+});
+
+describe('getAuthorsMap', () => {
+  it('parses the {authors:[{_id,name}]} shape into id -> name', async () => {
+    ghlFetchMock.mockResolvedValueOnce({
+      authors: [
+        { _id: 'au1', name: 'Jane Coach' },
+        { _id: 'au2', name: 'John Coach' },
+      ],
+    });
+    const map = await getAuthorsMap();
+    expect(map).toEqual({ au1: 'Jane Coach', au2: 'John Coach' });
+    const [path] = ghlFetchMock.mock.calls[0]!;
+    expect(path).toContain('/blogs/authors');
+    expect(path).toContain('locationId=loc_123');
+    expect(path).toContain('limit=20'); // GHL 422s on limit>~20 for /blogs/authors
+  });
+
+  it('parses the {data:[{id,fullName}]} shape into id -> name', async () => {
+    ghlFetchMock.mockResolvedValueOnce({
+      data: [{ id: 'au3', fullName: 'Carlos Gracie' }],
+    });
+    const map = await getAuthorsMap();
+    expect(map).toEqual({ au3: 'Carlos Gracie' });
+  });
+
+  it('derives a name from firstName + lastName when no name/fullName', async () => {
+    ghlFetchMock.mockResolvedValueOnce({
+      authors: [{ _id: 'au4', firstName: 'Helio', lastName: 'Gracie' }],
+    });
+    const map = await getAuthorsMap();
+    expect(map).toEqual({ au4: 'Helio Gracie' });
+  });
+
+  it('returns {} on fetch error when no cache exists', async () => {
+    ghlFetchMock.mockRejectedValueOnce(new Error('network'));
+    expect(await getAuthorsMap()).toEqual({});
+  });
+});
+
+describe('getBlogsMap', () => {
+  it('parses the {data:[{_id,name}]} shape into id -> name', async () => {
+    ghlFetchMock.mockResolvedValueOnce({
+      data: [
+        { _id: 'b1', name: 'GBW Blog' },
+        { _id: 'b2', title: 'Second Blog' },
+      ],
+    });
+    const map = await getBlogsMap();
+    expect(map).toEqual({ b1: 'GBW Blog', b2: 'Second Blog' });
+    const [path] = ghlFetchMock.mock.calls[0]!;
+    expect(path).toContain('/blogs/site/all');
+    expect(path).toContain('locationId=loc_123');
+  });
+
+  it('returns {} on fetch error when no cache exists', async () => {
+    ghlFetchMock.mockRejectedValueOnce(new Error('network'));
+    expect(await getBlogsMap()).toEqual({});
   });
 });
 

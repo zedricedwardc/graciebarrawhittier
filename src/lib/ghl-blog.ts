@@ -30,6 +30,8 @@ export interface BlogPostSummary {
   imageUrl: string;
   imageAltText: string;
   publishedAt: string; // ISO
+  authorName: string; // resolved display name, '—' if unknown
+  blogName: string; // resolved display name, '—' if unknown
 }
 
 export interface BlogPost extends BlogPostSummary {
@@ -149,6 +151,21 @@ interface GhlBlogPost {
   rawHTML?: string;
   status?: string;
   publishedAt?: string;
+  // Author/blog id field names vary across GHL responses; capture both.
+  author?: string;
+  authorId?: string;
+  blogId?: string;
+  blog?: string;
+}
+
+/** The author id carried on a raw post, defensive across field names. */
+function postAuthorId(p: GhlBlogPost): string {
+  return p.author ?? p.authorId ?? '';
+}
+
+/** The blog id carried on a raw post, defensive across field names. */
+function postBlogId(p: GhlBlogPost): string {
+  return p.blogId ?? p.blog ?? '';
 }
 
 function mapSummary(p: GhlBlogPost): BlogPostSummary {
@@ -160,6 +177,10 @@ function mapSummary(p: GhlBlogPost): BlogPostSummary {
     imageUrl: p.imageUrl ?? '',
     imageAltText: p.imageAltText ?? p.title ?? '',
     publishedAt: p.publishedAt ?? '',
+    // The join in listPublishedPosts/getPostBySlug overwrites these; default to '—'
+    // so the returned object satisfies BlogPostSummary even before the join.
+    authorName: '—',
+    blogName: '—',
   };
 }
 
@@ -213,12 +234,131 @@ export function __clearBlogCache(): void {
   cache.clear();
 }
 
+// ── Author / blog name lookups (cached, last-good/{} on error) ───────────────
+
+interface GhlAuthor {
+  _id?: string;
+  id?: string;
+  name?: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface AuthorsResponse {
+  authors?: GhlAuthor[];
+  data?: GhlAuthor[];
+}
+
+interface GhlBlogSite {
+  _id?: string;
+  id?: string;
+  name?: string;
+  title?: string;
+}
+
+interface BlogsResponse {
+  data?: GhlBlogSite[];
+  blogs?: GhlBlogSite[];
+  sites?: GhlBlogSite[];
+}
+
+function authorDisplayName(a: GhlAuthor): string {
+  if (a.name) return a.name;
+  if (a.fullName) return a.fullName;
+  return `${a.firstName ?? ''} ${a.lastName ?? ''}`.trim();
+}
+
+/** Map of author id -> display name for the location. Cached (~5 min), {} on error. */
+export async function getAuthorsMap(): Promise<Record<string, string>> {
+  return cached<Record<string, string>>('authors', {}, async () => {
+    const params = new URLSearchParams({
+      locationId: locationId(),
+      // GHL rejects limit > ~20 on /blogs/authors with a 422 (unlike /blogs/site/all).
+      limit: '20',
+      offset: '0',
+    });
+    const data = (await ghlFetch(`/blogs/authors?${params.toString()}`)) as AuthorsResponse | GhlAuthor[];
+    const raw: GhlAuthor[] = Array.isArray(data)
+      ? data
+      : data.authors ?? data.data ?? [];
+    const map: Record<string, string> = {};
+    for (const a of raw) {
+      const id = a._id ?? a.id;
+      if (!id) continue;
+      const name = authorDisplayName(a);
+      if (name) map[id] = name;
+    }
+    return map;
+  });
+}
+
+/** Map of blog id -> display name for the location. Cached (~5 min), {} on error. */
+export async function getBlogsMap(): Promise<Record<string, string>> {
+  return cached<Record<string, string>>('blogs', {}, async () => {
+    const params = new URLSearchParams({
+      locationId: locationId(),
+      skip: '0',
+      limit: '100',
+    });
+    const data = (await ghlFetch(`/blogs/site/all?${params.toString()}`)) as BlogsResponse | GhlBlogSite[];
+    const raw: GhlBlogSite[] = Array.isArray(data)
+      ? data
+      : data.data ?? data.blogs ?? data.sites ?? [];
+    const map: Record<string, string> = {};
+    for (const b of raw) {
+      const id = b._id ?? b.id;
+      if (!id) continue;
+      const name = b.name ?? b.title;
+      if (name) map[id] = name;
+    }
+    return map;
+  });
+}
+
 // ── Reads ────────────────────────────────────────────────────────────────────
 
 interface ListResponse {
   blogs?: GhlBlogPost[];
   posts?: GhlBlogPost[];
   data?: GhlBlogPost[];
+}
+
+/**
+ * Resolve an author display name from the authors map, falling back to the
+ * configured default author (so single-author accounts always show a real name)
+ * and finally '—'.
+ */
+function resolveAuthorName(authorsMap: Record<string, string>, postAuthor: string): string {
+  const direct = postAuthor ? authorsMap[postAuthor] : undefined;
+  if (direct) return direct;
+  // Resolve the configured default author's name from the map as a fallback.
+  let defaultId: string | undefined;
+  try {
+    defaultId = authorId();
+  } catch {
+    defaultId = undefined;
+  }
+  const fallback = defaultId ? authorsMap[defaultId] : undefined;
+  return fallback ?? '—';
+}
+
+/**
+ * Resolve a blog display name from the blogs map, falling back to the configured
+ * default blog (so single-blog accounts always show a real name) and finally '—'.
+ */
+function resolveBlogName(blogsMap: Record<string, string>, postBlog: string): string {
+  const direct = postBlog ? blogsMap[postBlog] : undefined;
+  if (direct) return direct;
+  // Resolve the configured default blog's name from the map as a fallback.
+  let defaultId: string | undefined;
+  try {
+    defaultId = blogId();
+  } catch {
+    defaultId = undefined;
+  }
+  const fallback = defaultId ? blogsMap[defaultId] : undefined;
+  return fallback ?? '—';
 }
 
 /** List PUBLISHED posts for the configured blog, newest first. Cached (~5 min). */
@@ -235,7 +375,14 @@ export async function listPublishedPosts(opts: { limit?: number } = {}): Promise
     });
     const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
     const raw = data.blogs ?? data.posts ?? data.data ?? [];
-    const mapped = raw.map(mapSummary);
+    // Resolve author/blog display names from their own (separately cached) maps.
+    const [authorsMap, blogsMap] = await Promise.all([getAuthorsMap(), getBlogsMap()]);
+    const mapped = raw.map((p) => {
+      const summary = mapSummary(p);
+      summary.authorName = resolveAuthorName(authorsMap, postAuthorId(p));
+      summary.blogName = resolveBlogName(blogsMap, postBlogId(p));
+      return summary;
+    });
     mapped.sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''));
     return mapped;
   });
@@ -260,7 +407,13 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
       const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
       const raw = data.blogs ?? data.posts ?? data.data ?? [];
       const match = raw.find((p) => p.urlSlug === slug);
-      if (match) return mapPost(match);
+      if (match) {
+        const post = mapPost(match);
+        const [authorsMap, blogsMap] = await Promise.all([getAuthorsMap(), getBlogsMap()]);
+        post.authorName = resolveAuthorName(authorsMap, postAuthorId(match));
+        post.blogName = resolveBlogName(blogsMap, postBlogId(match));
+        return post;
+      }
       if (raw.length < PAGE) return null; // last page, no match
     }
   });

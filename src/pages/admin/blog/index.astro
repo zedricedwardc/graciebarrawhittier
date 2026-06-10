@@ -54,13 +54,26 @@ if (!v.ok) {
   Astro.response.status = 401;
 }
 
-/** Human date for the index table, e.g. "Sep 12, 2025". Empty for bad input. */
+// "Manage in GHL" deep link — built from the public location id. Falls back to
+// the GHL app root when the env var is unset.
+const ghlLocationId = import.meta.env.PUBLIC_GHL_LOCATION_ID as string | undefined;
+const ghlBlogsUrl = ghlLocationId
+  ? `https://app.gohighlevel.com/v2/location/${ghlLocationId}/blogs`
+  : 'https://app.gohighlevel.com';
+
+/** Human date + time for the index table, e.g. "Jun 10, 2026, 2:17 PM". Empty for bad input. */
 function fmtDate(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? ''
-    : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    : d.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
 }
 
 // Styles for the minimal 401 page.
@@ -117,6 +130,21 @@ const STYLES = `
   .subnav a { font-size: .85rem; color: var(--p-link); text-decoration: none; }
   .subnav a:hover { text-decoration: underline; }
 
+  /* ── Bulk action bar ──────────────────────────────────────────── */
+  .bulkbar { display: flex; align-items: center; gap: .75rem; padding: .6rem 1rem; background: #f6f6f7; border-bottom: 1px solid var(--p-border); }
+  .bulkbar[hidden] { display: none; }
+  .bulkbar .count { font-size: .82rem; font-weight: 600; color: var(--p-text); }
+  .bulkbar .spacer { flex: 1; }
+
+  /* ── Filter control ───────────────────────────────────────────── */
+  .filter-select { font: inherit; font-size: .82rem; height: 34px; padding: 0 .8rem; border: 1px solid var(--p-border-strong); border-radius: var(--p-radius-sm); background: #fafafa; color: var(--p-text); cursor: pointer; }
+  .filter-select:focus { outline: none; border-color: var(--p-focus); box-shadow: 0 0 0 2px rgba(0,91,211,.25); }
+
+  /* ── Help footer ──────────────────────────────────────────────── */
+  .help-footer { text-align: center; margin: 1.25rem 0 0; font-size: .82rem; }
+  .help-footer a { color: var(--p-subdued); text-decoration: none; }
+  .help-footer a:hover { color: var(--p-link); text-decoration: underline; }
+
   /* ── Cards ────────────────────────────────────────────────────── */
   .card { background: var(--p-surface); border: 1px solid var(--p-border); border-radius: var(--p-radius); box-shadow: var(--p-shadow); }
   .card.pad { padding: 1rem 1.25rem 1.25rem; }
@@ -149,6 +177,7 @@ const STYLES = `
   .badge { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 550; color: var(--p-success); }
   .badge .dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--p-success); }
   .col-date { color: var(--p-subdued); font-size: .82rem; white-space: nowrap; }
+  .col-blog, .col-author { color: var(--p-subdued); font-size: .82rem; }
   .empty-row td { color: var(--p-subdued); padding: 1.25rem .75rem; }
 
   /* ── Editor view ──────────────────────────────────────────────── */
@@ -248,6 +277,7 @@ const STYLES = `
                   <p class="crumb">‹ Website</p>
                   <h1>Blog posts</h1>
                   <nav class="subnav">
+                    <a href={ghlBlogsUrl} target="_blank" rel="noopener">Manage in GHL ↗</a>
                     <a href="/blog" target="_blank" rel="noopener">View blog ↗</a>
                   </nav>
                 </div>
@@ -257,19 +287,33 @@ const STYLES = `
               <div class="card">
                 <div class="tabs"><span class="tab">All</span></div>
                 <div class="filterbar">
-                  <button type="button" class="filter-btn" disabled>Filter ▾</button>
+                  <label class="visually-hidden" for="post-filter">Filter posts</label>
+                  <select id="post-filter" class="filter-select" aria-label="Filter posts">
+                    <option value="all">All posts</option>
+                    <option value="with-image">With featured image</option>
+                    <option value="without-image">Without featured image</option>
+                  </select>
                   <div class="search">
                     <span class="ic" aria-hidden="true">⌕</span>
                     <input id="post-search" type="text" placeholder="Search blog posts" autocomplete="off" aria-label="Search blog posts" />
                   </div>
                 </div>
 
+                {/* Bulk action bar — shown when ≥1 row is selected. */}
+                <div class="bulkbar" id="bulk-bar" hidden>
+                  <span class="count" id="bulk-count">0 selected</span>
+                  <span class="spacer"></span>
+                  <button type="button" id="bulk-clear-btn" class="btn btn-small">Clear</button>
+                  <button type="button" id="bulk-delete-btn" class="btn btn-small btn-danger">Delete</button>
+                </div>
+
                 <table class="tbl">
                   <thead>
                     <tr>
-                      <th class="c-check"><input type="checkbox" disabled aria-label="Select all" /></th>
+                      <th class="c-check"><input type="checkbox" id="select-all" aria-label="Select all" /></th>
                       <th>Title</th>
-                      <th>Status</th>
+                      <th>Blog</th>
+                      <th>Author</th>
                       <th>Date</th>
                       <th class="c-act"></th>
                     </tr>
@@ -277,7 +321,7 @@ const STYLES = `
                   <tbody id="post-list">
                     {posts.length === 0 ? (
                       <tr class="empty-row" data-empty>
-                        <td colspan="5">No blog posts yet. Click “Add blog post” to write your first one.</td>
+                        <td colspan="6">No blog posts yet. Click “Add blog post” to write your first one.</td>
                       </tr>
                     ) : (
                       posts.map((p) => (
@@ -289,8 +333,10 @@ const STYLES = `
                           data-description={p.description}
                           data-image-alt={p.imageAltText}
                           data-slug={p.slug}
+                          data-blog={p.blogName}
+                          data-author={p.authorName}
                         >
-                          <td class="c-check"><input type="checkbox" disabled aria-label={`Select ${p.title}`} /></td>
+                          <td class="c-check"><input type="checkbox" class="row-check" aria-label={`Select ${p.title}`} /></td>
                           <td>
                             <div class="cell-title">
                               {p.imageUrl ? (
@@ -304,7 +350,8 @@ const STYLES = `
                               </span>
                             </div>
                           </td>
-                          <td><span class="badge"><span class="dot"></span> Published</span></td>
+                          <td class="col-blog">{p.blogName}</td>
+                          <td class="col-author">{p.authorName}</td>
                           <td class="col-date">{fmtDate(p.publishedAt)}</td>
                           <td class="c-act"><button type="button" class="btn btn-small btn-danger" data-delete>Delete</button></td>
                         </tr>
@@ -313,6 +360,10 @@ const STYLES = `
                   </tbody>
                 </table>
               </div>
+
+              <p class="help-footer">
+                <a href="/blog" target="_blank" rel="noopener">Learn more about blog posts ↗</a>
+              </p>
             </div>
           </section>
 
@@ -391,6 +442,12 @@ const STYLES = `
             const addBtn = $<HTMLButtonElement>('add-btn');
             const backBtn = $<HTMLButtonElement>('back-btn');
             const searchEl = $<HTMLInputElement>('post-search');
+            const filterEl = $<HTMLSelectElement>('post-filter');
+            const selectAllEl = $<HTMLInputElement>('select-all');
+            const bulkBar = $('bulk-bar');
+            const bulkCountEl = $('bulk-count');
+            const bulkDeleteBtn = $<HTMLButtonElement>('bulk-delete-btn');
+            const bulkClearBtn = $<HTMLButtonElement>('bulk-clear-btn');
 
             const postIdEl = $<HTMLInputElement>('post-id');
             const titleEl = $<HTMLInputElement>('post-title');
@@ -431,14 +488,89 @@ const STYLES = `
             addBtn?.addEventListener('click', () => { resetForm(); setStatus(formStatusEl, ''); showEditor(); titleEl?.focus(); });
             backBtn?.addEventListener('click', () => { resetForm(); setStatus(formStatusEl, ''); showList(); });
 
-            // ── Search (client-side filter of the index table) ────────────
-            searchEl?.addEventListener('input', () => {
-              const q = searchEl.value.trim().toLowerCase();
+            // ── Search + filter (client-side, composed) ───────────────────
+            // A row is visible only if it matches BOTH the search query AND the
+            // featured-image filter. Both the search input and the filter
+            // <select> call this single entry point.
+            function applyFilters() {
+              const q = (searchEl?.value ?? '').trim().toLowerCase();
+              const mode = filterEl?.value ?? 'all';
               postListEl?.querySelectorAll<HTMLElement>('.post-row').forEach((row) => {
                 const title = (row.dataset.title ?? '').toLowerCase();
                 const slug = (row.dataset.slug ?? '').toLowerCase();
-                row.style.display = !q || title.includes(q) || slug.includes(q) ? '' : 'none';
+                const matchesSearch = !q || title.includes(q) || slug.includes(q);
+                const hasImage = !!(row.dataset.imageUrl ?? '').trim();
+                const matchesFilter =
+                  mode === 'with-image' ? hasImage
+                  : mode === 'without-image' ? !hasImage
+                  : true;
+                row.style.display = matchesSearch && matchesFilter ? '' : 'none';
               });
+              // Visibility changed → re-sync select-all + bulk bar against
+              // what's now actually visible/checked.
+              syncSelectionUI();
+            }
+            searchEl?.addEventListener('input', applyFilters);
+            filterEl?.addEventListener('change', applyFilters);
+
+            // ── Bulk select + bulk delete ─────────────────────────────────
+            // "Visible" rows = rows not hidden by the search/filter pass.
+            function visibleRows(): HTMLElement[] {
+              return Array.from(postListEl?.querySelectorAll<HTMLElement>('.post-row') ?? [])
+                .filter((row) => row.style.display !== 'none');
+            }
+            function rowCheckbox(row: HTMLElement): HTMLInputElement | null {
+              return row.querySelector<HTMLInputElement>('.row-check');
+            }
+            function checkedVisibleRows(): HTMLElement[] {
+              return visibleRows().filter((row) => rowCheckbox(row)?.checked);
+            }
+            // Reconcile the bulk bar + select-all state with the current
+            // selection (only counting rows that are actually visible).
+            function syncSelectionUI() {
+              const vis = visibleRows();
+              const checked = vis.filter((row) => rowCheckbox(row)?.checked);
+              if (bulkBar) bulkBar.hidden = checked.length === 0;
+              if (bulkCountEl) bulkCountEl.textContent = `${checked.length} selected`;
+              if (selectAllEl) {
+                selectAllEl.checked = vis.length > 0 && checked.length === vis.length;
+                selectAllEl.indeterminate = checked.length > 0 && checked.length < vis.length;
+              }
+            }
+            // Header checkbox toggles every CURRENTLY VISIBLE row.
+            selectAllEl?.addEventListener('change', () => {
+              const on = selectAllEl.checked;
+              visibleRows().forEach((row) => { const cb = rowCheckbox(row); if (cb) cb.checked = on; });
+              syncSelectionUI();
+            });
+            bulkClearBtn?.addEventListener('click', () => {
+              postListEl?.querySelectorAll<HTMLInputElement>('.row-check').forEach((cb) => { cb.checked = false; });
+              syncSelectionUI();
+            });
+            bulkDeleteBtn?.addEventListener('click', async () => {
+              const rows = checkedVisibleRows();
+              if (rows.length === 0) return;
+              if (!window.confirm(`Delete ${rows.length} post${rows.length === 1 ? '' : 's'}? This removes them from the website.`)) return;
+              bulkDeleteBtn.disabled = true;
+              if (bulkClearBtn) bulkClearBtn.disabled = true;
+              let failures = 0;
+              for (const row of rows) {
+                const id = row.dataset.postId ?? '';
+                if (!id) continue;
+                try {
+                  const res = await fetch(`/api/admin/blog/${encodeURIComponent(id)}`, { method: 'DELETE', headers: authHeaders() });
+                  const data = await res.json().catch(() => ({}));
+                  if (!res.ok || !data.ok) throw new Error();
+                  row.remove();
+                } catch {
+                  failures++;
+                }
+              }
+              bulkDeleteBtn.disabled = false;
+              if (bulkClearBtn) bulkClearBtn.disabled = false;
+              ensureEmptyState();
+              syncSelectionUI();
+              if (failures > 0) window.alert(`${failures} post${failures === 1 ? '' : 's'} could not be deleted.`);
             });
 
             // ── Rich-text toolbar ─────────────────────────────────────────
@@ -606,6 +738,7 @@ const STYLES = `
                 if (!res.ok || !data.ok) throw new Error(data.message ?? data.code ?? `Delete failed (${res.status})`);
                 row.remove();
                 ensureEmptyState();
+                syncSelectionUI();
               } catch (err) {
                 if (delBtn) delBtn.disabled = false;
                 window.alert(err instanceof Error ? err.message : 'Could not delete.');
@@ -618,26 +751,36 @@ const STYLES = `
               return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
             }
             function fmtDateClient(d: Date): string {
-              return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+              return d.toLocaleString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+              });
             }
             function bindRow(row: HTMLElement) {
               row.querySelector('[data-edit]')?.addEventListener('click', () => startEdit(row));
               row.querySelector('[data-delete]')?.addEventListener('click', () => deletePost(row));
+              rowCheckbox(row)?.addEventListener('change', syncSelectionUI);
             }
             function addPostRow(p: { id: string; title: string; slug: string; imageUrl: string }) {
               if (!postListEl) return;
               postListEl.querySelector('[data-empty]')?.remove();
+              // We don't get blog/author names back from the create call — reuse
+              // an existing row's resolved names if present, else fall back to '—'.
+              const sample = postListEl.querySelector<HTMLElement>('.post-row');
+              const blogName = sample?.dataset.blog || '—';
+              const authorName = sample?.dataset.author || '—';
               const tr = document.createElement('tr');
               tr.className = 'post-row';
               tr.dataset.postId = p.id;
               tr.dataset.title = p.title;
               tr.dataset.imageUrl = p.imageUrl;
               tr.dataset.slug = p.slug;
+              tr.dataset.blog = blogName;
+              tr.dataset.author = authorName;
               const thumb = p.imageUrl
                 ? `<img class="thumb" src="${escapeHtml(p.imageUrl)}" alt="" loading="lazy" />`
                 : `<span class="thumb ph" aria-hidden="true"></span>`;
               tr.innerHTML = `
-                <td class="c-check"><input type="checkbox" disabled aria-label="Select ${escapeHtml(p.title)}" /></td>
+                <td class="c-check"><input type="checkbox" class="row-check" aria-label="Select ${escapeHtml(p.title)}" /></td>
                 <td>
                   <div class="cell-title">
                     ${thumb}
@@ -647,7 +790,8 @@ const STYLES = `
                     </span>
                   </div>
                 </td>
-                <td><span class="badge"><span class="dot"></span> Published</span></td>
+                <td class="col-blog">${escapeHtml(blogName)}</td>
+                <td class="col-author">${escapeHtml(authorName)}</td>
                 <td class="col-date">${escapeHtml(fmtDateClient(new Date()))}</td>
                 <td class="c-act"><button type="button" class="btn btn-small btn-danger" data-delete>Delete</button></td>`;
               postListEl.prepend(tr);
@@ -659,7 +803,7 @@ const STYLES = `
                 const tr = document.createElement('tr');
                 tr.className = 'empty-row';
                 tr.dataset.empty = '';
-                tr.innerHTML = `<td colspan="5">No blog posts yet. Click “Add blog post” to write your first one.</td>`;
+                tr.innerHTML = `<td colspan="6">No blog posts yet. Click “Add blog post” to write your first one.</td>`;
                 postListEl.appendChild(tr);
               }
             }
