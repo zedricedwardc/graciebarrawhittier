@@ -246,17 +246,23 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   const key = `slug:${slug}`;
   return cached<BlogPost | null>(key, null, async () => {
     // GHL's list endpoint has no slug filter, so we page and match client-side.
-    const params = new URLSearchParams({
-      locationId: locationId(),
-      blogId: blogId(),
-      limit: '100',
-      offset: '0',
-      status: 'PUBLISHED',
-    });
-    const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
-    const raw = data.blogs ?? data.posts ?? data.data ?? [];
-    const match = raw.find((p) => p.urlSlug === slug);
-    return match ? mapPost(match) : null;
+    // GHL rejects limit > 50 with a 422, so page in batches of 50 until the
+    // slug is found or a short page signals the end of the list.
+    const PAGE = 50;
+    for (let offset = 0; ; offset += PAGE) {
+      const params = new URLSearchParams({
+        locationId: locationId(),
+        blogId: blogId(),
+        limit: String(PAGE),
+        offset: String(offset),
+        status: 'PUBLISHED',
+      });
+      const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
+      const raw = data.blogs ?? data.posts ?? data.data ?? [];
+      const match = raw.find((p) => p.urlSlug === slug);
+      if (match) return mapPost(match);
+      if (raw.length < PAGE) return null; // last page, no match
+    }
   });
 }
 
