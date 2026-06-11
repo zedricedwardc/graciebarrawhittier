@@ -536,6 +536,36 @@ export async function listPublishedPosts(opts: { limit?: number } = {}): Promise
 }
 
 /**
+ * Every PUBLISHED post's slug + publish date, for /sitemap-blog.xml. Pages
+ * through GHL (which 422s on limit > 50) so the sitemap isn't capped at one
+ * page. Cached with the same tag as the other reads, so publish/edit/delete
+ * refreshes the sitemap in realtime.
+ */
+export async function listAllPublishedForSitemap(): Promise<Array<{ slug: string; publishedAt: string }>> {
+  return cached<Array<{ slug: string; publishedAt: string }>>('sitemap', [], async () => {
+    const PAGE = 50;
+    const MAX_PAGES = 20; // safety cap (1000 posts) so a pathological response can't loop forever
+    const out: Array<{ slug: string; publishedAt: string }> = [];
+    for (let page = 0, offset = 0; page < MAX_PAGES; page++, offset += PAGE) {
+      const params = new URLSearchParams({
+        locationId: locationId(),
+        blogId: blogId(),
+        limit: String(PAGE),
+        offset: String(offset),
+        status: 'PUBLISHED',
+      });
+      const data = (await ghlFetch(`/blogs/posts/all?${params.toString()}`)) as ListResponse;
+      const raw = data.blogs ?? data.posts ?? data.data ?? [];
+      for (const p of raw) {
+        if (p.urlSlug) out.push({ slug: p.urlSlug, publishedAt: p.publishedAt ?? '' });
+      }
+      if (raw.length < PAGE) break; // last page
+    }
+    return out;
+  });
+}
+
+/**
  * Enrich a matched raw post: resolve author/blog names and merge in the body.
  * GHL never returns rawHTML on reads (the list omits it; no single-post GET
  * exists), so the body comes from our blob store — falling back to the saved

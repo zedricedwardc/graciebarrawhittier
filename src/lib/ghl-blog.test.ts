@@ -32,6 +32,7 @@ import {
   createPost,
   updatePost,
   listPublishedPosts,
+  listAllPublishedForSitemap,
   getPostBySlug,
   getAuthorsMap,
   getBlogsMap,
@@ -424,6 +425,24 @@ describe('listPublishedPosts', () => {
     ghlFetchMock.mockRejectedValueOnce(new Error('network'));
     const posts = await listPublishedPosts();
     expect(posts).toEqual([]);
+  });
+
+  it('listAllPublishedForSitemap pages through GHL until a short page', async () => {
+    const fullPage = Array.from({ length: 50 }, (_, i) => ({
+      _id: `p${i}`, urlSlug: `post-${i}`, publishedAt: '2026-06-01T00:00:00Z',
+    }));
+    ghlFetchMock
+      .mockResolvedValueOnce({ blogs: fullPage }) // page 1 (full → keep going)
+      .mockResolvedValueOnce({ blogs: [{ _id: 'last', urlSlug: 'last-post', publishedAt: '2026-06-02T00:00:00Z' }] }); // page 2 (short → stop)
+    const all = await listAllPublishedForSitemap();
+    expect(all).toHaveLength(51);
+    expect(all[50]).toEqual({ slug: 'last-post', publishedAt: '2026-06-02T00:00:00Z' });
+    expect(ghlFetchMock).toHaveBeenCalledTimes(2);
+    expect(String(ghlFetchMock.mock.calls[1]![0])).toContain('offset=50');
+    // Slug-less entries can't produce a URL — dropped, not emitted as /blog//.
+    __clearBlogCache();
+    ghlFetchMock.mockReset().mockResolvedValueOnce({ blogs: [{ _id: 'x', publishedAt: '2026-06-01T00:00:00Z' }] });
+    expect(await listAllPublishedForSitemap()).toEqual([]);
   });
 
   it('serves last-good cache on a later fetch error', async () => {
