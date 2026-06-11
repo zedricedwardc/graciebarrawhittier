@@ -143,6 +143,12 @@ export function sanitizeBody(html: string): string {
     allowedAttributes: {
       a: ['href', 'target', 'rel'],
       img: ['src', 'alt', 'width', 'height'],
+      // The toolbar's align buttons emit style="text-align: …" — allowedStyles
+      // below strips every other CSS property.
+      '*': ['style'],
+    },
+    allowedStyles: {
+      '*': { 'text-align': [/^(left|right|center|justify)$/] },
     },
     // Images come from the GHL CDN (https); no data: URIs.
     allowedSchemes: ['http', 'https'],

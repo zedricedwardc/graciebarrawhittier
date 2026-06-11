@@ -57,8 +57,8 @@ const articleSchema = {
   schema={articleSchema}
 >
   <div class="bg-gb-bg-light">
-    <article class="px-4 md:px-6 pt-12 md:pt-16 pb-12 md:pb-16">
-      <div class="max-w-3xl mx-auto">
+    <article class="px-4 md:px-6 pt-12 md:pt-16 pb-6 md:pb-8">
+      <div class="max-w-3xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
         <header class="text-center">
           {
             publishedLabel && (
@@ -148,6 +148,7 @@ const articleSchema = {
     font-size: 1.125rem;
   }
   .gb-prose p,
+  .gb-prose > div,
   .gb-prose ul,
   .gb-prose ol,
   .gb-prose blockquote,

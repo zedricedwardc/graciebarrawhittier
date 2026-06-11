@@ -106,6 +106,15 @@ describe('pure helpers', () => {
       + '<p><a href="https://x.com" target="_blank" rel="noopener">link</a><br /></p>';
     expect(sanitizeBody(kept)).toBe(kept);
   });
+
+  it('sanitizeBody keeps text-align styles but strips every other CSS property', () => {
+    const aligned = sanitizeBody('<p style="text-align: center; color: red; position: fixed">c</p>');
+    expect(aligned).toContain('text-align:center');
+    expect(aligned).not.toContain('color');
+    expect(aligned).not.toContain('position');
+    // Non-allowlisted values don't survive either.
+    expect(sanitizeBody('<p style="text-align: -moz-evil">x</p>')).not.toContain('text-align');
+  });
 });
 
 describe('ensureUniqueSlug', () => {

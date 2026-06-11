@@ -216,12 +216,19 @@ const STYLES = `
   .toolbar button { font: inherit; font-size: .8rem; line-height: 1; padding: .4rem .55rem; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--p-text); cursor: pointer; }
   .toolbar button:hover { background: #ececec; }
   .toolbar button:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 1px; }
+  .toolbar .sep { width: 1px; align-self: stretch; margin: .15rem .25rem; background: var(--p-border); }
   .editor { min-height: 300px; padding: .85rem; border: 1px solid var(--p-border-strong); border-radius: 0 0 var(--p-radius-sm) var(--p-radius-sm); background: var(--p-surface); overflow-y: auto; }
   .editor h2 { font-size: 1.3rem; margin: .75rem 0 .4rem; }
   .editor h3 { font-size: 1.1rem; margin: .6rem 0 .35rem; }
   .editor a { color: var(--p-focus); }
   .editor img { max-width: 100%; height: auto; border-radius: 6px; }
-  .editor ul { padding-left: 1.4rem; }
+  .editor ul, .editor ol { padding-left: 1.4rem; }
+  /* Paragraph spacing mirrors the public post page (.gb-prose) so the editor
+   * previews what publishes. > div covers legacy posts written before the
+   * defaultParagraphSeparator='p' fix. */
+  .editor p, .editor > div { margin: .85rem 0; }
+  .editor > :first-child { margin-top: 0; }
+  .editor blockquote { border-left: 3px solid #d0d0d0; margin: .75rem 0; padding: .1rem .85rem; color: var(--p-subdued); font-style: italic; }
 
   .btn { font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; border-radius: var(--p-radius-sm); padding: 0 .9rem; height: 34px; display: inline-flex; align-items: center; justify-content: center; }
   .btn:disabled { opacity: .55; cursor: not-allowed; }
@@ -406,9 +413,21 @@ const STYLES = `
                       <label for="post-body">Content</label>
                       <div class="toolbar" role="toolbar" aria-label="Formatting" aria-controls="post-body">
                         <button type="button" data-cmd="bold" title="Bold" aria-label="Bold"><b>B</b></button>
+                        <button type="button" data-cmd="italic" title="Italic" aria-label="Italic"><i>I</i></button>
+                        <button type="button" data-cmd="underline" title="Underline" aria-label="Underline"><u>U</u></button>
+                        <span class="sep" aria-hidden="true"></span>
+                        <button type="button" data-cmd="p" title="Normal text" aria-label="Normal text">¶</button>
                         <button type="button" data-cmd="h2" title="Heading" aria-label="Heading 2">H2</button>
                         <button type="button" data-cmd="h3" title="Subheading" aria-label="Heading 3">H3</button>
+                        <span class="sep" aria-hidden="true"></span>
                         <button type="button" data-cmd="ul" title="Bullet list" aria-label="Bullet list">• List</button>
+                        <button type="button" data-cmd="ol" title="Numbered list" aria-label="Numbered list">1. List</button>
+                        <button type="button" data-cmd="quote" title="Quote" aria-label="Quote">❝ Quote</button>
+                        <span class="sep" aria-hidden="true"></span>
+                        <button type="button" data-cmd="align-left" title="Align left" aria-label="Align left">Left</button>
+                        <button type="button" data-cmd="align-center" title="Align center" aria-label="Align center">Center</button>
+                        <button type="button" data-cmd="align-right" title="Align right" aria-label="Align right">Right</button>
+                        <span class="sep" aria-hidden="true"></span>
                         <button type="button" data-cmd="link" title="Insert link" aria-label="Insert link">Link</button>
                         <button type="button" data-cmd="image" title="Insert image" aria-label="Insert image">Image</button>
                       </div>
@@ -607,6 +626,41 @@ const STYLES = `
             });
 
             // ── Rich-text toolbar ─────────────────────────────────────────
+            // Enter must create real <p> paragraphs (not bare <div>s) so posts
+            // get proper paragraph spacing in the editor AND on the site.
+            try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch { /* older engines */ }
+            // An empty contenteditable leaves the first typed line as a BARE
+            // text node (no <p>), which renders without paragraph spacing.
+            // Seed an empty paragraph so typing starts inside a real <p>.
+            const EMPTY_BODY = '<p><br></p>';
+            // True when the body has no text and no images ("<p><br></p>" etc.).
+            function isBodyEmpty(): boolean {
+              if (!bodyEl) return true;
+              if (bodyEl.querySelector('img')) return false;
+              return (bodyEl.textContent ?? '').trim() === '';
+            }
+            // Wrap any top-level text/inline runs in <p> — legacy posts (and
+            // odd paste paths) can leave bare text at the root, which gets no
+            // paragraph margins on the public page.
+            const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'UL', 'OL', 'BLOCKQUOTE', 'TABLE', 'FIGURE', 'HR', 'PRE']);
+            function normalizeBlocks() {
+              if (!bodyEl) return;
+              let node: ChildNode | null = bodyEl.firstChild;
+              while (node) {
+                const isBlock = node.nodeType === 1 && BLOCK_TAGS.has((node as Element).nodeName);
+                const isBlankText = node.nodeType === 3 && !(node.textContent ?? '').trim();
+                if (isBlock || isBlankText) { node = node.nextSibling; continue; }
+                const p = document.createElement('p');
+                bodyEl.insertBefore(p, node);
+                let runner: ChildNode | null = node;
+                while (runner && !(runner.nodeType === 1 && BLOCK_TAGS.has((runner as Element).nodeName))) {
+                  const next: ChildNode | null = runner.nextSibling;
+                  p.appendChild(runner);
+                  runner = next;
+                }
+                node = p.nextSibling;
+              }
+            }
             function exec(command: string, value?: string) {
               bodyEl?.focus();
               document.execCommand(command, false, value);
@@ -616,9 +670,17 @@ const STYLES = `
                 e.preventDefault();
                 switch (btn.dataset.cmd) {
                   case 'bold': exec('bold'); break;
+                  case 'italic': exec('italic'); break;
+                  case 'underline': exec('underline'); break;
+                  case 'p': exec('formatBlock', 'P'); break;
                   case 'h2': exec('formatBlock', 'H2'); break;
                   case 'h3': exec('formatBlock', 'H3'); break;
                   case 'ul': exec('insertUnorderedList'); break;
+                  case 'ol': exec('insertOrderedList'); break;
+                  case 'quote': exec('formatBlock', 'BLOCKQUOTE'); break;
+                  case 'align-left': exec('justifyLeft'); break;
+                  case 'align-center': exec('justifyCenter'); break;
+                  case 'align-right': exec('justifyRight'); break;
                   case 'link': { const url = window.prompt('Link URL (include https://)'); if (url) exec('createLink', url); break; }
                   case 'image': inlineFileEl?.click(); break;
                 }
@@ -680,7 +742,7 @@ const STYLES = `
               if (featuredUrlEl) featuredUrlEl.value = '';
               if (featuredFileEl) featuredFileEl.value = '';
               if (featuredPreviewEl) { featuredPreviewEl.hidden = true; featuredPreviewEl.src = ''; }
-              if (bodyEl) bodyEl.innerHTML = '';
+              if (bodyEl) bodyEl.innerHTML = EMPTY_BODY;
               setStatus(featuredStatusEl, '');
               if (publishBtn) publishBtn.textContent = 'Publish';
               if (cancelEditBtn) cancelEditBtn.hidden = true;
@@ -704,7 +766,7 @@ const STYLES = `
                 if (imageUrl) { featuredPreviewEl.src = imageUrl; featuredPreviewEl.hidden = false; }
                 else { featuredPreviewEl.hidden = true; featuredPreviewEl.src = ''; }
               }
-              if (bodyEl) bodyEl.innerHTML = '';
+              if (bodyEl) bodyEl.innerHTML = EMPTY_BODY;
               setStatus(featuredStatusEl, '');
               if (publishBtn) publishBtn.textContent = 'Update';
               if (cancelEditBtn) cancelEditBtn.hidden = false;
@@ -722,7 +784,10 @@ const STYLES = `
                 // back): don't touch the DOM or status at all.
                 if (epoch !== editEpoch) return;
                 if (res.ok && data.ok && data.post) {
-                  bodyEl.innerHTML = data.post.rawHTML ?? '';
+                  bodyEl.innerHTML = (data.post.rawHTML ?? '') || EMPTY_BODY;
+                  // Legacy posts can start with bare root-level text — wrap it
+                  // so it behaves like a paragraph while editing.
+                  normalizeBlocks();
                   bodyIsFallback = !!data.post.bodyFallback;
                   if (data.post.imageUrl && featuredUrlEl) {
                     featuredUrlEl.value = data.post.imageUrl;
@@ -750,7 +815,11 @@ const STYLES = `
             publishBtn?.addEventListener('click', async () => {
               const id = postIdEl?.value ?? '';
               const title = (titleEl?.value ?? '').trim();
-              const rawHTML = (bodyEl?.innerHTML ?? '').trim();
+              // Normalize before serializing: bare root-level text gets wrapped
+              // in <p>, and a body that is only the empty seed paragraph
+              // serializes to '' (so the "write the post body" check fires).
+              normalizeBlocks();
+              const rawHTML = isBodyEmpty() ? '' : (bodyEl?.innerHTML ?? '').trim();
               const imageUrl = featuredUrlEl?.value ?? '';
               const isEditing = !!id;
 
