@@ -107,13 +107,34 @@ describe('pure helpers', () => {
     expect(sanitizeBody(kept)).toBe(kept);
   });
 
-  it('sanitizeBody keeps text-align styles but strips every other CSS property', () => {
-    const aligned = sanitizeBody('<p style="text-align: center; color: red; position: fixed">c</p>');
+  it('sanitizeBody keeps the toolbar style allowlist but strips every other CSS property', () => {
+    const aligned = sanitizeBody('<p style="text-align: center; position: fixed">c</p>');
     expect(aligned).toContain('text-align:center');
-    expect(aligned).not.toContain('color');
     expect(aligned).not.toContain('position');
     // Non-allowlisted values don't survive either.
     expect(sanitizeBody('<p style="text-align: -moz-evil">x</p>')).not.toContain('text-align');
+    // Colors (hex/rgb), fonts, sizes, line-height, indent margins all pass.
+    const styled = sanitizeBody(
+      '<p style="line-height: 1.5; margin-left: 4rem"><span style="color: #d72c0d; background-color: rgb(255, 241, 118); font-family: Georgia, serif; font-size: 24px">x</span></p>',
+    );
+    expect(styled).toContain('line-height:1.5');
+    expect(styled).toContain('margin-left:4rem');
+    expect(styled).toContain('color:#d72c0d');
+    expect(styled).toContain('background-color:rgb(255, 241, 118)');
+    expect(styled).toContain('font-family:Georgia, serif');
+    expect(styled).toContain('font-size:24px');
+    // url()/expression()-style payloads in allowed properties are rejected.
+    expect(sanitizeBody('<p style="background-color: url(https://evil)">x</p>')).not.toContain('url');
+  });
+
+  it('sanitizeBody allows strikethrough, hr, and YouTube/Vimeo iframes only', () => {
+    expect(sanitizeBody('<p><s>old</s> new</p><hr />')).toBe('<p><s>old</s> new</p><hr />');
+    const yt = '<iframe src="https://www.youtube-nocookie.com/embed/abc123" allowfullscreen></iframe>';
+    expect(sanitizeBody(yt)).toContain('youtube-nocookie.com/embed/abc123');
+    const vimeo = '<iframe src="https://player.vimeo.com/video/123456"></iframe>';
+    expect(sanitizeBody(vimeo)).toContain('player.vimeo.com/video/123456');
+    // Any other iframe host is dropped entirely.
+    expect(sanitizeBody('<iframe src="https://evil.example/x"></iframe><p>ok</p>')).toBe('<p>ok</p>');
   });
 });
 

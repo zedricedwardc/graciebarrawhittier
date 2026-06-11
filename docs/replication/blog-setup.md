@@ -1,10 +1,15 @@
 # Blog Setup — GHL config
 
 How to wire up the website blog for a new gym. The blog stores posts in **GHL
-Blogs** (GHL is the store; the website only replaces the editor with a minimal
-custom form at `/admin/blog`, surfaced as a GHL custom-menu link). Templatable
+Blogs** (GHL is the store; the website only replaces the editor with a custom
+form at `/admin/blog`, surfaced as a GHL custom-menu link — full formatting
+ribbon: bold/italic/underline/strike, font + size + paragraph-style dropdowns,
+align/indent/line-height, lists, quote, text/highlight color, link, image,
+YouTube/Vimeo embed, divider, clear formatting, HTML source view). Templatable
 for any gym — the only per-gym values are the three resolved IDs, the signing
-key, and the site URL.
+key, and the site URL. Anything the ribbon emits must stay in sync with the
+`sanitizeBody` allowlist in `src/lib/ghl-blog.ts` — the API strips any tag or
+style the allowlist doesn't cover.
 
 **Phase legend**: `[DEV]` = developer (terminal). `[ADMIN]` = studio admin (GHL UI).
 

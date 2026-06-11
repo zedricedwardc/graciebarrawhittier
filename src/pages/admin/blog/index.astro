@@ -212,11 +212,23 @@ const STYLES = `
   input[type="text"]:focus, input[type="file"]:focus-visible, .editor:focus { outline: none; border-color: var(--p-focus); box-shadow: 0 0 0 2px rgba(0,91,211,.25); }
   .preview { display: block; margin-top: .65rem; width: 100%; max-height: 180px; object-fit: cover; border-radius: var(--p-radius-sm); border: 1px solid var(--p-border); }
 
-  .toolbar { display: flex; flex-wrap: wrap; gap: .2rem; padding: .35rem; border: 1px solid var(--p-border-strong); border-bottom: 0; border-radius: var(--p-radius-sm) var(--p-radius-sm) 0 0; background: #fafafa; }
-  .toolbar button { font: inherit; font-size: .8rem; line-height: 1; padding: .4rem .55rem; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--p-text); cursor: pointer; }
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem; padding: .35rem; border: 1px solid var(--p-border-strong); border-bottom: 0; border-radius: var(--p-radius-sm) var(--p-radius-sm) 0 0; background: #fafafa; }
+  .toolbar button { font: inherit; font-size: .8rem; line-height: 1; padding: .4rem .45rem; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--p-text); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: .1rem; min-height: 28px; }
   .toolbar button:hover { background: #ececec; }
+  .toolbar button:disabled { opacity: .4; cursor: not-allowed; }
+  .toolbar button.is-on { background: #e4e9f1; }
   .toolbar button:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 1px; }
+  .toolbar button svg { display: block; }
   .toolbar .sep { width: 1px; align-self: stretch; margin: .15rem .25rem; background: var(--p-border); }
+  .tb-select { font: inherit; font-size: .78rem; height: 28px; max-width: 7.5rem; padding: 0 .3rem; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--p-text); cursor: pointer; }
+  .tb-select:hover { background: #ececec; }
+  .tb-select:disabled { opacity: .4; cursor: not-allowed; }
+  .tb-select:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 1px; }
+  .toolbar .chip { display: block; width: .9rem; height: .2rem; border-radius: 1px; }
+  .toolbar [data-cmd="color"], .toolbar [data-cmd="highlight"] { flex-direction: column; gap: 2px; padding-top: .25rem; padding-bottom: .25rem; }
+  .source-area { display: block; width: 100%; min-height: 300px; padding: .85rem; border: 1px solid var(--p-border-strong); border-radius: 0 0 var(--p-radius-sm) var(--p-radius-sm); background: #0f172a; color: #e2e8f0; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: .8rem; line-height: 1.5; resize: vertical; }
+  .source-area:focus { outline: none; border-color: var(--p-focus); box-shadow: 0 0 0 2px rgba(0,91,211,.25); }
+  .source-area[hidden] { display: none; }
   .editor { min-height: 300px; padding: .85rem; border: 1px solid var(--p-border-strong); border-radius: 0 0 var(--p-radius-sm) var(--p-radius-sm); background: var(--p-surface); overflow-y: auto; }
   .editor h2 { font-size: 1.3rem; margin: .75rem 0 .4rem; }
   .editor h3 { font-size: 1.1rem; margin: .6rem 0 .35rem; }
@@ -229,6 +241,9 @@ const STYLES = `
   .editor p, .editor > div { margin: .85rem 0; }
   .editor > :first-child { margin-top: 0; }
   .editor blockquote { border-left: 3px solid #d0d0d0; margin: .75rem 0; padding: .1rem .85rem; color: var(--p-subdued); font-style: italic; }
+  .editor hr { border: 0; border-top: 1px solid #d0d0d0; margin: 1rem 0; }
+  /* Embeds aren't interactive while editing — click selects, Delete removes. */
+  .editor iframe { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; border: 0; border-radius: 6px; pointer-events: none; background: #eee; }
 
   .btn { font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; border-radius: var(--p-radius-sm); padding: 0 .9rem; height: 34px; display: inline-flex; align-items: center; justify-content: center; }
   .btn:disabled { opacity: .55; cursor: not-allowed; }
@@ -415,23 +430,68 @@ const STYLES = `
                         <button type="button" data-cmd="bold" title="Bold" aria-label="Bold"><b>B</b></button>
                         <button type="button" data-cmd="italic" title="Italic" aria-label="Italic"><i>I</i></button>
                         <button type="button" data-cmd="underline" title="Underline" aria-label="Underline"><u>U</u></button>
+                        <button type="button" data-cmd="strike" title="Strikethrough" aria-label="Strikethrough"><s>S</s></button>
                         <span class="sep" aria-hidden="true"></span>
-                        <button type="button" data-cmd="p" title="Normal text" aria-label="Normal text">¶</button>
-                        <button type="button" data-cmd="h2" title="Heading" aria-label="Heading 2">H2</button>
-                        <button type="button" data-cmd="h3" title="Subheading" aria-label="Heading 3">H3</button>
+                        <select id="tb-font" class="tb-select" title="Font" aria-label="Font">
+                          <option value="">Font</option>
+                          <option value="inherit">Default</option>
+                          <option value="Arial, Helvetica, sans-serif">Sans-serif</option>
+                          <option value="Georgia, 'Times New Roman', serif">Serif</option>
+                          <option value="'Courier New', monospace">Monospace</option>
+                        </select>
+                        <select id="tb-size" class="tb-select" title="Font size" aria-label="Font size">
+                          <option value="">Size</option>
+                          <option value="12px">12px</option>
+                          <option value="14px">14px</option>
+                          <option value="16px">16px</option>
+                          <option value="18px">18px</option>
+                          <option value="20px">20px</option>
+                          <option value="24px">24px</option>
+                          <option value="28px">28px</option>
+                          <option value="32px">32px</option>
+                        </select>
+                        <select id="tb-block" class="tb-select" title="Paragraph style" aria-label="Paragraph style">
+                          <option value="p">Paragraph</option>
+                          <option value="h1">Heading 1</option>
+                          <option value="h2">Heading 2</option>
+                          <option value="h3">Heading 3</option>
+                          <option value="h4">Heading 4</option>
+                        </select>
                         <span class="sep" aria-hidden="true"></span>
-                        <button type="button" data-cmd="ul" title="Bullet list" aria-label="Bullet list">• List</button>
-                        <button type="button" data-cmd="ol" title="Numbered list" aria-label="Numbered list">1. List</button>
-                        <button type="button" data-cmd="quote" title="Quote" aria-label="Quote">❝ Quote</button>
+                        <button type="button" data-cmd="align-left" title="Align left" aria-label="Align left"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1 2.5h12M1 5.5h8M1 8.5h12M1 11.5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></button>
+                        <button type="button" data-cmd="align-center" title="Align center" aria-label="Align center"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1 2.5h12M3 5.5h8M1 8.5h12M3 11.5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></button>
+                        <button type="button" data-cmd="align-right" title="Align right" aria-label="Align right"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1 2.5h12M5 5.5h8M1 8.5h12M5 11.5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></button>
+                        <button type="button" data-cmd="align-justify" title="Justify" aria-label="Justify"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1 2.5h12M1 5.5h12M1 8.5h12M1 11.5h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></button>
+                        <button type="button" data-cmd="outdent" title="Decrease indent" aria-label="Decrease indent"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1 2.5h12M7 5.5h6M7 8.5h6M1 11.5h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/><path d="M4.5 5.25 1.5 7l3 1.75z" fill="currentColor"/></svg></button>
+                        <button type="button" data-cmd="indent" title="Increase indent" aria-label="Increase indent"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1 2.5h12M7 5.5h6M7 8.5h6M1 11.5h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/><path d="M1.5 5.25 4.5 7l-3 1.75z" fill="currentColor"/></svg></button>
+                        <select id="tb-lh" class="tb-select" title="Line height" aria-label="Line height">
+                          <option value="">Spacing</option>
+                          <option value="default">Default</option>
+                          <option value="1">1</option>
+                          <option value="1.15">1.15</option>
+                          <option value="1.5">1.5</option>
+                          <option value="2">2</option>
+                        </select>
                         <span class="sep" aria-hidden="true"></span>
-                        <button type="button" data-cmd="align-left" title="Align left" aria-label="Align left">Left</button>
-                        <button type="button" data-cmd="align-center" title="Align center" aria-label="Align center">Center</button>
-                        <button type="button" data-cmd="align-right" title="Align right" aria-label="Align right">Right</button>
+                        <button type="button" data-cmd="ul" title="Bullet list" aria-label="Bullet list">•&nbsp;List</button>
+                        <button type="button" data-cmd="ol" title="Numbered list" aria-label="Numbered list">1.&nbsp;List</button>
+                        <button type="button" data-cmd="quote" title="Quote" aria-label="Quote">❝</button>
+                        <span class="sep" aria-hidden="true"></span>
+                        <button type="button" data-cmd="color" title="Text color" aria-label="Text color">A<span class="chip" id="fore-chip" style="background:#1a1a1a"></span></button>
+                        <button type="button" data-cmd="highlight" title="Highlight color" aria-label="Highlight color">A<span class="chip" id="back-chip" style="background:#fff176"></span></button>
+                        <input type="color" id="fore-color" value="#1a1a1a" class="visually-hidden" tabindex="-1" aria-hidden="true" />
+                        <input type="color" id="back-color" value="#fff176" class="visually-hidden" tabindex="-1" aria-hidden="true" />
                         <span class="sep" aria-hidden="true"></span>
                         <button type="button" data-cmd="link" title="Insert link" aria-label="Insert link">Link</button>
                         <button type="button" data-cmd="image" title="Insert image" aria-label="Insert image">Image</button>
+                        <button type="button" data-cmd="video" title="Embed video (YouTube/Vimeo)" aria-label="Embed video">Video</button>
+                        <span class="sep" aria-hidden="true"></span>
+                        <button type="button" data-cmd="hr" title="Divider line" aria-label="Divider line">—</button>
+                        <button type="button" data-cmd="clear" title="Clear formatting" aria-label="Clear formatting"><s>T</s>x</button>
+                        <button type="button" data-cmd="source" id="source-btn" title="Edit HTML source" aria-label="Edit HTML source">&lt;/&gt;</button>
                       </div>
                       <div id="post-body" class="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Post body"></div>
+                      <textarea id="post-source" class="source-area" aria-label="Post HTML source" spellcheck="false" hidden></textarea>
                       <input type="file" id="inline-file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" hidden />
                     </div>
                   </section>
@@ -642,7 +702,7 @@ const STYLES = `
             // Wrap any top-level text/inline runs in <p> — legacy posts (and
             // odd paste paths) can leave bare text at the root, which gets no
             // paragraph margins on the public page.
-            const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'UL', 'OL', 'BLOCKQUOTE', 'TABLE', 'FIGURE', 'HR', 'PRE']);
+            const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'UL', 'OL', 'BLOCKQUOTE', 'TABLE', 'FIGURE', 'HR', 'PRE', 'IFRAME']);
             function normalizeBlocks() {
               if (!bodyEl) return;
               let node: ChildNode | null = bodyEl.firstChild;
@@ -661,10 +721,117 @@ const STYLES = `
                 node = p.nextSibling;
               }
             }
+            // ── Selection bookkeeping ─────────────────────────────────────
+            // Dropdowns and color inputs steal focus from the contenteditable,
+            // collapsing the selection. Remember the last in-body range and
+            // restore it before running any command.
+            let savedRange: Range | null = null;
+            document.addEventListener('selectionchange', () => {
+              const sel = document.getSelection();
+              if (sel && sel.rangeCount > 0 && bodyEl && bodyEl.contains(sel.anchorNode)) {
+                savedRange = sel.getRangeAt(0).cloneRange();
+                syncBlockSelect();
+              }
+            });
+            function restoreSelection() {
+              if (!savedRange) return;
+              const sel = document.getSelection();
+              if (!sel) return;
+              sel.removeAllRanges();
+              sel.addRange(savedRange);
+            }
+            // Top-level blocks (direct children of the editor) touched by the
+            // current selection — the unit that line-height/indent operate on.
+            function selectedBlocks(): HTMLElement[] {
+              if (!bodyEl) return [];
+              normalizeBlocks();
+              const sel = document.getSelection();
+              if (!sel || sel.rangeCount === 0) return [];
+              const range = sel.getRangeAt(0);
+              const topOf = (n: Node | null): Node | null => {
+                while (n && n.parentNode !== bodyEl) n = n.parentNode;
+                return n;
+              };
+              const start = topOf(range.startContainer);
+              const end = topOf(range.endContainer);
+              if (!start || !end) return [];
+              const out: HTMLElement[] = [];
+              let cur: Node | null = start;
+              while (cur) {
+                if (cur.nodeType === 1) out.push(cur as HTMLElement);
+                if (cur === end) break;
+                cur = cur.nextSibling;
+              }
+              return out;
+            }
+
+            // Commands whose output should be a styled <span> (matches the
+            // server sanitizer's style allowlist) instead of a legacy <font>.
+            const CSS_CMDS = new Set(['foreColor', 'hiliteColor', 'backColor', 'fontName']);
+            let sourceMode = false;
             function exec(command: string, value?: string) {
-              bodyEl?.focus();
+              if (sourceMode || !bodyEl) return;
+              bodyEl.focus();
+              restoreSelection();
+              try { document.execCommand('styleWithCSS', false, CSS_CMDS.has(command) ? 'true' : 'false'); } catch { /* older engines */ }
               document.execCommand(command, false, value);
             }
+
+            // execCommand('fontSize') only takes 1–7 — apply 7 as a marker,
+            // then rewrite the produced <font> tags into sanitizer-friendly
+            // <span style="font-size: …">.
+            function applyFontSize(px: string) {
+              if (!bodyEl) return;
+              exec('fontSize', '7');
+              bodyEl.querySelectorAll('font[size="7"]').forEach((f) => {
+                const span = document.createElement('span');
+                span.style.fontSize = px;
+                while (f.firstChild) span.appendChild(f.firstChild);
+                f.replaceWith(span);
+              });
+              bodyDirty = true;
+            }
+            function applyLineHeight(v: string) {
+              if (sourceMode) return;
+              bodyEl?.focus();
+              restoreSelection();
+              const blocks = selectedBlocks();
+              if (blocks.length === 0) return;
+              blocks.forEach((b) => {
+                if (v === 'default') b.style.removeProperty('line-height');
+                else b.style.lineHeight = v;
+                if (!b.getAttribute('style')) b.removeAttribute('style');
+              });
+              bodyDirty = true;
+            }
+            // Indent/outdent as margin-left steps — execCommand('indent') nests
+            // blockquotes, which the public page renders as styled quotes.
+            function applyIndent(deltaRem: number) {
+              if (sourceMode) return;
+              bodyEl?.focus();
+              restoreSelection();
+              const blocks = selectedBlocks();
+              if (blocks.length === 0) return;
+              blocks.forEach((b) => {
+                const cur = parseFloat(b.style.marginLeft || '0') || 0;
+                const next = Math.max(0, Math.min(12, cur + deltaRem));
+                if (next === 0) b.style.removeProperty('margin-left');
+                else b.style.marginLeft = `${next}rem`;
+                if (!b.getAttribute('style')) b.removeAttribute('style');
+              });
+              bodyDirty = true;
+            }
+            // YouTube/Vimeo URL → privacy-friendly embed markup. Returns null
+            // when the URL isn't recognized (the sanitizer would drop any
+            // other iframe host anyway).
+            function videoEmbedHtml(url: string): string | null {
+              let m = url.match(/(?:youtube\.com\/(?:watch\?.*?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,20})/);
+              if (m) return `<iframe src="https://www.youtube-nocookie.com/embed/${m[1]}" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+              m = url.match(/vimeo\.com\/(?:video\/)?(\d{6,12})/);
+              if (m) return `<iframe src="https://player.vimeo.com/video/${m[1]}" title="Video" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+              return null;
+            }
+
             document.querySelectorAll<HTMLButtonElement>('.toolbar button[data-cmd]').forEach((btn) => {
               btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -672,20 +839,113 @@ const STYLES = `
                   case 'bold': exec('bold'); break;
                   case 'italic': exec('italic'); break;
                   case 'underline': exec('underline'); break;
-                  case 'p': exec('formatBlock', 'P'); break;
-                  case 'h2': exec('formatBlock', 'H2'); break;
-                  case 'h3': exec('formatBlock', 'H3'); break;
+                  case 'strike': exec('strikeThrough'); break;
                   case 'ul': exec('insertUnorderedList'); break;
                   case 'ol': exec('insertOrderedList'); break;
                   case 'quote': exec('formatBlock', 'BLOCKQUOTE'); break;
                   case 'align-left': exec('justifyLeft'); break;
                   case 'align-center': exec('justifyCenter'); break;
                   case 'align-right': exec('justifyRight'); break;
+                  case 'align-justify': exec('justifyFull'); break;
+                  case 'indent': applyIndent(2); break;
+                  case 'outdent': applyIndent(-2); break;
+                  case 'color': foreColorEl?.click(); break;
+                  case 'highlight': backColorEl?.click(); break;
                   case 'link': { const url = window.prompt('Link URL (include https://)'); if (url) exec('createLink', url); break; }
                   case 'image': inlineFileEl?.click(); break;
+                  case 'video': {
+                    const url = window.prompt('YouTube or Vimeo URL');
+                    if (!url) break;
+                    const html = videoEmbedHtml(url.trim());
+                    if (!html) { window.alert('Could not read that URL — paste a YouTube or Vimeo video link.'); break; }
+                    exec('insertHTML', `${html}<p><br></p>`);
+                    break;
+                  }
+                  case 'hr': exec('insertHorizontalRule'); break;
+                  case 'clear': exec('removeFormat'); break;
+                  case 'source': toggleSource(); break;
                 }
               });
             });
+
+            // ── Toolbar dropdowns + color inputs ──────────────────────────
+            const fontSelEl = $<HTMLSelectElement>('tb-font');
+            const sizeSelEl = $<HTMLSelectElement>('tb-size');
+            const blockSelEl = $<HTMLSelectElement>('tb-block');
+            const lhSelEl = $<HTMLSelectElement>('tb-lh');
+            const foreColorEl = $<HTMLInputElement>('fore-color');
+            const backColorEl = $<HTMLInputElement>('back-color');
+            const foreChipEl = $('fore-chip');
+            const backChipEl = $('back-chip');
+            fontSelEl?.addEventListener('change', () => {
+              if (fontSelEl.value) exec('fontName', fontSelEl.value);
+              fontSelEl.value = '';
+            });
+            sizeSelEl?.addEventListener('change', () => {
+              if (sizeSelEl.value) applyFontSize(sizeSelEl.value);
+              sizeSelEl.value = '';
+            });
+            blockSelEl?.addEventListener('change', () => {
+              exec('formatBlock', blockSelEl.value.toUpperCase());
+            });
+            lhSelEl?.addEventListener('change', () => {
+              if (lhSelEl.value) applyLineHeight(lhSelEl.value);
+              lhSelEl.value = '';
+            });
+            foreColorEl?.addEventListener('input', () => {
+              exec('foreColor', foreColorEl.value);
+              if (foreChipEl) foreChipEl.style.background = foreColorEl.value;
+            });
+            backColorEl?.addEventListener('input', () => {
+              exec('hiliteColor', backColorEl.value);
+              if (backChipEl) backChipEl.style.background = backColorEl.value;
+            });
+            // Mirror the current block's tag into the paragraph-style dropdown.
+            function syncBlockSelect() {
+              if (!blockSelEl || !savedRange) return;
+              let n: Node | null = savedRange.startContainer;
+              while (n && n !== bodyEl) {
+                if (n.nodeType === 1) {
+                  const tag = (n as Element).nodeName.toLowerCase();
+                  if (tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4') { blockSelEl.value = tag; return; }
+                }
+                n = n.parentNode;
+              }
+              blockSelEl.value = 'p';
+            }
+
+            // ── HTML source view ──────────────────────────────────────────
+            const sourceEl = $<HTMLTextAreaElement>('post-source');
+            const sourceBtn = $<HTMLButtonElement>('source-btn');
+            sourceEl?.addEventListener('input', () => { bodyDirty = true; });
+            // Pull textarea HTML back into the editor (publish + toggle paths).
+            function syncFromSource() {
+              if (!sourceMode || !bodyEl || !sourceEl) return;
+              bodyEl.innerHTML = sourceEl.value.trim() || EMPTY_BODY;
+              normalizeBlocks();
+            }
+            function setSourceMode(on: boolean) {
+              if (!bodyEl || !sourceEl) return;
+              if (on === sourceMode) return;
+              if (on) {
+                sourceEl.value = bodyEl.innerHTML;
+                bodyEl.hidden = true;
+                sourceEl.hidden = false;
+                sourceEl.focus();
+              } else {
+                syncFromSource();
+                sourceEl.hidden = true;
+                bodyEl.hidden = false;
+              }
+              sourceMode = on;
+              sourceBtn?.classList.toggle('is-on', on);
+              // Everything except the source toggle is inert while editing raw HTML.
+              document.querySelectorAll<HTMLButtonElement>('.toolbar button[data-cmd]').forEach((b) => {
+                if (b.dataset.cmd !== 'source') b.disabled = on;
+              });
+              document.querySelectorAll<HTMLSelectElement>('.toolbar .tb-select').forEach((s) => { s.disabled = on; });
+            }
+            function toggleSource() { setSourceMode(!sourceMode); }
 
             // ── Image upload (shared) ─────────────────────────────────────
             async function uploadImage(file: File): Promise<string | null> {
@@ -735,6 +995,7 @@ const STYLES = `
             // ── Form reset / edit prefill ─────────────────────────────────
             function resetForm() {
               editEpoch++; // invalidate any in-flight prefill fetch
+              setSourceMode(false); // leave raw-HTML view before swapping content
               bodyDirty = false;
               bodyIsFallback = false;
               if (postIdEl) postIdEl.value = '';
@@ -754,6 +1015,7 @@ const STYLES = `
               // Capture the epoch BEFORE the fetch: any later Add/Edit/Back
               // bumps editEpoch and this prefill's response is discarded.
               const epoch = ++editEpoch;
+              setSourceMode(false); // leave raw-HTML view before swapping content
               bodyDirty = false;
               bodyIsFallback = false;
               setStatus(listStatusEl, '');
@@ -815,9 +1077,11 @@ const STYLES = `
             publishBtn?.addEventListener('click', async () => {
               const id = postIdEl?.value ?? '';
               const title = (titleEl?.value ?? '').trim();
-              // Normalize before serializing: bare root-level text gets wrapped
-              // in <p>, and a body that is only the empty seed paragraph
-              // serializes to '' (so the "write the post body" check fires).
+              // Normalize before serializing: raw-HTML edits sync back first,
+              // bare root-level text gets wrapped in <p>, and a body that is
+              // only the empty seed paragraph serializes to '' (so the "write
+              // the post body" check fires).
+              syncFromSource();
               normalizeBlocks();
               const rawHTML = isBodyEmpty() ? '' : (bodyEl?.innerHTML ?? '').trim();
               const imageUrl = featuredUrlEl?.value ?? '';

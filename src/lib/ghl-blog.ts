@@ -138,18 +138,34 @@ export function sanitizeBody(html: string): string {
   return sanitizeHtml(html, {
     allowedTags: [
       'p', 'div', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li',
-      'b', 'strong', 'i', 'em', 'u', 'a', 'img', 'blockquote', 'br', 'span',
+      'b', 'strong', 'i', 'em', 'u', 's', 'strike', 'a', 'img', 'blockquote', 'br', 'span',
+      'hr', 'iframe', 'figure', 'figcaption',
     ],
     allowedAttributes: {
       a: ['href', 'target', 'rel'],
       img: ['src', 'alt', 'width', 'height'],
-      // The toolbar's align buttons emit style="text-align: …" — allowedStyles
-      // below strips every other CSS property.
+      iframe: ['src', 'width', 'height', 'title', 'allow', 'allowfullscreen', 'frameborder'],
+      // The toolbar emits inline styles (alignment, colors, fonts, indent…) —
+      // allowedStyles below allowlists each property + value shape; everything
+      // else is stripped.
       '*': ['style'],
     },
     allowedStyles: {
-      '*': { 'text-align': [/^(left|right|center|justify)$/] },
+      '*': {
+        'text-align': [/^(left|right|center|justify)$/],
+        'color': [/^#[0-9a-fA-F]{3,8}$/, /^rgba?\([\d\s.,%]+\)$/],
+        'background-color': [/^#[0-9a-fA-F]{3,8}$/, /^rgba?\([\d\s.,%]+\)$/],
+        'font-family': [/^[\w\s,'"-]+$/],
+        'font-size': [/^\d{1,2}(\.\d+)?(px|rem|em)$/],
+        'line-height': [/^\d{1,2}(\.\d+)?$/],
+        // Indent steps from the editor's indent/outdent buttons.
+        'margin-left': [/^\d{1,3}(\.\d+)?(px|rem|em)$/],
+      },
     },
+    // Video embeds only from the big two players; any other iframe is dropped.
+    allowedIframeHostnames: ['www.youtube.com', 'www.youtube-nocookie.com', 'player.vimeo.com'],
+    // A disallowed host leaves an empty <iframe> shell behind — remove it.
+    exclusiveFilter: (frame) => frame.tag === 'iframe' && !frame.attribs.src,
     // Images come from the GHL CDN (https); no data: URIs.
     allowedSchemes: ['http', 'https'],
   });
