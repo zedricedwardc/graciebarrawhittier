@@ -11,6 +11,11 @@ key, and the site URL. Anything the ribbon emits must stay in sync with the
 `sanitizeBody` allowlist in `src/lib/ghl-blog.ts` — the API strips any tag or
 style the allowlist doesn't cover.
 
+SEO note: posts are created at runtime, so the build-time sitemap can't list
+them — `/sitemap-blog.xml` (SSR, auto-refreshing) covers them instead. When
+templating for a new gym, the second `Sitemap:` line in `public/robots.txt`
+must point at the new gym's domain (same edit as the first line).
+
 **Phase legend**: `[DEV]` = developer (terminal). `[ADMIN]` = studio admin (GHL UI).
 
 ---
