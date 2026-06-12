@@ -1,20 +1,20 @@
 ---
 export const prerender = true;
 /**
- * /adults-jiu-jitsu — audience: adults 16+, beginners and returning students.
- * Thin shell: BaseLayout + AdultsLanding (body extracted for reuse by the
- * /go/adults-* ad landing pages). No `source` prop → original form sources.
+ * /go/adults-meta — Meta Ads landing page. Adults page body, chromeless
+ * (no nav/footer), every CTA locked to #trial, lead source tagged per
+ * platform. noindex + canonical → the organic adults page.
  */
-import BaseLayout from '../layouts/BaseLayout.astro';
-import AdultsLanding from '../components/landing/AdultsLanding.astro';
+import AdLandingLayout from '../../layouts/AdLandingLayout.astro';
+import AdultsLanding from '../../components/landing/AdultsLanding.astro';
 ---
 
-<BaseLayout
+<AdLandingLayout
   title="Adult BJJ Classes in Whittier, CA | Gracie Barra Whittier"
   description="Train Brazilian Jiu-Jitsu at Gracie Barra Whittier. Beginner-friendly adult BJJ classes in Whittier, CA. Build fitness, self-defense skills, and confidence. Try 3 classes free."
   canonical="https://www.graciebarrawhittier.com/adults-jiu-jitsu/"
   ogImage="/og/adults-jiu-jitsu.jpg"
   ogImageAlt="Coach demonstrating a Jiu-Jitsu technique to adult students seated on the mat at Gracie Barra Whittier"
 >
-  <AdultsLanding />
-</BaseLayout>
+  <AdultsLanding adMode={true} source="ads-adults-meta" />
+</AdLandingLayout>

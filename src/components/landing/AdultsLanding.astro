@@ -1,0 +1,337 @@
+---
+/**
+ * AdultsLanding — full body of /adults-jiu-jitsu, shared between the organic
+ * page and the /go/adults-* ad landing pages.
+ * Copy verbatim from build brief Part 3 Adults section.
+ * Visual: bento-card on gray bg, matching homepage.
+ *
+ * Props:
+ * - source: overrides the lead source on every OptInForm (ad pages pass their
+ *   per-platform tag). Omitted → original per-form sources are preserved.
+ * - adMode: when true, internal navigation links are repointed to #trial so ad
+ *   clicks can't leak off-page. Every CTA on this page already targets #trial,
+ *   so adMode currently changes nothing here — the prop exists for parity with
+ *   the other landing components and future-proofs new links.
+ */
+import { Image } from 'astro:assets';
+import CTAButton from '../cta/CTAButton.astro';
+import OptInForm from '../form/OptInForm.astro';
+import AIChatWidget from '../widgets/AIChatWidget.astro';
+import SchemaBreadcrumb from '../seo/SchemaBreadcrumb.astro';
+import SchemaFAQ from '../seo/SchemaFAQ.astro';
+import SchemaCourse from '../seo/SchemaCourse.astro';
+import SchemaPerson from '../seo/SchemaPerson.astro';
+import { adultsFaqs } from '../../content/adults-faqs';
+import { instructors } from '../../content/instructors';
+import adultsHero from '../../assets/images/adults/adults-hero.jpg';
+
+export interface Props {
+  /** Overrides the `source` on every OptInForm. Omitted → originals kept. */
+  source?: string;
+  /** Repoint internal navigation links to #trial (ad pages). */
+  adMode?: boolean;
+}
+
+// adMode has no links to repoint on this page — every CTA already targets
+// #trial — so it is intentionally unused below.
+const { source, adMode = false } = Astro.props;
+
+const programs = [
+  {
+    badge: 'GB1  |  FUNDAMENTALS',
+    name: 'GB1 Fundamentals',
+    sub: 'For beginners and all levels',
+    description:
+      'GB1 is where every Gracie Barra journey begins. This structured fundamentals program teaches the core positions, self-defense principles, and foundational techniques of Brazilian Jiu-Jitsu using the proven 16-week GB curriculum. No experience needed. No live sparring to start. Just technique, structure, and a supportive environment built to get you moving confidently on the mat.',
+    bullets: [
+      'Perfect for absolute beginners',
+      'Structured 16-week rotating curriculum',
+      'Real self-defense from day one',
+    ],
+    image: '/images/adults/adults-fundamentals.jpg',
+    alt: 'Adults drilling Brazilian Jiu-Jitsu fundamentals at Gracie Barra Whittier',
+  },
+  {
+    badge: 'GB2  |  ADVANCED',
+    name: 'GB2 Advanced',
+    sub: 'Live training, sparring, and no-gi',
+    description:
+      "GB2 is where your Jiu-Jitsu comes alive. Building on the fundamentals, this program introduces live rolling, complex technique chains, and no-gi training. You'll develop a real game — fluid, responsive, and built to work under pressure. For students who have completed GB1 or who train consistently and are ready to push their game to the next level.",
+    bullets: [
+      'Live rolling and positional sparring',
+      'No-gi training included',
+      'Complex submissions, sweeps, and transitions',
+    ],
+    image: '/images/home/gallery/adults-2.jpg',
+    alt: 'Adult Brazilian Jiu-Jitsu sparring session at Gracie Barra Whittier',
+  },
+  {
+    badge: 'GB3  |  COMPETITION',
+    name: 'GB3 Competition Program',
+    sub: 'For competitors and advanced practitioners',
+    description:
+      'GB3 is where serious Jiu-Jitsu happens. High-intensity drills, advanced technique, and competitive sparring. If you want to compete — or simply train alongside the sharpest practitioners at the academy — this is your program. Blue belts and above. Competition training available for all levels of competitor.',
+    bullets: [
+      'Competition prep and high-intensity training',
+      'Advanced guard systems and transitions',
+      'For blue belts and above',
+    ],
+    image: '/images/home/gallery/adults-3.jpg',
+    alt: 'Advanced Brazilian Jiu-Jitsu competition training at Gracie Barra Whittier',
+  },
+];
+
+const benefits = [
+  {
+    title: 'Real self-defense',
+    body:
+      "BJJ works based on leverage and technique — not size or strength. It's why it's the #1 choice for law enforcement and military worldwide.",
+    icon: 'shield',
+  },
+  {
+    title: 'Total fitness',
+    body:
+      "Cardio, strength, flexibility, coordination — all in one hour. You'll be too focused on learning to notice you're working out.",
+    icon: 'zap',
+  },
+  {
+    title: 'Mental toughness',
+    body:
+      'The mat teaches you to stay calm under pressure. That skill shows up everywhere in your life.',
+    icon: 'brain',
+  },
+  {
+    title: 'Community',
+    body:
+      "Your training partners become people you trust. The BJJ community at GB Whittier is unlike anything else you'll find.",
+    icon: 'people',
+  },
+];
+
+const firstClassSteps = [
+  'Arrive 10 minutes early — meet your instructor and the front desk team.',
+  'Get fitted for your free uniform rental.',
+  'Warm up with the class — light movement, no surprises.',
+  'Fundamentals class — the instructor walks you through technique step-by-step.',
+  'Practice with a training partner at your level. Slow, controlled, low-pressure.',
+  'Debrief with Program Director Alex — quick chat about how it went and what comes next. No commitment.',
+];
+
+const breadcrumb = [
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'Adults Jiu-Jitsu', url: 'https://www.graciebarrawhittier.com/adults-jiu-jitsu/' },
+];
+
+const adultsPageUrl = 'https://www.graciebarrawhittier.com/adults-jiu-jitsu/';
+
+const courseItems = programs.map((p) => ({
+  name: p.name,
+  description: p.description,
+  audience: 'Adults 16+',
+  url: adultsPageUrl,
+}));
+---
+
+<div class="bg-gb-bg-light">
+  {/* HERO — rounded card on light-gray background */}
+  <section class="px-4 md:px-6 pt-6 md:pt-8">
+    <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+      <Image
+        src={adultsHero}
+        alt="Adult Brazilian Jiu-Jitsu class at Gracie Barra Whittier, CA"
+        widths={[768, 1280, 1920]}
+        sizes="100vw"
+        format="webp"
+        quality={82}
+        loading="eager"
+        class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
+      />
+      <div class="absolute inset-0 -z-10 bg-gradient-to-r from-gb-navy/95 via-gb-navy/40 to-gb-navy/85"></div>
+      <div class="absolute inset-0 -z-10 bg-gradient-to-t from-gb-navy/90 via-transparent to-transparent md:hidden"></div>
+
+      <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+        <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+          Brazilian Jiu-Jitsu for Adults in Whittier, CA
+        </p>
+        <h1 class="text-base md:text-lg font-semibold text-gb-white/90 mb-3">
+          Adult Brazilian Jiu-Jitsu Classes in Whittier, CA
+        </h1>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+          The Most Effective Martial Art. Beginner-Friendly. Life-Changing.
+        </h2>
+        <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+          Gracie Barra Whittier's adult BJJ program is built for people with zero experience who want real results — in fitness, self-defense, and mental toughness. No prior training required.
+        </p>
+        <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" />
+      </div>
+    </div>
+  </section>
+
+  {/* OPT-IN FORM — navy horizontal variant, directly under hero */}
+  <OptInForm
+    id="trial"
+    variant="navy"
+    source={source ?? 'adults-optin'}
+    header="UNLOCK YOUR FREE 3-CLASS PASS"
+    subheader="+ VIEW OUR FULL CLASS SCHEDULE INSTANTLY"
+    description="Enter your info below to claim your Free 3-Class Pass and access our full class schedule."
+    offerLabel="FREE 3-CLASS PASS"
+    riskLine="No Risk. No Pressure. Free Uniform Rental Included."
+    submitLabel="CLAIM MY FREE 3-CLASS PASS"
+  />
+
+  {/* ADULT PROGRAMS — GB1 / GB2 / GB3 cards */}
+  <section class="px-4 md:px-6 pt-6 md:pt-10 pb-2 md:pb-4">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-10 md:mb-12">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Our Adult Brazilian Jiu-Jitsu Programs</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed max-w-2xl mx-auto">
+          Whether you're stepping on the mat for the first time or training to compete, Gracie Barra Whittier has a structured program built for where you are right now.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-5 md:gap-6">
+        {programs.map((p) => (
+          <article class="bg-gb-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+            <img src={p.image} alt={p.alt} loading="lazy" decoding="async" class="w-full h-48 object-cover" />
+            <div class="p-6 flex flex-col flex-1">
+              <p class="text-xs font-bold tracking-widest text-gb-red uppercase">{p.badge}</p>
+              <h3 class="mt-2 text-xl font-extrabold text-gb-navy">{p.name}</h3>
+              <p class="mt-1 text-sm italic text-gb-text-muted">{p.sub}</p>
+              <p class="mt-4 text-sm text-gb-text-muted leading-relaxed">{p.description}</p>
+              <ul class="mt-4 space-y-2">
+                {p.bullets.map((b) => (
+                  <li class="flex gap-2 text-sm text-gb-text leading-relaxed">
+                    <svg class="shrink-0 w-4 h-4 text-gb-red mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+              <div class="mt-auto pt-6">
+                <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" fullWidth={true} />
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      <p class="mt-8 text-center text-xs md:text-sm text-gb-text-muted leading-relaxed max-w-2xl mx-auto">
+        Not sure which program is right for you? Start with GB1. Every student at GB Whittier begins with fundamentals. Your instructor will guide your progression from there.
+      </p>
+    </div>
+  </section>
+
+  {/* THE CASE FOR BJJ — 4 benefit cards with icons */}
+  <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-10 md:mb-12">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Why Adults Choose Brazilian Jiu-Jitsu Over Every Other Martial Art</h2>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+        {benefits.map((b) => (
+          <div class="bg-gb-white rounded-2xl p-6 shadow-sm flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full bg-gb-red/10 text-gb-red flex items-center justify-center mb-4">
+              {b.icon === 'shield' && (
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              )}
+              {b.icon === 'zap' && (
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
+                </svg>
+              )}
+              {b.icon === 'brain' && (
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9.5 2A2.5 2.5 0 0 0 7 4.5v.5a2.5 2.5 0 0 0-2 2.45A2.5 2.5 0 0 0 4 9.45V12a3 3 0 0 0 3 3h0a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0 2-2v-3a2 2 0 0 1 2-2h0a3 3 0 0 0 3-3V9.45A2.5 2.5 0 0 0 19 7.45 2.5 2.5 0 0 0 17 5v-.5A2.5 2.5 0 0 0 14.5 2h0A2.5 2.5 0 0 0 12 4.5V20" />
+                </svg>
+              )}
+              {b.icon === 'people' && (
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M9 11a4 4 0 100-8 4 4 0 000 8zm0 2c-3.3 0-6 1.8-6 4v2h12v-2c0-2.2-2.7-4-6-4zm9-2a3 3 0 100-6 3 3 0 000 6zm0 2c-1 0-1.9.2-2.7.6 1.7 1 2.7 2.5 2.7 4.4v2h6v-2c0-2.5-2.7-5-6-5z" />
+                </svg>
+              )}
+            </div>
+            <h3 class="text-lg font-extrabold text-gb-navy">{b.title}</h3>
+            <p class="mt-2 text-sm text-gb-text-muted leading-relaxed">{b.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* BEGINNER REASSURANCE */}
+  <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+    <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center">
+      <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">You Don't Need Experience. You Need to Show Up.</h2>
+      <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+        Every black belt at Gracie Barra Whittier was a beginner once — and that includes Professor Phil, who leads our adult program. The culture on the mat is welcoming and ego-free. You'll train with people at your level, learn at your pace, and start with the same Fundamentals class every adult does — whether they're 18 or 58, fit or starting over. Show up; we take it from there.
+      </p>
+    </div>
+  </section>
+
+  {/* WHAT TO EXPECT */}
+  <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+    <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+      <div class="text-center mb-8">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">What Your First Adult BJJ Class Looks Like</h2>
+      </div>
+      <ol class="grid md:grid-cols-2 gap-4 md:gap-5">
+        {firstClassSteps.map((step, idx) => (
+          <li class="flex gap-4 bg-gb-bg-light rounded-xl p-4 md:p-5">
+            <span class="shrink-0 w-9 h-9 rounded-full bg-gb-red text-gb-white font-bold inline-flex items-center justify-center" aria-hidden="true">
+              {idx + 1}
+            </span>
+            <p class="text-sm md:text-base text-gb-text leading-relaxed">{step}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  {/* CONVERSION CTA — bento navy card */}
+  <section class="px-4 md:px-6 pt-2 pb-6 md:pt-4 md:pb-8">
+    <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+      <div class="max-w-3xl mx-auto text-center">
+        <h2 class="text-2xl md:text-4xl font-extrabold">Start Your BJJ Journey This Week</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+          3 free classes. No experience needed. Free uniform provided. Come see what Brazilian Jiu-Jitsu at Gracie Barra Whittier can do for you.
+        </p>
+        <div class="mt-7 flex justify-center">
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" />
+        </div>
+        <p class="mt-4 text-xs text-gb-white/70">3 free classes • No experience needed • Free uniform • No contracts</p>
+      </div>
+    </div>
+  </section>
+
+  {/* FAQ — plain on light gray background */}
+  <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="adults-faq-heading">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-8 md:mb-10">
+        <h2 id="adults-faq-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Questions About Adult Jiu-Jitsu</h2>
+      </div>
+      <div class="space-y-2">
+        {adultsFaqs.map((item) => (
+          <details class="group border-b border-gb-navy/15 py-4">
+            <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-navy">
+              <span class="flex items-center gap-3">
+                <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <span>{item.question}</span>
+              </span>
+            </summary>
+            <p class="mt-3 ml-7 text-sm text-gb-text-muted leading-relaxed">{item.answer}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+</div>
+
+<SchemaFAQ items={adultsFaqs} />
+<SchemaBreadcrumb items={breadcrumb} />
+<SchemaCourse items={courseItems} pageUrl={adultsPageUrl} />
+<SchemaPerson items={instructors} />
+<AIChatWidget />

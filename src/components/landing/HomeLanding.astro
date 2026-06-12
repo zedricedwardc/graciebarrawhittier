@@ -1,0 +1,548 @@
+---
+/**
+ * HomeLanding — full homepage body, shared between the organic homepage
+ * (src/pages/index.astro) and the /go/start-* ad landing pages.
+ *
+ * - `source` overrides the lead source on every OptInForm. Omit it and each
+ *   form keeps its original homepage value.
+ * - `adMode` repoints internal page links (program "Learn More" cards) to
+ *   #trial so paid traffic never leaks off-page. Anchor links, tel:, and
+ *   external URLs are untouched. Default false = identical to the original.
+ */
+import { Image } from 'astro:assets';
+import SchemaLocalBusiness from '../seo/SchemaLocalBusiness.astro';
+import SchemaFAQ from '../seo/SchemaFAQ.astro';
+import CTAButton from '../cta/CTAButton.astro';
+import OptInForm from '../form/OptInForm.astro';
+import AIChatWidget from '../widgets/AIChatWidget.astro';
+import { homepageFaqs } from '../../content/faqs';
+import { nap } from '../../content/nap';
+
+import homepageHero from '../../assets/images/home/homepage-hero-girl.jpg';
+import programCardKids from '../../assets/images/home/program-card-kids.png';
+import programCardAdults from '../../assets/images/home/program-card-adults.png';
+
+export interface Props {
+  /** Overrides the `source` on every OptInForm (e.g. "ads-general-meta"). */
+  source?: string;
+  /** When true, internal navigation links are repointed to #trial. */
+  adMode?: boolean;
+}
+
+const { source, adMode = false } = Astro.props;
+
+// adMode keeps paid traffic on-page: internal page links collapse to #trial.
+const kidsHref = adMode ? '#trial' : '/kids-martial-arts/';
+const adultsHref = adMode ? '#trial' : '/adults-jiu-jitsu/';
+
+const stats = [
+  {
+    value: '1000+',
+    label: 'Schools Worldwide',
+    body: 'Part of one of the largest and most trusted Brazilian Jiu-Jitsu networks on the planet.',
+    icon: 'globe',
+  },
+  {
+    value: '400,000+',
+    label: 'Students Globally',
+    body: 'A worldwide community committed to discipline, confidence, and lifelong growth.',
+    icon: 'people',
+  },
+  {
+    value: '35+ Years',
+    label: 'Proven Curriculum',
+    body: 'Founded by Master Carlos Gracie Jr., delivering structured, progressive Jiu-Jitsu since 1986.',
+    icon: 'star',
+  },
+  {
+    value: 'Certified',
+    label: 'Expert Instructors',
+    body: 'Every instructor completes the official Gracie Barra certification program to ensure safe, consistent, high-quality instruction.',
+    icon: 'shield',
+  },
+];
+
+const whyBullets = [
+  'Safe, structured, family-first environment',
+  'Certified Gracie Barra instructors',
+  'Proven curriculum from beginner to advanced',
+  'A community that supports growth beyond the mats',
+];
+
+const galleryImages = [
+  { src: '/images/home/gallery/kids-1.jpg', alt: 'Kids Brazilian Jiu-Jitsu class at Gracie Barra Whittier' },
+  { src: '/images/home/gallery/adults-1.jpg', alt: 'Adult Brazilian Jiu-Jitsu training at Gracie Barra Whittier' },
+  { src: '/images/home/gallery/kids-2.jpg', alt: 'Little Champions class at Gracie Barra Whittier' },
+  { src: '/images/home/gallery/adults-2.jpg', alt: 'Adult BJJ Fundamentals class at Gracie Barra Whittier' },
+  { src: '/images/home/gallery/kids-3.jpg', alt: 'Junior students training Jiu-Jitsu at Gracie Barra Whittier' },
+  { src: '/images/home/gallery/adults-3.jpg', alt: 'Brazilian Jiu-Jitsu sparring at Gracie Barra Whittier' },
+];
+---
+
+<div class="bg-gb-bg-light">
+  {/* ============================================================
+     HERO — rounded card on light gray background
+     ============================================================ */}
+  <section class="px-4 md:px-6 pt-6 md:pt-8">
+    <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+      <Image
+        src={homepageHero}
+        alt="Young student smiling in a blue Gracie Barra gi at Gracie Barra Whittier, Whittier, CA"
+        widths={[768, 1280, 1920]}
+        sizes="100vw"
+        format="webp"
+        quality={82}
+        loading="eager"
+        class="absolute inset-0 -z-10 w-full h-full object-cover object-[center_30%]"
+      />
+      <div class="absolute inset-0 -z-10 bg-gradient-to-r from-gb-navy/95 via-gb-navy/40 to-gb-navy/85"></div>
+      <div class="absolute inset-0 -z-10 bg-gradient-to-t from-gb-navy/90 via-transparent to-transparent md:hidden"></div>
+
+      <div class="px-6 md:px-10 lg:px-14 py-10 md:py-16 lg:py-20 grid lg:grid-cols-12 gap-8 lg:gap-12 items-center min-h-[460px]">
+        <div class="lg:col-span-7 text-gb-white">
+          <div class="flex items-center gap-3 mb-6">
+            <img
+              src="/logo/gb-whittier-logo.webp"
+              alt=""
+              aria-hidden="true"
+              class="w-10 h-10 md:w-20 md:h-20 shrink-0"
+              width="48"
+              height="48"
+            />
+            <span class="text-xs md:text-sm font-semibold tracking-wide uppercase text-gb-white/90">
+              #1 In Jiu-Jitsu Worldwide
+            </span>
+          </div>
+
+          <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+            For Kids &amp; Adults — Beginner Friendly
+          </p>
+
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gb-white leading-[1.05] mb-4">
+            Brazilian Jiu-Jitsu Classes in Whittier, CA
+          </h1>
+          <p class="text-xl md:text-2xl font-bold text-gb-white/95 leading-snug mb-5">
+            Build Confidence. Learn Real Self-Defense.
+          </p>
+
+          <p class="text-sm md:text-base text-gb-white/90 leading-relaxed max-w-xl">
+            Structured Brazilian Jiu-Jitsu for kids, teens, and adults. Develop discipline, focus, and strength — on and off the mat.
+          </p>
+        </div>
+
+        <div class="lg:col-span-5">
+          <div class="bg-gb-white rounded-xl shadow-xl p-5 md:p-6 lg:max-w-sm lg:ml-auto">
+            <p class="text-xs uppercase tracking-widest text-gb-text-muted">Try Our Academy In</p>
+            <p class="text-lg md:text-xl font-bold text-gb-navy mt-1">{nap.addressLocality}, {nap.addressRegion}</p>
+            <p class="text-sm text-gb-text-muted mt-1 leading-snug">{nap.address}</p>
+            <a href={`tel:${nap.phoneTel}`} class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-gb-navy hover:text-gb-red">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+              </svg>
+              {nap.phone}
+            </a>
+
+            <div class="mt-4 pt-4 border-t border-gb-bg-light">
+              <span class="inline-block bg-gb-red/10 text-gb-red text-[11px] font-bold tracking-wider px-3 py-1 rounded-md uppercase">
+                Free 3-Class Pass
+              </span>
+              <p class="mt-2 text-sm text-gb-text">Free uniform rental included</p>
+              <div class="mt-3">
+                <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" fullWidth={true} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============================================================
+     START YOUR JIU-JITSU JOURNEY
+     ============================================================ */}
+  <section class="px-4 md:px-6 pt-12 md:pt-16 pb-2 md:pb-4">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl md:text-5xl font-extrabold text-gb-red leading-tight">Start Your Jiu-Jitsu Journey</h2>
+      <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed max-w-3xl">
+        Whether you're brand new or ready to level up, our Brazilian Jiu-Jitsu classes in Whittier are designed to help you build confidence, strength, and real-world self-defense skills. With beginner-friendly instruction and a supportive community, getting started has never been easier.
+      </p>
+    </div>
+  </section>
+
+  {/* ============================================================
+     OPT-IN FORM — split image / form layout
+     ============================================================ */}
+  <OptInForm
+    id="trial"
+    source={source ?? 'homepage-optin'}
+    header="UNLOCK YOUR FREE 3-CLASS PASS"
+    subheader="+ VIEW OUR FULL CLASS SCHEDULE INSTANTLY"
+    description="Enter your info below to access our schedule and reserve your free class now."
+    offerLabel="FREE 3-CLASS PASS"
+    riskLine="No Risk. No Pressure."
+    submitLabel="CLAIM MY FREE 3-CLASS PASS"
+    imageSrc="/images/home/tmp9t0n0l1j.jpg"
+    imageAlt="Brazilian Jiu-Jitsu class at Gracie Barra Whittier"
+  />
+
+  {/* ============================================================
+     OUR PROGRAMS
+     ============================================================ */}
+  <section class="px-4 md:px-6 pt-12 md:pt-16 pb-4 md:pb-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-8 md:mb-10">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Our Programs</h2>
+        <p class="mt-3 text-sm md:text-base text-gb-text-muted max-w-2xl mx-auto leading-relaxed">
+          Whether you're enrolling your child or starting your own journey, our structured programs are designed to build confidence, discipline, and real-world self-defense skills in a supportive environment.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-5 md:gap-6">
+        <article class="bg-gb-white rounded-2xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow">
+          <Image
+            src={programCardKids}
+            alt="Kids martial arts class at Gracie Barra Whittier, CA"
+            widths={[480, 768]}
+            sizes="(min-width: 768px) 50vw, 100vw"
+            format="webp"
+            quality={80}
+            class="w-full h-44 md:h-52 object-cover"
+          />
+          <div class="p-6 md:p-8 flex-1 flex flex-col text-center">
+            <h3 class="text-2xl font-extrabold text-gb-navy">Kids Martial Arts</h3>
+            <p class="mt-3 text-sm text-gb-text-muted leading-relaxed flex-1">
+              Our kids Brazilian Jiu-Jitsu classes in Whittier focus on discipline, confidence, and respect in a fun and structured environment.
+            </p>
+            <a href={kidsHref} class="mt-6 inline-flex items-center justify-center w-full h-11 rounded-full border-2 border-gb-red text-gb-red font-semibold hover:bg-gb-red hover:text-white transition-colors">
+              Learn More
+            </a>
+          </div>
+        </article>
+
+        <article class="bg-gb-white rounded-2xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow">
+          <Image
+            src={programCardAdults}
+            alt="Adult Brazilian Jiu-Jitsu class at Gracie Barra Whittier, CA"
+            widths={[480, 768]}
+            sizes="(min-width: 768px) 50vw, 100vw"
+            format="webp"
+            quality={80}
+            class="w-full h-44 md:h-52 object-cover"
+          />
+          <div class="p-6 md:p-8 flex-1 flex flex-col text-center">
+            <h3 class="text-2xl font-extrabold text-gb-navy">Adults Jiu-Jitsu</h3>
+            <p class="mt-3 text-sm text-gb-text-muted leading-relaxed flex-1">
+              Our adult Jiu-Jitsu program in Whittier helps you improve fitness, relieve stress, and learn practical self-defense regardless of experience level.
+            </p>
+            <a href={adultsHref} class="mt-6 inline-flex items-center justify-center w-full h-11 rounded-full border-2 border-gb-red text-gb-red font-semibold hover:bg-gb-red hover:text-white transition-colors">
+              Learn More
+            </a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  {/* ============================================================
+     REAL STORIES. REAL GROWTH.
+     ============================================================ */}
+  <section class="px-4 md:px-6 py-4 md:py-6">
+    <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-8">
+      <div class="text-center">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Real Stories. Real Growth.</h2>
+        <p class="mt-3 text-sm md:text-base text-gb-text-muted max-w-2xl mx-auto leading-relaxed">
+          Behind every review is a student building confidence, developing discipline, and learning practical self-defense in a positive, family-friendly environment. Here's what our members are saying about their journey.
+        </p>
+        <div class="mt-5 inline-block">
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============================================================
+     WHY GRACIE BARRA WHITTIER — split layout
+     ============================================================ */}
+  <section class="px-4 md:px-6 py-12 md:py-16">
+    <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-5 md:gap-6 items-stretch">
+      <div class="relative bg-gb-white rounded-2xl overflow-hidden shadow-sm border border-gb-bg-light min-h-[320px] md:min-h-full">
+        <img
+          src="/images/home/why-section.jpg"
+          alt="Gracie Barra Whittier team and academy community"
+          class="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+      <div class="bg-gb-white rounded-2xl shadow-sm border border-gb-bg-light p-6 md:p-10">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-gb-navy">Why Gracie Barra Whittier?</h2>
+        <div class="mt-4 space-y-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          <p>Gracie Barra Whittier is more than a martial arts academy — it's a structured path to confidence, discipline, and real-world self-defense.</p>
+          <p>Our certified instructors follow the proven Gracie Barra curriculum, guiding students of all ages through a system designed to produce measurable progress on and off the mats.</p>
+          <p>Whether you're enrolling your child or starting your own journey, you'll find a safe, welcoming environment built around growth, accountability, and community.</p>
+          <p>Explore our class schedule and see why families across Whittier trust us.</p>
+        </div>
+
+        <ul class="mt-6 space-y-2.5">
+          {whyBullets.map((b) => (
+            <li class="flex items-start gap-2.5 text-sm md:text-base text-gb-text">
+              <svg class="w-5 h-5 mt-0.5 shrink-0 text-gb-red" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" transform="translate(2,2)" />
+              </svg>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+
+        <p class="mt-6 text-sm md:text-base font-semibold text-gb-red leading-relaxed">
+          Proudly serving the Whittier community with world-class Brazilian Jiu-Jitsu instruction in a clean, safe, and welcoming academy.
+        </p>
+
+        <div class="mt-6">
+          <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" fullWidth={true} />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============================================================
+     A GLOBAL STANDARD. A LOCAL COMMUNITY.
+     ============================================================ */}
+  <section class="px-4 md:px-6 py-12 md:py-16">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-10">
+        <img
+          src="/logo/favicon.webp"
+          alt=""
+          aria-hidden="true"
+          class="w-14 h-14 md:w-25 md:h-25 mx-auto"
+          width="64"
+          height="64"
+        />
+        <h2 class="mt-4 text-2xl md:text-4xl font-extrabold text-gb-red">A Global Standard. A Local Community.</h2>
+        <p class="mt-3 text-sm md:text-base text-gb-text-muted max-w-2xl mx-auto leading-relaxed">
+          Gracie Barra is one of the most respected Brazilian Jiu-Jitsu organizations in the world — and you can experience that same world-class training right here in Whittier.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {stats.map((s) => (
+          <div class="bg-gb-white rounded-2xl p-5 md:p-6 text-center shadow-sm flex flex-col items-center">
+            <div class="w-12 h-12 rounded-full bg-gb-red/10 text-gb-red flex items-center justify-center mb-4">
+              {s.icon === 'globe' && (
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M2 12h20" />
+                  <path d="M12 2a15 15 0 010 20a15 15 0 010-20z" />
+                </svg>
+              )}
+              {s.icon === 'people' && (
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M9 11a4 4 0 100-8 4 4 0 000 8zm0 2c-3.3 0-6 1.8-6 4v2h12v-2c0-2.2-2.7-4-6-4zm9-2a3 3 0 100-6 3 3 0 000 6zm0 2c-1 0-1.9.2-2.7.6 1.7 1 2.7 2.5 2.7 4.4v2h6v-2c0-2.5-2.7-5-6-5z" />
+                </svg>
+              )}
+              {s.icon === 'star' && (
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2l2.95 6.94L22 10l-5.5 4.78L18.18 22 12 18.27 5.82 22 7.5 14.78 2 10l7.05-1.06L12 2z" />
+                </svg>
+              )}
+              {s.icon === 'shield' && (
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2L4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5l-8-3zm-1 14l-4-4 1.4-1.4L11 13.2l4.6-4.6L17 10l-6 6z" />
+                </svg>
+              )}
+            </div>
+            <p class="text-2xl md:text-3xl font-extrabold text-gb-navy leading-none">{s.value}</p>
+            <p class="mt-1 text-sm font-bold text-gb-navy">{s.label}</p>
+            <p class="mt-3 text-xs text-gb-text-muted leading-relaxed">{s.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ============================================================
+     SEE LIFE INSIDE GRACIE BARRA WHITTIER
+     ============================================================ */}
+  <section class="px-4 md:px-6 pt-4 md:pt-6 pb-12 md:pb-16">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-6 md:mb-8">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">See Life Inside Gracie Barra Whittier</h2>
+        <p class="mt-3 text-sm md:text-base text-gb-text-muted max-w-2xl mx-auto leading-relaxed">
+          Gracie Barra is one of the most respected Brazilian Jiu-Jitsu organizations in the world — and you can experience that same world-class training right here in Whittier.
+        </p>
+      </div>
+
+      <div data-gallery-carousel>
+        <div class="overflow-hidden -mx-4 md:-mx-6">
+          <div
+            class="flex gap-3 md:gap-4 px-4 md:px-6 will-change-transform"
+            data-carousel-track
+          >
+            {[...galleryImages, ...galleryImages].map((g, i) => (
+              <div
+                class="shrink-0 w-[78%] sm:w-[48%] md:w-[32%] aspect-[4/3] overflow-hidden rounded-xl bg-gb-bg-light"
+                aria-hidden={i >= galleryImages.length ? 'true' : undefined}
+              >
+                <img
+                  src={g.src}
+                  alt={i >= galleryImages.length ? '' : g.alt}
+                  loading="lazy"
+                  decoding="async"
+                  class="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-center gap-2" data-carousel-dots>
+          {galleryImages.map((_, i) => (
+            <button
+              type="button"
+              data-dot
+              data-index={i}
+              aria-label={`Go to slide ${i + 1}`}
+              class="w-2 h-2 rounded-full bg-gb-text-muted/30 hover:bg-gb-text-muted/60 transition-colors"
+            />
+          ))}
+        </div>
+      </div>
+
+      <div class="mt-8 text-center">
+        <CTAButton variant="primary" label="Claim My Free 3-Class Pass" href="#trial" />
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const carousels = document.querySelectorAll<HTMLElement>('[data-gallery-carousel]');
+    carousels.forEach((root) => {
+      const track = root.querySelector<HTMLElement>('[data-carousel-track]');
+      const dots = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-dot]'));
+      if (!track) return;
+
+      const SPEED_PX_PER_SEC = 40;
+      let offset = 0;
+      let halfWidth = 0;
+      let cardStep = 0;
+      let rafId: number | undefined;
+      let lastT = 0;
+      let activeIdx = -1;
+
+      const recalc = () => {
+        const children = track.children;
+        if (children.length < 2) return;
+        const halfIndex = Math.floor(children.length / 2);
+        const halfStart = (children[halfIndex] as HTMLElement).offsetLeft;
+        halfWidth = halfStart;
+        const a = (children[0] as HTMLElement).offsetLeft;
+        const b = (children[1] as HTMLElement).offsetLeft;
+        cardStep = b - a;
+        if (offset >= halfWidth) offset = offset % halfWidth;
+      };
+
+      const updateDots = () => {
+        if (cardStep <= 0 || dots.length === 0) return;
+        const idx = Math.round(offset / cardStep) % dots.length;
+        if (idx === activeIdx) return;
+        activeIdx = idx;
+        dots.forEach((d, i) => {
+          const isActive = i === idx;
+          d.classList.toggle('bg-gb-navy', isActive);
+          d.classList.toggle('w-6', isActive);
+          d.classList.toggle('bg-gb-text-muted/30', !isActive);
+        });
+      };
+
+      const apply = () => {
+        track.style.transform = `translate3d(${-offset}px, 0, 0)`;
+        updateDots();
+      };
+
+      const tick = (t: number) => {
+        if (!lastT) lastT = t;
+        const dt = t - lastT;
+        lastT = t;
+        offset += (SPEED_PX_PER_SEC * dt) / 1000;
+        if (halfWidth > 0 && offset >= halfWidth) offset -= halfWidth;
+        apply();
+        rafId = requestAnimationFrame(tick);
+      };
+
+      const start = () => {
+        if (rafId !== undefined) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        lastT = 0;
+        rafId = requestAnimationFrame(tick);
+      };
+      const stop = () => {
+        if (rafId !== undefined) {
+          cancelAnimationFrame(rafId);
+          rafId = undefined;
+        }
+      };
+
+      recalc();
+      apply();
+      window.addEventListener('resize', () => {
+        recalc();
+        apply();
+      });
+
+      dots.forEach((dot, i) => {
+        dot.addEventListener('click', () => {
+          offset = cardStep * i;
+          apply();
+        });
+      });
+
+      root.addEventListener('mouseenter', stop);
+      root.addEventListener('mouseleave', start);
+      root.addEventListener('focusin', stop);
+      root.addEventListener('focusout', start);
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stop();
+        else start();
+      });
+
+      start();
+    });
+  </script>
+
+  {/* ============================================================
+     FAQ — bento navy card
+     ============================================================ */}
+  <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="faq-heading">
+    <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+      <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-8 md:mb-10">
+          <h2 id="faq-heading" class="text-2xl md:text-4xl font-extrabold">Questions About Jiu-Jitsu? We've Got Answers.</h2>
+          <p class="mt-3 text-sm md:text-base text-gb-white/80 max-w-xl mx-auto leading-relaxed">
+            Here are the most common questions about starting your journey at Gracie Barra Whittier.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          {homepageFaqs.map((item) => (
+            <details class="group border-b border-gb-white/15 py-4">
+              <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-white">
+                <span class="flex items-center gap-3">
+                  <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span>{item.question}</span>
+                </span>
+              </summary>
+              <p class="mt-3 ml-7 text-sm text-gb-white/80 leading-relaxed">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<SchemaFAQ items={homepageFaqs} />
+<SchemaLocalBusiness />
+<AIChatWidget />

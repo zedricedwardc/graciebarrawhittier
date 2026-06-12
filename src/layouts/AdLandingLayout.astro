@@ -1,0 +1,83 @@
+---
+/**
+ * AdLandingLayout — chromeless layout for /go/* paid-traffic landing pages
+ * (Google Ads + Meta). NO nav, NO footer, NO AI chat injected here.
+ *
+ * Always noindex,nofollow with a canonical pointing at the original organic
+ * page, so the duplicated content never competes with the originals in
+ * search. GTM stays loaded — ad conversion tracking depends on it. Full OG
+ * meta is required: Meta scrapes it for ad link previews.
+ *
+ * StickyMobileCTA renders with trialHref="#trial" so the mobile conversion
+ * bar survives without the Nav and never navigates off-page.
+ */
+import '../styles/globals.css';
+import GTM from '../components/analytics/GTM.astro';
+import StickyMobileCTA from '../components/cta/StickyMobileCTA.astro';
+
+export interface Props {
+  title: string;
+  description: string;
+  /** Absolute URL of the original organic page this ad page duplicates. */
+  canonical: string;
+  /** OG image of the original page (path or absolute URL). */
+  ogImage?: string;
+  ogImageAlt?: string;
+}
+
+const { title, description, canonical, ogImage, ogImageAlt } = Astro.props;
+const fullTitle = title.includes('Gracie Barra')
+  ? title
+  : `${title} | Gracie Barra Whittier`;
+const ogImageUrl = new URL(ogImage ?? '/logo/gb-whittier-logo.webp', Astro.site).href;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/webp" href="/logo/favicon.webp" />
+    <link rel="apple-touch-icon" href="/logo/favicon.webp" />
+    <meta name="generator" content={Astro.generator} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    />
+
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    {ogImageAlt && <meta property="og:image:alt" content={ogImageAlt} />}
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <GTM />
+  </head>
+  <body class="min-h-screen flex flex-col bg-gb-bg-light text-gb-text">
+    <GTM body />
+
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-gb-white focus:text-gb-navy focus:px-3 focus:py-2 focus:rounded"
+    >
+      Skip to main content
+    </a>
+
+    <header class="sticky top-0 z-30">
+      <StickyMobileCTA trialHref="#trial" />
+    </header>
+
+    <main id="main" class="flex-1">
+      <slot />
+    </main>
+  </body>
+</html>

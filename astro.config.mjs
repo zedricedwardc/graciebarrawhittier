@@ -23,7 +23,8 @@ export default defineConfig({
         !page.includes('/kickstart') &&
         !page.includes('/back-to-the-mats') &&
         !page.includes('/rebook') &&
-        !page.includes('/offer'),
+        !page.includes('/offer') &&
+        !page.includes('/go/'),
     }),
   ],
   vite: {

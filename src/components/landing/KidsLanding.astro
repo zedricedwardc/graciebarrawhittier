@@ -1,0 +1,294 @@
+---
+/**
+ * KidsLanding — the full body of /kids-martial-arts, shared between the
+ * organic page (no props → identical output to the original) and the
+ * /go/kids-* ad landing pages (source override + adMode).
+ *
+ * Copy verbatim from build brief Part 3 Kids section.
+ * Visual: bento-card on gray bg, matching homepage.
+ */
+import { Image } from 'astro:assets';
+import CTAButton from '../cta/CTAButton.astro';
+import OptInForm from '../form/OptInForm.astro';
+import AIChatWidget from '../widgets/AIChatWidget.astro';
+import SchemaBreadcrumb from '../seo/SchemaBreadcrumb.astro';
+import SchemaFAQ from '../seo/SchemaFAQ.astro';
+import SchemaCourse from '../seo/SchemaCourse.astro';
+import SchemaPerson from '../seo/SchemaPerson.astro';
+import { kidsFaqs } from '../../content/kids-faqs';
+import { instructors } from '../../content/instructors';
+import kidsHero from '../../assets/images/kids/kids-hero.jpg';
+
+export interface Props {
+  /** Overrides the source on every OptInForm. Omit to keep the originals' hardcoded values. */
+  source?: string;
+  /**
+   * When true, internal page links are repointed to #trial so ad clicks never
+   * leave the page. Every CTA in this body already targets #trial, so adMode
+   * currently has nothing to rewrite — the prop exists for API parity with
+   * the other landing components and future-proofs new links.
+   */
+  adMode?: boolean;
+}
+
+const { source, adMode = false } = Astro.props;
+void adMode; // Nothing to repoint in this body (see Props doc above) — every CTA already targets #trial.
+
+const programs = [
+  {
+    name: 'Tiny Champions',
+    ages: 'Ages 3–4',
+    blurb:
+      'Movement, coordination, listening skills, following instructions. A fun and safe introduction to the mat.',
+    image: '/images/kids/kids-tiny-champions.jpg',
+    alt: 'Tiny Champions Brazilian Jiu-Jitsu class for ages 3 to 4 at Gracie Barra Whittier',
+  },
+  {
+    name: 'Little Champions 1',
+    ages: 'Ages 5–6',
+    blurb:
+      'Core BJJ fundamentals introduced through age-appropriate drills. Builds discipline, respect, and confidence in a structured team environment.',
+    image: '/images/kids/kids-little-champions-1.jpg',
+    alt: 'Little Champions 1 Brazilian Jiu-Jitsu class for ages 5 to 6 at Gracie Barra Whittier',
+  },
+  {
+    name: 'Little Champions 2',
+    ages: 'Ages 7–9',
+    blurb:
+      'Deeper technique focus and partner drills. Continued emphasis on respect, listening, and structured practice.',
+    image: '/images/kids/kids-little-champions-2.jpg',
+    alt: 'Little Champions 2 Brazilian Jiu-Jitsu class for ages 7 to 9 at Gracie Barra Whittier',
+  },
+  {
+    name: 'Juniors Jiu-Jitsu',
+    ages: 'Ages 10–15',
+    blurb:
+      'Technique-focused training with real BJJ skills, optional competition preparation, and leadership development.',
+    image: '/images/kids/kids-juniors.jpg',
+    alt: 'Juniors Brazilian Jiu-Jitsu class for ages 10 to 15 at Gracie Barra Whittier',
+  },
+];
+
+const parentQuotes = [
+  {
+    quote: "My son's teachers started noticing how much more focused he is in class.",
+    benefit: 'Focus and school performance',
+  },
+  {
+    quote: 'She walks into every room now like she belongs there.',
+    benefit: 'Confidence',
+  },
+  {
+    quote: 'I feel safe knowing he can protect himself.',
+    benefit: 'Self-defense and safety',
+  },
+];
+
+const firstClassSteps = [
+  'Arrive 10 minutes early — say hi to the front desk and meet your instructor.',
+  'Get fitted for your free uniform rental.',
+  'Warm up with the group — fun, age-appropriate movement.',
+  'Learn the first technique with the instructor walking you through every step.',
+  'End-of-class reflection — what we learned, what comes next.',
+  'Sit down with Program Director Alex for a brief no-pressure conversation about the trial.',
+];
+
+const breadcrumb = [
+  { name: 'Home', url: 'https://www.graciebarrawhittier.com/' },
+  { name: 'Kids Martial Arts', url: 'https://www.graciebarrawhittier.com/kids-martial-arts/' },
+];
+
+const kidsPageUrl = 'https://www.graciebarrawhittier.com/kids-martial-arts/';
+
+const courseItems = programs.map((p) => ({
+  name: p.name,
+  description: `${p.ages} — ${p.blurb}`,
+  audience: `Kids ${p.ages.replace(/Ages /i, '')}`,
+  url: kidsPageUrl,
+}));
+---
+
+<div class="bg-gb-bg-light">
+  {/* HERO — rounded card on light-gray background */}
+  <section class="px-4 md:px-6 pt-6 md:pt-8">
+    <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl overflow-hidden relative isolate shadow-lg">
+      <Image
+        src={kidsHero}
+        alt="Kids Brazilian Jiu-Jitsu class at Gracie Barra Whittier, CA"
+        widths={[768, 1280, 1920]}
+        sizes="100vw"
+        format="webp"
+        quality={82}
+        loading="eager"
+        class="absolute inset-0 -z-10 w-full h-full object-cover object-center"
+      />
+      <div class="absolute inset-0 -z-10 bg-gradient-to-r from-gb-navy/95 via-gb-navy/40 to-gb-navy/85"></div>
+      <div class="absolute inset-0 -z-10 bg-gradient-to-t from-gb-navy/90 via-transparent to-transparent md:hidden"></div>
+
+      <div class="px-6 md:px-10 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-gb-white">
+        <p class="text-xs md:text-sm font-semibold uppercase text-gb-gold tracking-wide mb-4">
+          Brazilian Jiu-Jitsu for Kids in Whittier, CA
+        </p>
+        <h1 class="text-base md:text-lg font-semibold text-gb-white/90 mb-3">
+          Kids Martial Arts Classes in Whittier, CA — Ages 3 to 15
+        </h1>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
+          Where Kids Build Confidence, Discipline, and Strength
+        </h2>
+        <p class="text-base md:text-lg text-gb-white/90 leading-relaxed max-w-2xl mb-7">
+          Age-specific Brazilian Jiu-Jitsu programs designed for every stage of childhood — from Tiny Champions (ages 3-4) through Juniors (ages 10-15). Safe, structured, and genuinely fun.
+        </p>
+        <CTAButton variant="primary" label="Claim My Child's Free 3-Class Pass" href="#trial" />
+      </div>
+    </div>
+  </section>
+
+  {/* OPT-IN FORM — navy horizontal variant, directly under hero */}
+  <OptInForm
+    id="trial"
+    variant="navy"
+    source={source ?? 'kids-optin'}
+    header="UNLOCK YOUR FREE 3-CLASS PASS"
+    subheader="+ VIEW OUR FULL CLASS SCHEDULE INSTANTLY"
+    description="Enter your info below to claim your Free 3-Class Pass and access our full class schedule."
+    offerLabel="FREE 3-CLASS PASS"
+    riskLine="No Risk. No Pressure. Free Uniform Rental Included."
+    submitLabel="CLAIM MY FREE 3-CLASS PASS"
+  />
+
+  {/* PROGRAMS BREAKDOWN */}
+  <section class="px-4 md:px-6 pt-6 md:pt-10 pb-12 md:pb-16">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-10 md:mb-12">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Age-Specific Programs Built for Your Child</h2>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+        {programs.map((p) => (
+          <article class="bg-gb-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+            <img src={p.image} alt={p.alt} loading="lazy" decoding="async" class="w-full h-44 object-cover" />
+            <div class="p-5 flex flex-col flex-1">
+              <p class="text-xs font-bold tracking-widest text-gb-red uppercase">{p.ages}</p>
+              <h3 class="mt-2 text-lg font-extrabold text-gb-navy">{p.name}</h3>
+              <p class="mt-2 text-sm text-gb-text-muted leading-relaxed flex-1">{p.blurb}</p>
+              <div class="mt-5">
+                <CTAButton variant="program" label="Claim My Child's Free 3-Class Pass" href="#trial" fullWidth={true} />
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* BENEFITS FOR PARENTS */}
+  <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-10 md:mb-12">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">What Parents Tell Us After Their Child Starts Training</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-5 md:gap-6">
+        {parentQuotes.map((q) => (
+          <figure class="bg-gb-white rounded-2xl shadow-sm p-6 flex flex-col">
+            <svg class="w-8 h-8 text-gb-red mb-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M9 7H6a3 3 0 00-3 3v7h7v-7H7c0-1.1.9-2 2-2V7zm9 0h-3a3 3 0 00-3 3v7h7v-7h-3c0-1.1.9-2 2-2V7z" />
+            </svg>
+            <blockquote class="text-base md:text-lg text-gb-text font-medium leading-relaxed">
+              &ldquo;{q.quote}&rdquo;
+            </blockquote>
+            <figcaption class="mt-4 text-sm font-semibold text-gb-navy">{q.benefit}</figcaption>
+          </figure>
+        ))}
+      </div>
+      <p class="mt-8 text-xs text-gb-text-muted text-center">Placeholder quotes pending publication of real parent reviews.</p>
+    </div>
+  </section>
+
+  {/* WHAT TO EXPECT */}
+  <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+    <div class="max-w-6xl mx-auto bg-gb-white rounded-2xl shadow-sm p-6 md:p-10">
+      <div class="text-center mb-8">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">What Happens at Your Child's First Class</h2>
+      </div>
+      <ol class="grid md:grid-cols-2 gap-4 md:gap-5">
+        {firstClassSteps.map((step, idx) => (
+          <li class="flex gap-4 bg-gb-bg-light rounded-xl p-4 md:p-5">
+            <span class="shrink-0 w-9 h-9 rounded-full bg-gb-red text-gb-white font-bold inline-flex items-center justify-center" aria-hidden="true">
+              {idx + 1}
+            </span>
+            <p class="text-sm md:text-base text-gb-text leading-relaxed">{step}</p>
+          </li>
+        ))}
+      </ol>
+      <p class="mt-8 text-center text-sm text-gb-text-muted">
+        Bring comfortable workout clothes. We provide the uniform for your trial classes.
+      </p>
+    </div>
+  </section>
+
+  {/* CERTIFIED INSTRUCTORS */}
+  <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16">
+    <div class="max-w-6xl mx-auto grid md:grid-cols-5 gap-5 md:gap-6 items-stretch">
+      <div class="md:col-span-3 bg-gb-white rounded-2xl shadow-sm p-6 md:p-10 text-center md:text-left flex flex-col justify-center">
+        <h2 class="text-2xl md:text-4xl font-extrabold text-gb-navy">Certified Gracie Barra Instructors — Not Just Athletes, But Teachers</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-text-muted leading-relaxed">
+          Every instructor at Gracie Barra Whittier completes the official Gracie Barra certification program before stepping on the mat with your child. The same curriculum is taught at over 1,000 GB academies worldwide. Our lead instructors, Professor Phil and Professor Eric, bring decades of training experience and a teaching-first mindset — your child isn't just learning Jiu-Jitsu, they're being mentored.
+        </p>
+      </div>
+      <div class="md:col-span-2 relative bg-gb-white rounded-2xl shadow-sm overflow-hidden min-h-[260px] md:min-h-[320px]">
+        <img
+          src="/images/kids/kids-juniors.jpg"
+          alt="Gracie Barra Whittier certified instructors teaching kids Brazilian Jiu-Jitsu"
+          class="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    </div>
+  </section>
+
+  {/* CONVERSION CTA — bento-style navy card */}
+  <section class="px-4 md:px-6 pt-2 pb-6 md:pt-4 md:pb-8">
+    <div class="max-w-6xl mx-auto bg-gb-navy rounded-2xl shadow-lg text-gb-white px-6 md:px-10 lg:px-14 py-12 md:py-16">
+      <div class="max-w-3xl mx-auto text-center">
+        <h2 class="text-2xl md:text-4xl font-extrabold">Ready to Get Your Child Started?</h2>
+        <p class="mt-4 text-sm md:text-base text-gb-white/85 leading-relaxed">
+          Try any of our kids programs free for 3 classes — no commitment, no contracts, free uniform rental included. Just bring your child and let us take it from there.
+        </p>
+        <div class="mt-7 flex justify-center">
+          <CTAButton variant="primary" label="Claim My Child's Free 3-Class Pass" href="#trial" />
+        </div>
+        <p class="mt-4 text-xs text-gb-white/70">3 free classes • Free uniform rental • No contracts • No pressure</p>
+      </div>
+    </div>
+  </section>
+
+  {/* FAQ — plain on light gray background */}
+  <section class="px-4 md:px-6 pt-2 pb-12 md:pt-4 md:pb-16" aria-labelledby="kids-faq-heading">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-8 md:mb-10">
+        <h2 id="kids-faq-heading" class="text-2xl md:text-4xl font-extrabold text-gb-navy">Questions About Kids Jiu-Jitsu</h2>
+      </div>
+      <div class="space-y-2">
+        {kidsFaqs.map((item) => (
+          <details class="group border-b border-gb-navy/15 py-4">
+            <summary class="flex items-center justify-between gap-4 cursor-pointer list-none text-sm md:text-base font-semibold text-gb-navy">
+              <span class="flex items-center gap-3">
+                <svg class="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <span>{item.question}</span>
+              </span>
+            </summary>
+            <p class="mt-3 ml-7 text-sm text-gb-text-muted leading-relaxed">{item.answer}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+</div>
+
+<SchemaFAQ items={kidsFaqs} />
+<SchemaBreadcrumb items={breadcrumb} />
+<SchemaCourse items={courseItems} pageUrl={kidsPageUrl} />
+<SchemaPerson items={instructors} />
+<AIChatWidget />

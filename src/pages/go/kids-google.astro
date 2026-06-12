@@ -1,20 +1,21 @@
 ---
 export const prerender = true;
 /**
- * /kids-martial-arts — audience: parents of children ages 3–15.
- * Body lives in KidsLanding (shared with the /go/kids-* ad landing pages).
- * No props → identical rendered output to the pre-extraction page.
+ * /go/kids-google — Google Ads landing page. Kids page body with no
+ * nav/footer, every CTA locked to #trial, lead source "ads-kids-google" for
+ * attribution. Canonical points at the organic kids page; layout is always
+ * noindex.
  */
-import BaseLayout from '../layouts/BaseLayout.astro';
-import KidsLanding from '../components/landing/KidsLanding.astro';
+import AdLandingLayout from '../../layouts/AdLandingLayout.astro';
+import KidsLanding from '../../components/landing/KidsLanding.astro';
 ---
 
-<BaseLayout
+<AdLandingLayout
   title="Kids Martial Arts in Whittier, CA | Gracie Barra Whittier"
   description="Gracie Barra Whittier offers age-specific kids BJJ programs for ages 3-15. Build confidence, focus, and self-defense skills in a safe, structured environment. Claim your free 3-class pass."
   canonical="https://www.graciebarrawhittier.com/kids-martial-arts/"
   ogImage="/og/kids-martial-arts.jpg"
   ogImageAlt="Smiling kids in Gracie Barra rash guards laughing and running on the mats during class"
 >
-  <KidsLanding />
-</BaseLayout>
+  <KidsLanding adMode={true} source="ads-kids-google" />
+</AdLandingLayout>

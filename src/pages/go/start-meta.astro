@@ -1,15 +1,20 @@
 ---
+/**
+ * /go/start-meta — Meta (Facebook/Instagram) ads landing page.
+ * Homepage body in adMode (no off-page links), lead source "ads-general-meta".
+ * noindex + canonical → homepage via AdLandingLayout.
+ */
 export const prerender = true;
-import BaseLayout from '../layouts/BaseLayout.astro';
-import HomeLanding from '../components/landing/HomeLanding.astro';
+import AdLandingLayout from '../../layouts/AdLandingLayout.astro';
+import HomeLanding from '../../components/landing/HomeLanding.astro';
 ---
 
-<BaseLayout
+<AdLandingLayout
   title="BJJ Classes in Whittier, CA"
   description="Brazilian Jiu-Jitsu classes in Whittier, CA for kids and adults. World-class Gracie Barra curriculum. Claim your Free 3-Class Pass — no risk, no contracts, free uniform rental included."
   canonical="https://www.graciebarrawhittier.com/"
   ogImage="/og/home.jpg"
   ogImageAlt="Two adult Gracie Barra Whittier students in red and black rashguards shaking hands after training"
 >
-  <HomeLanding />
-</BaseLayout>
+  <HomeLanding adMode={true} source="ads-general-meta" />
+</AdLandingLayout>

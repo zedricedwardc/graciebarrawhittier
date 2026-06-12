@@ -7,6 +7,13 @@
  */
 import { nap } from '../../content/nap';
 
+export interface Props {
+  /** Where "Claim Free Class" points. Ad landing pages pass '#trial' to stay on-page. */
+  trialHref?: string;
+}
+
+const { trialHref = '/#trial' } = Astro.props;
+
 const boxClass =
   'flex-1 min-w-0 flex flex-col items-center justify-center gap-1 ' +
   'bg-gb-red text-gb-white py-2.5 px-2 ' +
@@ -30,7 +37,7 @@ const boxClass =
     <span>Call Us</span>
   </a>
   <a
-    href="/#trial"
+    href={trialHref}
     class={`${boxClass} js-trial-link`}
     aria-label="Claim Free Class Pass"
   >
