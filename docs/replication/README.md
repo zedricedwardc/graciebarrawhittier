@@ -26,6 +26,7 @@ Deep-dive references (follow links from REPLICATE.md when needed):
 - `./sms-bot-prompt-updated.md` — SMS bot Alex prompt
 - `./sms-bot-pipeline-orchestration.md` — SMS bot pipeline orchestration
 - `./ai-referral-tracking.md` — referral tracking
+- `./ad-landing-pages.md` — /go/* standalone ad landing pages (Google Ads + Meta)
 - `./images-needed.md` — image assets reference
 
 Generated artifacts (per-client):
