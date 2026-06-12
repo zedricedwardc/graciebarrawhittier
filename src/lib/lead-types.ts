@@ -54,14 +54,14 @@ export const LEAD_SOURCES = {
   // bottom-right chat widget. Comes in via /api/lead from the GHL workflow
   // [Inbound] Chat Widget → Pipeline Orchestrator.
   'chat-widget':    { channel: 'Website Chat', pageLabel: 'Chat Widget' },
-  // ─── FUTURE — ad-funnel landing pages (new routes in this site) ──────────
-  // Uncomment + build the page + add the pageLabel to OPTIN_PAGE_LABELS:
-  //   'meta-generic-optin':   { channel: 'Meta Ads',   pageLabel: 'Meta Ad — General' },
-  //   'meta-kids-optin':      { channel: 'Meta Ads',   pageLabel: 'Meta Ad — Kids' },
-  //   'meta-adults-optin':    { channel: 'Meta Ads',   pageLabel: 'Meta Ad — Adults' },
-  //   'google-generic-optin': { channel: 'Google Ads', pageLabel: 'Google Ad — General' },
-  //   'google-kids-optin':    { channel: 'Google Ads', pageLabel: 'Google Ad — Kids' },
-  //   'google-adults-optin':  { channel: 'Google Ads', pageLabel: 'Google Ad — Adults' },
+  // /go/* ad-funnel landing pages — per-platform routes over the shared
+  // landing components (see docs/replication/ad-landing-pages.md).
+  'ads-kids-meta':      { channel: 'Meta Ads',   pageLabel: 'Meta Ad - Kids' },
+  'ads-adults-meta':    { channel: 'Meta Ads',   pageLabel: 'Meta Ad - Adults' },
+  'ads-general-meta':   { channel: 'Meta Ads',   pageLabel: 'Meta Ad - General' },
+  'ads-kids-google':    { channel: 'Google Ads', pageLabel: 'Google Ad - Kids' },
+  'ads-adults-google':  { channel: 'Google Ads', pageLabel: 'Google Ad - Adults' },
+  'ads-general-google': { channel: 'Google Ads', pageLabel: 'Google Ad - General' },
 } as const satisfies Record<string, LeadSourceDef>;
 
 export type LeadSource = keyof typeof LEAD_SOURCES;

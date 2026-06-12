@@ -167,6 +167,12 @@ export const OPTIN_PAGE_LABELS = [
   'Offer Page (QR)',
   'Contact Page',
   'Chat Widget',
+  'Meta Ad - Kids',
+  'Meta Ad - Adults',
+  'Meta Ad - General',
+  'Google Ad - Kids',
+  'Google Ad - Adults',
+  'Google Ad - General',
 ] as const;
 export type OptInPageLabel = (typeof OPTIN_PAGE_LABELS)[number];
 
