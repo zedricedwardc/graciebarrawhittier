@@ -288,8 +288,12 @@ const split = !isNavy && !!imageSrc;
   const pageLoadTs = Date.now();
   const forms = document.querySelectorAll<HTMLFormElement>('[data-optin-form]');
   forms.forEach((form) => {
+    // In-flight guard — the GHL round-trip takes 1-3s and impatient double
+    // clicks were creating duplicate opportunities (3 opps in 700ms).
+    let inFlight = false;
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (inFlight) return;
       const errorEl = form.querySelector<HTMLElement>('[data-optin-error]');
       errorEl?.classList.add('hidden');
 
@@ -315,6 +319,10 @@ const split = !isNavy && !!imageSrc;
       const source = (form.dataset.source && form.dataset.source.length > 0) ? form.dataset.source : 'opt-in';
       const website = String(data.get('website') ?? '');
 
+      inFlight = true;
+      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
       try {
         const res = await fetch('/api/lead', {
           method: 'POST',
@@ -338,6 +346,9 @@ const split = !isNavy && !!imageSrc;
         const qs = new URLSearchParams({ name, email, phone });
         window.location.href = `/kickstart?${qs.toString()}`;
       } catch {
+        // Re-enable so the visitor can retry after a transient failure.
+        inFlight = false;
+        if (submitBtn) submitBtn.disabled = false;
         errorEl?.classList.remove('hidden');
       }
     });

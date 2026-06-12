@@ -35,6 +35,16 @@ const RATE_MAX_PER_WINDOW = 10;
 
 const buckets = new Map<string, { count: number; firstSeen: number }>();
 
+/**
+ * In-flight dedup — the idempotency store is check-then-set around a 1-3s GHL
+ * round-trip, so concurrent duplicate submissions (double clicks, retries) all
+ * passed the replay check and created duplicate opportunities. Concurrent
+ * requests for the same key now await the first request's work instead.
+ * Instance-local (like `buckets`), which is sufficient: duplicates from one
+ * visitor land on the same Fluid Compute instance within the race window.
+ */
+const inFlightLeads = new Map<string, Promise<{ contactId: string; opportunityId: string | null }>>();
+
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   let payload: unknown;
   try {
@@ -87,6 +97,18 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: true, ...replay, isReplay: true });
   }
 
+  // Concurrent duplicate (same key, first request still talking to GHL):
+  // piggyback on its result rather than racing it.
+  const pending = inFlightLeads.get(idemKey);
+  if (pending) {
+    try {
+      const result = await pending;
+      return json({ ok: true, ...result, isReplay: true });
+    } catch {
+      return json({ ok: false, code: 'GHL_FAILED', message: 'Unexpected error' });
+    }
+  }
+
   // Normalize name: prefer explicit firstName/lastName; fall back to splitting `name`.
   let firstName = body.firstName ?? '';
   let lastName = body.lastName ?? '';
@@ -97,7 +119,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 
   // Dispatch to adapter
-  try {
+  const work = (async () => {
     const result = await handleOptIn({
       firstName,
       lastName,
@@ -114,6 +136,13 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       { contactId: result.contactId, opportunityId: result.opportunityId },
       24 * 3600,
     );
+
+    return { contactId: result.contactId, opportunityId: result.opportunityId };
+  })();
+  inFlightLeads.set(idemKey, work);
+
+  try {
+    const result = await work;
 
     return json({
       ok: true,
@@ -132,6 +161,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       code: 'GHL_FAILED',
       message: err instanceof GhlError ? `GHL ${err.status}` : 'Unexpected error',
     });
+  } finally {
+    inFlightLeads.delete(idemKey);
   }
 };
 
