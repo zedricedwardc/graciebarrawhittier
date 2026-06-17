@@ -167,18 +167,26 @@ export const POST: APIRoute = async ({ request }) => {
       case 'LOST / COLD': {
         // Trial Conv → LOST / COLD: push contact's Lead Acq opp back to NURTURE CAMPAIGN.
         await setOppStatus(body.opp_id, 'lost');
+        // Find the Lead Acq opp regardless of status (one per parent contact).
+        // It's normally `won` (INTRO BOOKED WON), but may be open/lost if the
+        // lead already cycled or the Trial Conv opp was created manually — we
+        // must re-nurture in every case, so don't filter by status.
         const leadOpps = await findOpps({
           contactId: body.contact_id,
           pipelineKey: 'LEAD_ACQ',
-          status: 'won',
+          status: 'all',
           limit: 5,
         });
         const leadOpp = leadOpps[0];
         if (leadOpp) {
+          // Reset to `open`: a re-nurtured opp must not linger as won/lost, or
+          // the NURTURE CAMPAIGN workflow + auto-move-to-LOST timer misbehave
+          // and the dashboard miscounts it.
           await moveStage({
             oppId: leadOpp.id,
             pipelineKey: 'LEAD_ACQ',
             stageName: 'NURTURE CAMPAIGN',
+            status: 'open',
           });
         }
         break;

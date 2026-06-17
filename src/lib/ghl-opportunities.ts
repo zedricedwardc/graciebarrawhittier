@@ -163,11 +163,19 @@ export async function createOpp(args: {
   return opp;
 }
 
-/** Move an opportunity to a stage (within or across pipelines). */
+/**
+ * Move an opportunity to a stage (within or across pipelines).
+ *
+ * Pass `status` to also (re)set the opp status in the same PUT — needed when
+ * re-opening a previously won/lost opp into an open stage (e.g. resurrecting a
+ * Lead Acq opp back into NURTURE CAMPAIGN). GHL does not auto-reset status on a
+ * stage move, so a won/lost opp would otherwise linger in an open stage.
+ */
 export async function moveStage(args: {
   oppId: string;
   pipelineKey: PipelineKey;
   stageName: string;
+  status?: 'open' | 'won' | 'lost' | 'abandoned';
   customFields?: Array<{ id: string; field_value: string | number | boolean | null }>;
 }): Promise<OpportunityRecord> {
   const [pipelineId, pipelineStageId] = await Promise.all([
@@ -177,6 +185,7 @@ export async function moveStage(args: {
   return updateOpportunity(args.oppId, {
     pipelineId,
     pipelineStageId,
+    status: args.status,
     customFields: args.customFields,
   });
 }
