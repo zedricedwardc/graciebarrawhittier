@@ -133,6 +133,45 @@ describe('ghl client', () => {
     expect(init.headers.Version).toBe('2021-04-15');
   });
 
+  it('searchContactsByDateRange POSTs a dateAdded range filter and returns contacts + total', async () => {
+    (fetch as any).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ contacts: [{ id: 'c_1', source: 'Website Leads' }], total: 42 }),
+        { status: 200 },
+      ),
+    );
+
+    const { contacts, total } = await ghl.searchContactsByDateRange({
+      startMs: 1780470000000,
+      endMs: 1781161199000,
+      page: 2,
+      pageLimit: 50,
+    });
+
+    expect(contacts).toHaveLength(1);
+    expect(total).toBe(42);
+    const [url, init] = (fetch as any).mock.calls[0];
+    expect(url).toContain('/contacts/search');
+    expect(init.method).toBe('POST');
+    const body = JSON.parse(init.body as string);
+    expect(body.locationId).toBe('loc_123');
+    expect(body.page).toBe(2);
+    expect(body.pageLimit).toBe(50);
+    expect(body.filters[0]).toEqual({
+      field: 'dateAdded',
+      operator: 'range',
+      value: { gt: 1780470000000, lt: 1781161199000 },
+    });
+  });
+
+  it('searchContactsByDateRange falls back to page length when total is absent', async () => {
+    (fetch as any).mockResolvedValueOnce(
+      new Response(JSON.stringify({ contacts: [{ id: 'c_1' }, { id: 'c_2' }] }), { status: 200 }),
+    );
+    const { total } = await ghl.searchContactsByDateRange({ startMs: 1, endMs: 2 });
+    expect(total).toBe(2);
+  });
+
   it('throws GhlError on non-2xx with status + body context', async () => {
     (fetch as any).mockResolvedValueOnce(
       new Response('{"message":"bad token"}', { status: 401 }),

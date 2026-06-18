@@ -1,0 +1,689 @@
+---
+/**
+ * /admin/dashboard — internal studio dashboard, surfaced as a GHL custom menu
+ * link (iframe). Two widgets in the same Shopify/Polaris visual language as the
+ * blog admin:
+ *
+ *   Card A — Upcoming Appointments (next 7 days, trial + BTM calendars):
+ *            table Name | Time | Program | Flow | Source. Manual Refresh +
+ *            60s auto-refresh re-fetch /api/admin/dashboard/appointments.
+ *   Card B — Lead Tracking Breakdown: a 7d/30d/90d/MTD range toggle over a
+ *            horizontal bar list (channel, count, proportional % bar), fetched
+ *            from /api/admin/dashboard/leads?range=…
+ *
+ * NO BaseLayout (this is an embedded tool — no public Nav/Footer/CTA); it ships
+ * its own self-contained styles.
+ *
+ * SSR token gate
+ * --------------
+ * Reads `t` from the query string and verifies it with verifyAdminToken. If the
+ * token is missing/invalid/expired we render a minimal 401 page and stop. The
+ * same token is embedded into the page (data-admin-token) so every client fetch
+ * sends it back as `x-admin-token` to the /api/admin/dashboard/* routes.
+ *
+ * Framing header
+ * --------------
+ * Astro/Vercel block framing by default. We set a route-scoped CSP frame-ancestors
+ * header HERE (before any early return) so the GHL iframe can load the page.
+ */
+import { verifyAdminToken } from '../../lib/admin-token';
+import {
+  getUpcomingAppointments,
+  getLeadBreakdown,
+  type UpcomingAppointment,
+  type LeadBreakdown,
+} from '../../lib/dashboard-data';
+import '../../styles/tokens.css';
+
+// Allow GHL to iframe this page. Must be set before any early return so the
+// 401 response is also frameable inside the GHL admin shell.
+//
+// frame-ancestors checks the domain in the BROWSER's address bar — staff who
+// log in through an agency whitelabel domain (not app.gohighlevel.com) get
+// "refused to connect" unless that domain is listed. Defaults cover GHL's own
+// domains plus the LocalCraze whitelabel; other agencies append theirs via
+// ADMIN_FRAME_ANCESTORS (space-separated CSP sources, e.g. "https://*.agency.com").
+const DEFAULT_FRAME_ANCESTORS = [
+  'https://*.gohighlevel.com',
+  'https://*.leadconnectorhq.com',
+  'https://app.gohighlevel.com',
+  'https://*.localcraze.com',
+];
+const extraFrameAncestors = (
+  (import.meta.env as Record<string, string | undefined>).ADMIN_FRAME_ANCESTORS ??
+  process.env.ADMIN_FRAME_ANCESTORS ??
+  ''
+)
+  .split(/\s+/)
+  .filter(Boolean);
+Astro.response.headers.set(
+  'Content-Security-Policy',
+  `frame-ancestors ${[...DEFAULT_FRAME_ANCESTORS, ...extraFrameAncestors].join(' ')}`,
+);
+
+const t = Astro.url.searchParams.get('t');
+const v = t ? verifyAdminToken(t) : { ok: false as const };
+
+// Initial view (SSR) — only fetched when authed. Each call degrades to an empty
+// shape + an inline error banner on throw, so one failing widget never blanks
+// the page (mirrors the blog index's listPublishedPosts try/catch).
+const DEFAULT_RANGE = '30d' as const;
+// Widened copy for `aria-pressed` comparisons in the range toggle — comparing
+// the literal `'30d'` against the other range strings would be flagged by TS as
+// a no-overlap comparison.
+const activeRange: string = DEFAULT_RANGE;
+let appointments: UpcomingAppointment[] = [];
+let apptWarnings: string[] = [];
+let apptError = false;
+let breakdown: LeadBreakdown = {
+  range: DEFAULT_RANGE,
+  sinceISO: '',
+  total: 0,
+  channels: [],
+};
+let leadError = false;
+
+if (v.ok) {
+  try {
+    const r = await getUpcomingAppointments();
+    appointments = r.appointments;
+    apptWarnings = r.warnings;
+  } catch {
+    appointments = [];
+    apptWarnings = [];
+    apptError = true;
+  }
+  try {
+    breakdown = await getLeadBreakdown(DEFAULT_RANGE);
+  } catch {
+    leadError = true;
+  }
+}
+
+if (!v.ok) {
+  Astro.response.status = 401;
+}
+
+// ── Presentation helpers (shared shape with the client controller) ──────────
+
+/** Human date + time, e.g. "Fri Jun 20, 5:00 PM". Empty string for bad input. */
+function fmtTime(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ''
+    : d.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+}
+
+/** Flow tag label. */
+function flowLabel(flow: string): string {
+  return flow === 'btm' ? 'BTM' : 'Trial';
+}
+
+// Stable per-channel badge color classes. Unknown/Other channels fall back to a
+// neutral chip. Kept as classnames (not inline styles) so server + client match.
+const CHANNEL_CLASS: Record<string, string> = {
+  'Website Leads': 'ch-website',
+  'Walk-In': 'ch-walkin',
+  'Meta Ads': 'ch-meta',
+  'Google Ads': 'ch-google',
+  Referral: 'ch-referral',
+  'Website Chat': 'ch-chat',
+};
+function channelClass(channel: string): string {
+  return CHANNEL_CLASS[channel] ?? 'ch-other';
+}
+
+// Styles for the minimal 401 page.
+const DENIED_STYLES = `
+  body { font-family: var(--font-sans); background: #f1f1f1; color: #303030;
+         display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
+  .card { background: #fff; border: 1px solid #e3e3e3; border-radius: 12px; padding: 2rem 2.25rem;
+          max-width: 26rem; text-align: center; box-shadow: 0 1px 0 rgba(0,0,0,.05); }
+  h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
+  p { color: #616161; margin: 0; font-size: .95rem; }
+`;
+
+// Shopify/Polaris-flavored admin styles. Neutral canvas, hairline-bordered
+// white cards. Mirrors the blog admin's token set so the two pages match.
+const STYLES = `
+  * { box-sizing: border-box; }
+  :root {
+    --p-bg: #f1f1f1;
+    --p-surface: #ffffff;
+    --p-border: #e3e3e3;
+    --p-border-strong: #8a8a8a;
+    --p-text: #1a1a1a;
+    --p-subdued: #616161;
+    --p-focus: #005bd3;
+    --p-primary: #5c6ac4;
+    --p-primary-hover: #4959bd;
+    --p-link: #2c6ecb;
+    --p-critical: #d72c0d;
+    --p-warn-bg: #fff5ea;
+    --p-warn-border: #e1b878;
+    --p-warn-text: #8a6116;
+    --p-success: #0a7c3e;
+    --p-row: #f6f6f7;
+    --p-radius: 12px;
+    --p-radius-sm: 8px;
+    --p-shadow: 0 1px 0 rgba(0,0,0,.05);
+  }
+  body {
+    font-family: var(--font-sans, 'Inter', system-ui, -apple-system, sans-serif);
+    background: var(--p-bg);
+    color: var(--p-text);
+    margin: 0;
+    padding: 0 0 4rem;
+    line-height: 1.5;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .visually-hidden { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1rem 0; }
+
+  /* ── Header ───────────────────────────────────────────────────── */
+  .adm-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+  .crumb { display: inline-flex; align-items: center; gap: .3rem; font-size: .82rem; color: var(--p-subdued); margin: 0 0 .35rem; }
+  .adm-header h1 { font-size: 1.5rem; font-weight: 700; margin: 0; }
+
+  /* ── Cards ────────────────────────────────────────────────────── */
+  .cards { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 880px) { .cards { grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); align-items: start; } }
+  .card { background: var(--p-surface); border: 1px solid var(--p-border); border-radius: var(--p-radius); box-shadow: var(--p-shadow); }
+  .card-head { display: flex; align-items: center; gap: .75rem; padding: .9rem 1rem .75rem; border-bottom: 1px solid var(--p-border); }
+  .card-head h2 { font-size: .95rem; font-weight: 650; margin: 0; }
+  .card-head .spacer { flex: 1; }
+  .card-sub { font-size: .8rem; color: var(--p-subdued); margin: 0; }
+
+  /* ── Notices / errors ─────────────────────────────────────────── */
+  .notice { margin: .75rem 1rem 0; padding: .55rem .75rem; border-radius: var(--p-radius-sm); font-size: .82rem; background: var(--p-warn-bg); border: 1px solid var(--p-warn-border); color: var(--p-warn-text); }
+  .notice[hidden] { display: none; }
+  .notice ul { margin: .3rem 0 0; padding-left: 1.1rem; }
+  .err-banner { margin: .75rem 1rem 0; padding: .55rem .75rem; border-radius: var(--p-radius-sm); font-size: .82rem; background: #fbeae5; border: 1px solid #e0a89b; color: var(--p-critical); }
+  .err-banner[hidden] { display: none; }
+
+  /* ── Appointments table ───────────────────────────────────────── */
+  .tbl-wrap { overflow-x: auto; }
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th { text-align: left; font-size: .78rem; font-weight: 650; color: var(--p-subdued); padding: .55rem .9rem; border-bottom: 1px solid var(--p-border); white-space: nowrap; }
+  .tbl td { padding: .65rem .9rem; border-bottom: 1px solid var(--p-border); vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl tbody tr:hover { background: var(--p-row); }
+  .cell-name { font-weight: 600; color: var(--p-text); }
+  .cell-name.is-unknown { font-weight: 500; color: var(--p-subdued); font-style: italic; }
+  .cell-time { color: var(--p-subdued); font-size: .85rem; white-space: nowrap; }
+  .cell-prog { color: var(--p-text); }
+  .empty-row td { color: var(--p-subdued); padding: 1.5rem .9rem; text-align: center; }
+
+  /* ── Tags + channel badges ────────────────────────────────────── */
+  .tag { display: inline-flex; align-items: center; font-size: .74rem; font-weight: 600; padding: .12rem .5rem; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+  .tag-trial { background: #e6f0fb; color: #1c4f8a; border-color: #bcd6f2; }
+  .tag-btm { background: #efeafb; color: #5638a8; border-color: #d6c9f2; }
+  .badge { display: inline-flex; align-items: center; gap: .4rem; font-size: .76rem; font-weight: 550; color: var(--p-text); }
+  .badge .dot { width: .55rem; height: .55rem; border-radius: 50%; background: #9aa0a6; flex-shrink: 0; }
+  .ch-website .dot { background: #2c6ecb; }
+  .ch-walkin  .dot { background: #0a7c3e; }
+  .ch-meta    .dot { background: #1877f2; }
+  .ch-google  .dot { background: #ea4335; }
+  .ch-referral .dot { background: #ef9f27; }
+  .ch-chat    .dot { background: #8a5cf5; }
+  .ch-other   .dot { background: #9aa0a6; }
+
+  /* ── Lead breakdown ───────────────────────────────────────────── */
+  .lead-body { padding: 1rem; }
+  .range-toggle { display: inline-flex; border: 1px solid var(--p-border-strong); border-radius: var(--p-radius-sm); overflow: hidden; }
+  .range-toggle button { font: inherit; font-size: .8rem; font-weight: 550; padding: .35rem .7rem; border: 0; border-left: 1px solid var(--p-border); background: #fafafa; color: var(--p-text); cursor: pointer; }
+  .range-toggle button:first-child { border-left: 0; }
+  .range-toggle button:hover:not([aria-pressed="true"]) { background: #ececec; }
+  .range-toggle button[aria-pressed="true"] { background: var(--p-primary); color: #fff; }
+  .range-toggle button:focus-visible { outline: 2px solid var(--p-focus); outline-offset: -2px; }
+  .lead-total { font-size: .82rem; color: var(--p-subdued); margin: 0 0 .85rem; }
+  .lead-total strong { color: var(--p-text); font-weight: 650; }
+  .bars { display: grid; gap: .7rem; margin: 0; }
+  .bar-row { display: grid; grid-template-columns: 1fr; gap: .25rem; }
+  .bar-meta { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; font-size: .82rem; }
+  .bar-label { color: var(--p-text); font-weight: 550; }
+  .bar-figs { color: var(--p-subdued); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bar-figs strong { color: var(--p-text); font-weight: 650; }
+  .bar-track { height: .55rem; border-radius: 999px; background: #ececed; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 999px; background: #9aa0a6; min-width: 2px; transition: width .25s ease; }
+  .bar-row.ch-website .bar-fill { background: #2c6ecb; }
+  .bar-row.ch-walkin  .bar-fill { background: #0a7c3e; }
+  .bar-row.ch-meta    .bar-fill { background: #1877f2; }
+  .bar-row.ch-google  .bar-fill { background: #ea4335; }
+  .bar-row.ch-referral .bar-fill { background: #ef9f27; }
+  .bar-row.ch-chat    .bar-fill { background: #8a5cf5; }
+  .lead-empty { color: var(--p-subdued); font-size: .85rem; padding: 1.25rem 0; text-align: center; }
+
+  /* ── Buttons ──────────────────────────────────────────────────── */
+  .btn { font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; border-radius: var(--p-radius-sm); padding: 0 .8rem; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .btn-ghost { background: var(--p-surface); border-color: var(--p-border-strong); color: var(--p-text); }
+  .btn-ghost:hover:not(:disabled) { background: #f7f7f7; }
+  .btn:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 2px; }
+  .refresh-meta { font-size: .76rem; color: var(--p-subdued); white-space: nowrap; }
+
+  .help-footer { text-align: center; margin: 1.25rem 0 0; font-size: .82rem; }
+  .help-footer a { color: var(--p-subdued); text-decoration: none; }
+  .help-footer a:hover { color: var(--p-link); text-decoration: underline; }
+`;
+---
+
+{
+  !v.ok ? (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex,nofollow" />
+        <title>Access denied</title>
+        <style set:html={DENIED_STYLES} />
+      </head>
+      <body>
+        <div class="card">
+          <h1>Access denied</h1>
+          <p>This link is invalid or expired.</p>
+        </div>
+      </body>
+    </html>
+  ) : (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex,nofollow" />
+        <title>Studio dashboard</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        />
+        <style set:html={STYLES} />
+      </head>
+      <body>
+        {/* Token embedded for client fetches → sent as x-admin-token header. */}
+        <div id="admin-root" data-admin-token={t}>
+          <div class="wrap">
+            <header class="adm-header">
+              <div>
+                <p class="crumb">‹ Website</p>
+                <h1>Studio dashboard</h1>
+              </div>
+            </header>
+
+            <div class="cards">
+              {/* ════ CARD A — Upcoming Appointments ═══════════════════════ */}
+              <section class="card" aria-labelledby="appt-title">
+                <div class="card-head">
+                  <h2 id="appt-title">Upcoming appointments</h2>
+                  <span class="spacer" />
+                  <span class="refresh-meta" id="appt-updated" aria-live="polite" />
+                  <button type="button" id="appt-refresh" class="btn btn-ghost">
+                    <span aria-hidden="true">↻</span> Refresh
+                  </button>
+                </div>
+
+                {/* Whole-call SSR failure → inline banner; otherwise hidden. */}
+                <p class="err-banner" id="appt-error" role="alert" hidden={!apptError}>
+                  Couldn’t load appointments. Try Refresh.
+                </p>
+
+                {/* Per-calendar warnings (subtle notice). */}
+                <div class="notice" id="appt-warnings" hidden={apptWarnings.length === 0}>
+                  Some calendars couldn’t be loaded:
+                  <ul>
+                    {apptWarnings.map((w) => (
+                      <li>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div class="tbl-wrap">
+                  <table class="tbl">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Time</th>
+                        <th>Program</th>
+                        <th>Flow</th>
+                        <th>Source</th>
+                      </tr>
+                    </thead>
+                    <tbody id="appt-list">
+                      {appointments.length === 0 ? (
+                        <tr class="empty-row" data-empty>
+                          <td colspan="5">No appointments in the next 7 days.</td>
+                        </tr>
+                      ) : (
+                        appointments.map((a) => (
+                          <tr class="appt-row">
+                            <td>
+                              <span class={`cell-name${a.contactName ? '' : ' is-unknown'}`}>
+                                {a.contactName || 'Unknown contact'}
+                              </span>
+                            </td>
+                            <td class="cell-time">{fmtTime(a.startTimeISO)}</td>
+                            <td class="cell-prog">{a.program}</td>
+                            <td>
+                              <span class={`tag ${a.flow === 'btm' ? 'tag-btm' : 'tag-trial'}`}>
+                                {flowLabel(a.flow)}
+                              </span>
+                            </td>
+                            <td>
+                              <span class={`badge ${channelClass(a.source)}`}>
+                                <span class="dot" aria-hidden="true" />
+                                {a.source || 'Unknown'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              {/* ════ CARD B — Lead Tracking Breakdown ═════════════════════ */}
+              <section class="card" aria-labelledby="lead-title">
+                <div class="card-head">
+                  <h2 id="lead-title">Lead tracking</h2>
+                  <span class="spacer" />
+                  <div class="range-toggle" role="group" aria-label="Date range" id="range-toggle">
+                    <button type="button" data-range="7d" aria-pressed={activeRange === '7d'}>7d</button>
+                    <button type="button" data-range="30d" aria-pressed={activeRange === '30d'}>30d</button>
+                    <button type="button" data-range="90d" aria-pressed={activeRange === '90d'}>90d</button>
+                    <button type="button" data-range="mtd" aria-pressed={activeRange === 'mtd'}>MTD</button>
+                  </div>
+                </div>
+
+                <p class="err-banner" id="lead-error" role="alert" hidden={!leadError}>
+                  Couldn’t load lead data. Try another range.
+                </p>
+
+                <div class="lead-body">
+                  <p class="lead-total" id="lead-total">
+                    <strong>{breakdown.total}</strong> new {breakdown.total === 1 ? 'lead' : 'leads'}
+                  </p>
+                  <div id="lead-bars">
+                    {breakdown.total === 0 ? (
+                      <p class="lead-empty">No leads in this range.</p>
+                    ) : (
+                      <div class="bars">
+                        {breakdown.channels.map((c) => (
+                          <div class={`bar-row ${channelClass(c.channel)}`}>
+                            <div class="bar-meta">
+                              <span class="bar-label">{c.channel}</span>
+                              <span class="bar-figs">
+                                <strong>{c.count}</strong> · {Math.round(c.pct)}%
+                              </span>
+                            </div>
+                            <div
+                              class="bar-track"
+                              role="progressbar"
+                              aria-valuenow={Math.round(c.pct)}
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                              aria-label={`${c.channel}: ${c.count} (${Math.round(c.pct)}%)`}
+                            >
+                              <div class="bar-fill" style={`width:${Math.max(c.pct, c.count > 0 ? 1 : 0)}%`} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <p class="help-footer">
+              <a href="/admin/blog" rel="noopener">Blog admin →</a>
+            </p>
+          </div>
+        </div>
+
+        <script>
+          // ─── /admin/dashboard client controller ─────────────────────────
+          // Vanilla, zero-dependency. The token rides on every API call as
+          // x-admin-token. Two widgets:
+          //   • Appointments: manual Refresh + 60s auto-refresh.
+          //   • Lead breakdown: range toggle re-fetches + re-renders.
+          const root = document.getElementById('admin-root');
+          if (root) {
+            const token = root.dataset.adminToken ?? '';
+            const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
+              document.getElementById(id) as T | null;
+
+            function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+              return { 'x-admin-token': token, ...extra };
+            }
+            function escapeHtml(s: string): string {
+              return s.replace(/[&<>"']/g, (c) =>
+                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string),
+              );
+            }
+
+            // Shared with the SSR helpers above — keep in sync.
+            const CHANNEL_CLASS: Record<string, string> = {
+              'Website Leads': 'ch-website',
+              'Walk-In': 'ch-walkin',
+              'Meta Ads': 'ch-meta',
+              'Google Ads': 'ch-google',
+              Referral: 'ch-referral',
+              'Website Chat': 'ch-chat',
+            };
+            const channelClass = (c: string) => CHANNEL_CLASS[c] ?? 'ch-other';
+
+            function fmtTime(iso: string): string {
+              if (!iso) return '';
+              const d = new Date(iso);
+              return Number.isNaN(d.getTime())
+                ? ''
+                : d.toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  });
+            }
+
+            // ── Card A: Upcoming appointments ─────────────────────────────
+            const apptListEl = $('appt-list');
+            const apptRefreshBtn = $<HTMLButtonElement>('appt-refresh');
+            const apptErrorEl = $('appt-error');
+            const apptWarningsEl = $('appt-warnings');
+            const apptUpdatedEl = $('appt-updated');
+
+            interface ApptRow {
+              contactName: string;
+              startTimeISO: string;
+              program: string;
+              flow: string;
+              source: string;
+            }
+
+            function renderAppointments(rows: ApptRow[]) {
+              if (!apptListEl) return;
+              if (rows.length === 0) {
+                apptListEl.innerHTML =
+                  '<tr class="empty-row" data-empty><td colspan="5">No appointments in the next 7 days.</td></tr>';
+                return;
+              }
+              apptListEl.innerHTML = rows
+                .map((a) => {
+                  const name = a.contactName
+                    ? `<span class="cell-name">${escapeHtml(a.contactName)}</span>`
+                    : '<span class="cell-name is-unknown">Unknown contact</span>';
+                  const flowCls = a.flow === 'btm' ? 'tag-btm' : 'tag-trial';
+                  const flowTxt = a.flow === 'btm' ? 'BTM' : 'Trial';
+                  const src = a.source || 'Unknown';
+                  return (
+                    `<tr class="appt-row">` +
+                    `<td>${name}</td>` +
+                    `<td class="cell-time">${escapeHtml(fmtTime(a.startTimeISO))}</td>` +
+                    `<td class="cell-prog">${escapeHtml(a.program)}</td>` +
+                    `<td><span class="tag ${flowCls}">${flowTxt}</span></td>` +
+                    `<td><span class="badge ${channelClass(src)}"><span class="dot" aria-hidden="true"></span>${escapeHtml(src)}</span></td>` +
+                    `</tr>`
+                  );
+                })
+                .join('');
+            }
+
+            function renderWarnings(warnings: string[]) {
+              if (!apptWarningsEl) return;
+              if (!warnings || warnings.length === 0) {
+                apptWarningsEl.hidden = true;
+                apptWarningsEl.innerHTML = '';
+                return;
+              }
+              apptWarningsEl.hidden = false;
+              apptWarningsEl.innerHTML =
+                'Some calendars couldn’t be loaded:<ul>' +
+                warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('') +
+                '</ul>';
+            }
+
+            function stamp(el: HTMLElement | null) {
+              if (!el) return;
+              el.textContent =
+                'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            }
+
+            let apptInFlight = false;
+            async function loadAppointments() {
+              if (apptInFlight) return;
+              apptInFlight = true;
+              if (apptRefreshBtn) apptRefreshBtn.disabled = true;
+              try {
+                const res = await fetch('/api/admin/dashboard/appointments', { headers: authHeaders() });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error();
+                if (apptErrorEl) apptErrorEl.hidden = true;
+                renderAppointments(Array.isArray(data.appointments) ? data.appointments : []);
+                renderWarnings(Array.isArray(data.warnings) ? data.warnings : []);
+                stamp(apptUpdatedEl);
+              } catch {
+                if (apptErrorEl) apptErrorEl.hidden = false;
+              } finally {
+                apptInFlight = false;
+                if (apptRefreshBtn) apptRefreshBtn.disabled = false;
+              }
+            }
+
+            apptRefreshBtn?.addEventListener('click', () => loadAppointments());
+
+            // 60s auto-refresh. Pause while the tab is hidden (no point hitting
+            // the N+1 contact lookups for a backgrounded iframe); resume +
+            // refresh once on return.
+            let apptTimer: ReturnType<typeof setInterval> | null = null;
+            function startAutoRefresh() {
+              if (apptTimer !== null) return;
+              apptTimer = setInterval(() => {
+                if (document.visibilityState === 'visible') loadAppointments();
+              }, 60_000);
+            }
+            function stopAutoRefresh() {
+              if (apptTimer !== null) {
+                clearInterval(apptTimer);
+                apptTimer = null;
+              }
+            }
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'visible') {
+                startAutoRefresh();
+                loadAppointments();
+              } else {
+                stopAutoRefresh();
+              }
+            });
+            window.addEventListener('pagehide', stopAutoRefresh);
+            startAutoRefresh();
+
+            // ── Card B: Lead breakdown ────────────────────────────────────
+            const rangeToggle = $('range-toggle');
+            const leadErrorEl = $('lead-error');
+            const leadTotalEl = $('lead-total');
+            const leadBarsEl = $('lead-bars');
+
+            interface Channel { channel: string; count: number; pct: number; }
+            interface Breakdown { range: string; total: number; channels: Channel[]; }
+
+            function renderBreakdown(b: Breakdown) {
+              if (leadTotalEl) {
+                const n = b.total;
+                leadTotalEl.innerHTML = `<strong>${n}</strong> new ${n === 1 ? 'lead' : 'leads'}`;
+              }
+              if (!leadBarsEl) return;
+              if (!b.total || b.channels.length === 0) {
+                leadBarsEl.innerHTML = '<p class="lead-empty">No leads in this range.</p>';
+                return;
+              }
+              leadBarsEl.innerHTML =
+                '<div class="bars">' +
+                b.channels
+                  .map((c) => {
+                    const pct = Math.round(c.pct);
+                    const width = Math.max(c.pct, c.count > 0 ? 1 : 0);
+                    return (
+                      `<div class="bar-row ${channelClass(c.channel)}">` +
+                      `<div class="bar-meta"><span class="bar-label">${escapeHtml(c.channel)}</span>` +
+                      `<span class="bar-figs"><strong>${c.count}</strong> · ${pct}%</span></div>` +
+                      `<div class="bar-track" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" ` +
+                      `aria-label="${escapeHtml(c.channel)}: ${c.count} (${pct}%)">` +
+                      `<div class="bar-fill" style="width:${width}%"></div></div>` +
+                      `</div>`
+                    );
+                  })
+                  .join('') +
+                '</div>';
+            }
+
+            function setRangePressed(range: string) {
+              rangeToggle?.querySelectorAll<HTMLButtonElement>('button[data-range]').forEach((b) => {
+                b.setAttribute('aria-pressed', String(b.dataset.range === range));
+              });
+            }
+
+            let leadInFlight = false;
+            async function loadLeads(range: string) {
+              if (leadInFlight) return;
+              leadInFlight = true;
+              setRangePressed(range);
+              try {
+                const res = await fetch(`/api/admin/dashboard/leads?range=${encodeURIComponent(range)}`, {
+                  headers: authHeaders(),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok || !data.breakdown) throw new Error();
+                if (leadErrorEl) leadErrorEl.hidden = true;
+                renderBreakdown(data.breakdown as Breakdown);
+              } catch {
+                if (leadErrorEl) leadErrorEl.hidden = false;
+              } finally {
+                leadInFlight = false;
+              }
+            }
+
+            rangeToggle?.querySelectorAll<HTMLButtonElement>('button[data-range]').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                const range = btn.dataset.range ?? '30d';
+                if (btn.getAttribute('aria-pressed') === 'true') return; // already active
+                loadLeads(range);
+              });
+            });
+          }
+        </script>
+      </body>
+    </html>
+  )
+}

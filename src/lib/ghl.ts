@@ -131,6 +131,8 @@ export interface ContactRecord {
   lastName?: string;
   email?: string;
   phone?: string;
+  /** GHL native contact `source` attribute (e.g. a LeadChannel value). */
+  source?: string;
   customFields?: Array<{ id: string; key?: string; value?: unknown; field_value?: unknown }>;
 }
 
@@ -176,6 +178,42 @@ export async function searchContactByEmailAndLastName(args: {
     (c) => (c.lastName ?? '').trim().toLowerCase() === wanted,
   );
   return match ?? null;
+}
+
+/**
+ * Paginated `/contacts/search` by `dateAdded` range. Returns the page of
+ * contacts plus GHL's reported `total` (the full match count, not the page
+ * size). Used by the admin dashboard's lead-breakdown widget, which buckets
+ * each contact's native `source` into a LeadChannel client-side.
+ *
+ * `dateAdded` is sent as a `{ range: { gt, lt } }` filter (epoch ms). GHL's
+ * filter support for this field is unreliable per past observation, so the
+ * caller should not assume the page is pre-trimmed — bucketing/date logic
+ * lives in dashboard-data.ts. We page through up to `page` * `pageLimit`.
+ */
+export async function searchContactsByDateRange(args: {
+  startMs: number;
+  endMs: number;
+  page?: number;
+  pageLimit?: number;
+}): Promise<{ contacts: ContactRecord[]; total: number }> {
+  const body = {
+    locationId: locationId(),
+    page: args.page ?? 1,
+    pageLimit: args.pageLimit ?? 100,
+    filters: [
+      {
+        field: 'dateAdded',
+        operator: 'range',
+        value: { gt: args.startMs, lt: args.endMs },
+      },
+    ],
+  };
+  const data = (await request('/contacts/search', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })) as { contacts?: ContactRecord[]; total?: number };
+  return { contacts: data.contacts ?? [], total: data.total ?? (data.contacts?.length ?? 0) };
 }
 
 // ── Opportunities ────────────────────────────────────────────────────────
