@@ -545,7 +545,15 @@ export const WORKFLOWS: readonly WorkflowDef[] = [
   {
     envVarKey: 'WORKFLOW_ID_TRIAL_NURTURE',
     name: 'Trial Nurture Campaign',
-    description: 'Email/SMS sequence inviting NEW LEAD contacts to book their first trial. Runs for 7 days. Contact is removed from this workflow by the website on successful booking (see exitNurtureWorkflows in src/lib/ghl-adapter.ts).',
+    description:
+      'Email/SMS sequence inviting NEW LEAD contacts to book their first trial. ' +
+      'ENROLMENT IS BY STAGE TRIGGER ONLY: the "Opt in Message" workflow fires on the opp ' +
+      'entering NEW LEAD, waits 1 day and moves it to TRIAL NURTURE, which triggers this ' +
+      'workflow. The website MUST NOT also call addContactToWorkflow for it — this workflow ' +
+      'has Allow Re-entry enabled, so a second enrolment runs a duplicate copy of the whole ' +
+      'sequence 24h out of phase (root cause of the Jul 2026 booking collapse). ' +
+      'Contact is removed from this workflow by the website on successful booking ' +
+      '(see exitNurtureWorkflows in src/lib/ghl-adapter.ts).',
     trigger: { type: 'opp_stage_changed', pipelineKey: 'LEAD_ACQ', enterStage: 'TRIAL NURTURE' },
     callsWebsiteWebhook: false,
   },

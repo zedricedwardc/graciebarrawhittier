@@ -190,11 +190,15 @@ export async function handleOptIn(input: HandleOptInInput): Promise<HandleOptInR
     opportunityId = opp.id;
   }
 
-  // 5. Enroll in nurture workflow (skip for contact-form leads)
-  if (input.source !== 'contact-form') {
-    const workflowId = readEnv('WORKFLOW_ID_TRIAL_NURTURE');
-    if (workflowId) await addContactToWorkflow(contactId, workflowId);
-  } else {
+  // 5. Contact-form leads get a staff notification. Everyone else is enrolled in
+  //    the Trial Nurture Campaign by GHL itself: "Opt in Message" fires on the opp
+  //    entering NEW LEAD, waits 1 day, and moves it to TRIAL NURTURE, whose stage
+  //    trigger enrols the contact. Do NOT also enrol here — that workflow has
+  //    Allow Re-entry enabled, so an explicit enrolment plus the stage trigger ran
+  //    two copies of the sequence 24h out of phase and sent every message twice.
+  //    (Root cause of the Jul 2026 booking collapse; verified against the live
+  //    account in docs/superpowers/specs/2026-07-31-workflow-audit-findings.md.)
+  if (input.source === 'contact-form') {
     // Contact form: notify staff via existing admin workflow if configured
     const adminWf = readEnv('WORKFLOW_ID_ADMIN_NOTIFICATION');
     if (adminWf) await addContactToWorkflow(contactId, adminWf);
