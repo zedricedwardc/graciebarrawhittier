@@ -92,10 +92,14 @@ export interface HandleOptInResult {
  *      household_trainee_keys (append-if-new)
  *   3. Tag contact with `source-${source}`
  *   4. Find Lead Acquisition opp; if none, create at NEW LEAD
- *   5. Enroll in Lead Nurture workflow (skipped for contact-form source)
+ *   5. Contact-form leads get a staff notification. Every other lead is enrolled
+ *      in Trial Nurture by GHL's own stage trigger, not by this function —
+ *      see the comment at the call site below for why that must stay true.
  *
- * The schema's STAGE_TRANSITIONS for NEW LEAD does the rest (auto-move to
- * TRIAL NURTURE after 24h via the campaign workflow's wait+update step).
+ * This function does NOT move the opp out of NEW LEAD. The separate "Opt in
+ * Message" workflow triggers on the opp entering NEW LEAD, waits 1 day, and
+ * moves it to TRIAL NURTURE; that stage change is what enrols the contact in
+ * Trial Nurture Campaign.
  */
 export async function handleOptIn(input: HandleOptInInput): Promise<HandleOptInResult> {
   const traineeKey = input.trainee
