@@ -48,6 +48,24 @@ describe('detectDuplicateSends', () => {
       msg({ id: 'b', messageType: 'TYPE_EMAIL' }),
     ], 72)).toEqual([]);
   });
+
+  it('does not flag two bodyless outbound messages to the same contact in the window', () => {
+    // GHL commonly omits `body` on TYPE_EMAIL. An empty prefix would degenerate
+    // the key to `contactId|TYPE_EMAIL|` and report every such pair as a
+    // duplicate — inflating the number the audit's exit gate keys on.
+    expect(detectDuplicateSends([
+      msg({ id: 'a', messageType: 'TYPE_EMAIL', body: '', dateAdded: hoursAgo(48) }),
+      msg({ id: 'b', messageType: 'TYPE_EMAIL', body: '   ', dateAdded: hoursAgo(24) }),
+    ], 72)).toEqual([]);
+  });
+
+  it('records the later send timestamp so callers can gate on a recent window', () => {
+    const dupes = detectDuplicateSends([
+      msg({ id: 'a', dateAdded: hoursAgo(48) }),
+      msg({ id: 'b', dateAdded: hoursAgo(24) }),
+    ], 72);
+    expect(dupes[0]!.sentAt).toBe(hoursAgo(24));
+  });
 });
 
 describe('findUnansweredReplies', () => {

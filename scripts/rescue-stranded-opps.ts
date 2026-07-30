@@ -18,8 +18,8 @@
  *   --apply           Actually perform the moves (default: print only).
  *   --confirm          Required in addition to --apply whenever any selected
  *                       move has sendsMessages=true (i.e. --scope=credits).
- *   --limit=N           Cap the number of moves this run. Default: 10 for
- *                       credits, unlimited for leads.
+ *   --limit=N           Cap the number of moves this run. Must be a NON-NEGATIVE
+ *                       INTEGER. Default: 10 for credits, unlimited for leads.
  *
  * Usage:
  *   npx tsx scripts/rescue-stranded-opps.ts                              # dry-run, leads
@@ -62,9 +62,21 @@ if (SCOPE !== 'leads' && SCOPE !== 'credits') {
 
 const limitArg = argValue('limit');
 const LIMIT = limitArg !== undefined ? Number(limitArg) : SCOPE === 'credits' ? 10 : Infinity;
-if (!Number.isFinite(LIMIT) && limitArg !== undefined) {
-  console.error(`FATAL: --limit=${limitArg} is not a number`);
-  process.exit(1);
+// `Infinity` is the leads-scope default (no cap) and is only reachable when no
+// --limit was passed — special-case it before the integer check below.
+if (!(limitArg === undefined && LIMIT === Infinity)) {
+  // A negative limit is NOT a smaller blast radius: moves.slice(0, -5) returns
+  // ALL BUT THE LAST 5, and moves are sorted most-overdue-first — so --limit=-5
+  // would fire ~26 live reactivation drips instead of 5. Reject anything that is
+  // not a non-negative integer, before any network call.
+  if (!Number.isInteger(LIMIT) || LIMIT < 0) {
+    console.error(
+      `FATAL: --limit=${limitArg} is invalid — expected a non-negative integer. ` +
+        'Negative values do NOT shrink the batch; they would WIDEN it (slice(0, -N) ' +
+        'keeps all but the last N moves).',
+    );
+    process.exit(1);
+  }
 }
 
 // Abort loudly before touching the network if the flag combination is unsafe.
@@ -177,6 +189,9 @@ function toRescueOpp(o: Opp, stageNameById: Map<string, string>, trialConvContac
     stageName,
     createdAt: o.createdAt ?? new Date(0).toISOString(),
     updatedAt: o.updatedAt ?? o.createdAt ?? new Date(0).toISOString(),
+    // These searches use status=all; an unknown/missing status must NOT default
+    // to 'open' or a won/lost opp would become eligible for mutation.
+    status: o.status ?? 'unknown',
     hasTrialConvOpp: trialConvContacts.has(contactId),
   };
 }
@@ -217,7 +232,9 @@ async function main() {
 
   console.log(`Selected ${moves.length} of ${total} eligible move(s):\n`);
   for (const m of moves) {
-    console.log(`  ${m.oppId}  ${m.fromStage} → ${m.toStage}  (${m.daysOverdue}d overdue)`);
+    console.log(
+      `  ${m.oppId}  ${m.fromStage} → ${m.toStage}  (${m.daysOverdue}d overdue)  status→${m.targetStatus}`,
+    );
   }
 
   if (moves.length === 0) {
@@ -248,7 +265,10 @@ async function main() {
       const { pipeId, stageId } = resolve(pipelines, pipeName, m.toStage);
       await ghl(`/opportunities/${encodeURIComponent(m.oppId)}`, {
         method: 'PUT',
-        body: { pipelineId: pipeId, pipelineStageId: stageId, status: 'open' },
+        // Status comes from the move, not the call site: LOST / COLD is a
+        // set_status:lost stage per STAGE_TRANSITIONS, and the GHL-side config
+        // that should enforce that has drifted (which is why this rescue exists).
+        body: { pipelineId: pipeId, pipelineStageId: stageId, status: m.targetStatus },
       });
       done += 1;
     } catch (err) {

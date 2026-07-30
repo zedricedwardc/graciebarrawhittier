@@ -19,6 +19,14 @@ export interface RescueOpp {
   stageName: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * GHL opportunity status ('open' | 'won' | 'lost' | 'abandoned' | ...). The
+   * feeding searches use `status=all` so the AUDIT counts are complete, but only
+   * `open` opps may be MUTATED — moving a won/lost/abandoned opp back into an
+   * active stage would force it open again and (for CREDIT_MON) fire a live
+   * reactivation drip at someone who already enrolled or explicitly went cold.
+   */
+  status: string;
   /** True when this contact also has a Trial Conversion opp — i.e. they booked at least once. */
   hasTrialConvOpp: boolean;
 }
@@ -32,6 +40,13 @@ export interface RescueMove {
   daysOverdue: number;
   /** True when entering toStage fires a workflow that messages the customer. */
   sendsMessages: boolean;
+  /**
+   * Status to write alongside the stage move, mirroring STAGE_TRANSITIONS in
+   * config/ghl-schema.ts (LEAD_ACQ → 'LOST / COLD' is a `set_status: lost`
+   * stage). The GHL-side config drifted — which is why this rescue exists — so
+   * we cannot rely on a workflow to correct the status after the move.
+   */
+  targetStatus: 'open' | 'lost';
 }
 
 const daysBetween = (fromIso: string, now: number): number =>
@@ -46,6 +61,8 @@ const daysBetween = (fromIso: string, now: number): number =>
 export function selectOverdueLeadAcqOpps(opps: RescueOpp[], now: number): RescueMove[] {
   const moves: RescueMove[] = [];
   for (const o of opps) {
+    // Only open opps may be mutated — see RescueOpp.status.
+    if (o.status !== 'open') continue;
     if (o.hasTrialConvOpp) continue;
 
     let daysOverdue: number;
@@ -66,6 +83,8 @@ export function selectOverdueLeadAcqOpps(opps: RescueOpp[], now: number): Rescue
       pipelineKey: 'LEAD_ACQ',
       daysOverdue,
       sendsMessages: false,
+      // STAGE_TRANSITIONS: LEAD_ACQ / LOST / COLD → set_status lost.
+      targetStatus: 'lost',
     });
   }
   return moves.sort((a, b) => b.daysOverdue - a.daysOverdue);
@@ -78,6 +97,9 @@ export function selectOverdueLeadAcqOpps(opps: RescueOpp[], now: number): Rescue
 export function selectIdleCreditOpps(opps: RescueOpp[], now: number): RescueMove[] {
   const moves: RescueMove[] = [];
   for (const o of opps) {
+    // Only open opps may be mutated — see RescueOpp.status. A won/lost opp in
+    // CREDIT ACTIVE must never be dragged back open and sent a live drip.
+    if (o.status !== 'open') continue;
     if (o.stageName !== 'CREDIT ACTIVE') continue;
     const daysOverdue = daysBetween(o.updatedAt, now) - CREDIT_ACTIVE_TO_REACTIVATION_DAYS;
     if (daysOverdue <= 0) continue;
@@ -90,6 +112,8 @@ export function selectIdleCreditOpps(opps: RescueOpp[], now: number): RescueMove
       pipelineKey: 'CREDIT_MON',
       daysOverdue,
       sendsMessages: true,
+      // REACTIVATION is an active stage — the opp stays open.
+      targetStatus: 'open',
     });
   }
   return moves.sort((a, b) => b.daysOverdue - a.daysOverdue);

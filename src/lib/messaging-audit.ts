@@ -26,6 +26,8 @@ export interface DuplicateSend {
   messageType: string;
   bodyPrefix: string;
   hoursApart: number;
+  /** dateAdded of the LATER of the two sends — lets callers gate on a recent window. */
+  sentAt: string;
 }
 
 export interface UnansweredReply {
@@ -35,10 +37,18 @@ export interface UnansweredReply {
   hoursWaiting: number;
 }
 
-const normalise = (body: string): string =>
+export const normaliseBody = (body: string): string =>
   body.replace(/\s+/g, ' ').trim().slice(0, BODY_PREFIX_LEN);
 
-/** Same channel + same body prefix + same contact, sent twice within windowHours. */
+/**
+ * Same channel + same body prefix + same contact, sent twice within windowHours.
+ *
+ * Messages with an empty normalised body are SKIPPED. GHL routinely omits `body`
+ * on TYPE_EMAIL records, and an empty prefix degenerates the key to
+ * `contactId|TYPE_EMAIL|` — which would report any two bodyless emails to the
+ * same contact inside the window as duplicates. A bodyless message carries no
+ * evidence of duplication, and this count gates the audit's exit code.
+ */
 export function detectDuplicateSends(messages: AuditMessage[], windowHours: number): DuplicateSend[] {
   const out: DuplicateSend[] = [];
   const lastSeen = new Map<string, number>();
@@ -49,14 +59,21 @@ export function detectDuplicateSends(messages: AuditMessage[], windowHours: numb
     .sort((a, b) => Date.parse(a.dateAdded) - Date.parse(b.dateAdded));
 
   for (const m of ordered) {
-    const prefix = normalise(m.body);
+    const prefix = normaliseBody(m.body);
+    if (prefix === '') continue;
     const key = `${m.contactId}|${m.messageType}|${prefix}`;
     const prev = lastSeen.get(key);
     const at = Date.parse(m.dateAdded);
     if (prev !== undefined) {
       const hoursApart = Math.round((at - prev) / HOUR_MS);
       if (hoursApart <= windowHours) {
-        out.push({ contactId: m.contactId, messageType: m.messageType, bodyPrefix: prefix, hoursApart });
+        out.push({
+          contactId: m.contactId,
+          messageType: m.messageType,
+          bodyPrefix: prefix,
+          hoursApart,
+          sentAt: m.dateAdded,
+        });
       }
     }
     lastSeen.set(key, at);
