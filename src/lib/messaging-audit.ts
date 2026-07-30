@@ -65,8 +65,10 @@ export function detectDuplicateSends(messages: AuditMessage[], windowHours: numb
 }
 
 /**
- * A contact's most recent inbound message that received no outbound reply within
- * slaHours. Replies still inside their SLA window are not yet late and are skipped.
+ * For each contact, flags every unanswered inbound message turn.
+ * Consecutive inbounds within slaHours form a single turn — only the last
+ * message of each burst is reported. Messages still inside their SLA window
+ * are not yet late and are skipped.
  */
 export function findUnansweredReplies(
   messages: AuditMessage[],
@@ -83,22 +85,40 @@ export function findUnansweredReplies(
   const out: UnansweredReply[] = [];
   for (const [contactId, list] of byContact) {
     const ordered = list.slice().sort((a, b) => Date.parse(a.dateAdded) - Date.parse(b.dateAdded));
-    const lastInbound = [...ordered].reverse().find((m) => m.direction === 'inbound');
-    if (!lastInbound) continue;
+    const inbounds = ordered.filter((m) => m.direction === 'inbound');
 
-    const repliedAt = Date.parse(lastInbound.dateAdded);
-    const hoursWaiting = Math.round((now - repliedAt) / HOUR_MS);
-    if (hoursWaiting < slaHours) continue;
+    for (let i = 0; i < inbounds.length; i++) {
+      const inbound = inbounds[i]!;
+      const inboundAt = Date.parse(inbound.dateAdded);
 
-    const answered = ordered.some(
-      (m) =>
-        m.direction === 'outbound' &&
-        Date.parse(m.dateAdded) > repliedAt &&
-        Date.parse(m.dateAdded) - repliedAt <= slaHours * HOUR_MS,
-    );
-    if (answered) continue;
+      // Skip if there's a later inbound within slaHours (part of same burst)
+      let skipBurst = false;
+      for (let j = i + 1; j < inbounds.length; j++) {
+        const nextInbound = inbounds[j]!;
+        const nextInboundAt = Date.parse(nextInbound.dateAdded);
+        const hoursToNext = (nextInboundAt - inboundAt) / HOUR_MS;
+        if (hoursToNext <= slaHours) {
+          skipBurst = true;
+          break;
+        }
+      }
+      if (skipBurst) continue;
 
-    out.push({ contactId, repliedAt: lastInbound.dateAdded, body: lastInbound.body, hoursWaiting });
+      // Skip if still inside SLA window
+      const hoursWaiting = Math.round((now - inboundAt) / HOUR_MS);
+      if (hoursWaiting < slaHours) continue;
+
+      // Skip if there's an outbound response within SLA
+      const answered = ordered.some(
+        (m) =>
+          m.direction === 'outbound' &&
+          Date.parse(m.dateAdded) > inboundAt &&
+          Date.parse(m.dateAdded) - inboundAt <= slaHours * HOUR_MS,
+      );
+      if (answered) continue;
+
+      out.push({ contactId, repliedAt: inbound.dateAdded, body: inbound.body, hoursWaiting });
+    }
   }
   return out.sort((a, b) => b.hoursWaiting - a.hoursWaiting);
 }

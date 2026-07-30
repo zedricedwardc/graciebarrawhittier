@@ -88,4 +88,43 @@ describe('findUnansweredReplies', () => {
     ], 24, NOW);
     expect(un.map((u) => u.contactId)).toEqual(['c1']);
   });
+
+  it('flags an earlier ignored reply even when a later reply was answered in time', () => {
+    const un = findUnansweredReplies([
+      msg({ id: 'a', direction: 'inbound', body: 'Can we do 4pm?', dateAdded: hoursAgo(200) }),
+      msg({ id: 'b', direction: 'inbound', body: 'Still there?', dateAdded: hoursAgo(100) }),
+      msg({ id: 'c', direction: 'outbound', dateAdded: hoursAgo(99) }),
+    ], 24, NOW);
+    expect(un).toHaveLength(1);
+    expect(un[0]!).toMatchObject({ body: 'Can we do 4pm?', hoursWaiting: 200 });
+  });
+
+  it('collapses a burst of inbound messages into a single finding', () => {
+    const un = findUnansweredReplies([
+      msg({ id: 'a', direction: 'inbound', body: 'hello', dateAdded: hoursAgo(52) }),
+      msg({ id: 'b', direction: 'inbound', body: 'you there?', dateAdded: hoursAgo(50) }),
+      msg({ id: 'c', direction: 'inbound', body: 'anyone?', dateAdded: hoursAgo(48) }),
+    ], 24, NOW);
+    expect(un).toHaveLength(1);
+    expect(un[0]!).toMatchObject({ body: 'anyone?', hoursWaiting: 48 });
+  });
+
+  it('reports two separate unanswered turns for the same contact', () => {
+    const un = findUnansweredReplies([
+      msg({ id: 'a', direction: 'inbound', body: 'first', dateAdded: hoursAgo(300) }),
+      msg({ id: 'b', direction: 'inbound', body: 'second', dateAdded: hoursAgo(100) }),
+    ], 24, NOW);
+    expect(un).toHaveLength(2);
+    expect(un.map((u) => u.body)).toEqual(['first', 'second']);
+  });
+
+  it('does not flag an earlier inbound that was answered in time', () => {
+    const un = findUnansweredReplies([
+      msg({ id: 'a', direction: 'inbound', body: 'first', dateAdded: hoursAgo(200) }),
+      msg({ id: 'b', direction: 'outbound', dateAdded: hoursAgo(199) }),
+      msg({ id: 'c', direction: 'inbound', body: 'second', dateAdded: hoursAgo(100) }),
+    ], 24, NOW);
+    expect(un).toHaveLength(1);
+    expect(un[0]!.body).toBe('second');
+  });
 });
