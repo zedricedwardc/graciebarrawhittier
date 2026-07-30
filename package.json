@@ -16,6 +16,8 @@
     "onboard:ghl": "tsx scripts/onboard-client.ts",
     "onboard:blog": "tsx scripts/onboard-blog.ts",
     "validate:intake": "tsx scripts/intake-validator.ts",
+    "audit:messaging": "tsx scripts/audit-messaging-health.ts",
+    "rescue:opps": "tsx scripts/rescue-stranded-opps.ts",
     "og:home": "node scripts/og-image-home.mjs",
     "og:adults": "node scripts/og-image-adults.mjs",
     "og:kids": "node scripts/og-image-kids.mjs",
