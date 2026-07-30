@@ -741,6 +741,7 @@ export const TAGS: readonly { name: string; description: string }[] = [
   { name: 'back-to-the-mats-import', description: 'Bulk-imported via CSV into the Back to the Mats campaign. Source attribution.' },
   { name: 'source-agent-booking', description: 'Set on the contact by the agent-booking-completed webhook after the SMS bot books an appointment. Differentiates bot-driven bookings from page-driven ones in reporting.' },
   { name: 'revival_protocol_lead', description: 'Applied by the 30-Day Drip workflow when a cold lead enters the Revival Protocol funnel. Segment marker for filtering/reporting; bot assignment is handled by the workflow\'s Update Conversation AI Bot step, not by this tag.' },
+  { name: 'awaiting-human-reply', description: 'Applied by the "[Ops] Inbound Reply → Pause Drips + Alert Staff" workflow when a contact replies on any channel. Marks a contact who has been pulled OUT of all six nurture drips and is waiting on a human. Deliberately does NOT pause Pre-Trial Reminders or BTM Appointment Confirmation — those are logistics for an already-booked class. Remove manually once answered; the tag is the staff work queue.' },
 ] as const;
 
 // ─── Env var manifest ───────────────────────────────────────────────────────
