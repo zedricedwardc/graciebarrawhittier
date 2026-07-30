@@ -39,3 +39,10 @@ drafts/
 
 # Per-client intake (template stays; filled copies stay local)
 CLIENT_INTAKE.md
+
+.env*.local
+.env*
+
+# GHL per-client tokens + PII (never commit)
+.ghl/
+workflow-json/

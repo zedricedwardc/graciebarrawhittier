@@ -1,0 +1,454 @@
+[
+  {
+    "name": "**EDIT USER** Appt Confirmation + Reminder",
+    "id": "b394c44c-e5b1-439e-80b7-9764b96302d5",
+    "allowMultiple": true,
+    "trigs": [],
+    "writes": [],
+    "totalWait": 0.01,
+    "stepCount": 33
+  },
+  {
+    "name": "Another Trial Booking Campaign",
+    "id": "695d10d3-b06d-47e6-9e27-fc28af291365",
+    "allowMultiple": false,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Trial Credit Monitoring / CREDIT ACTIVE"
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 57,
+        "stage": "Trial Credit Monitoring / REACTIVATION"
+      }
+    ],
+    "totalWait": 57,
+    "stepCount": 32
+  },
+  {
+    "name": "BTM Appointment Confirmation",
+    "id": "3a297637-9a99-42ce-bc07-a07391c1bfe7",
+    "allowMultiple": false,
+    "trigs": [
+      {
+        "type": "customer_appointment",
+        "name": "Customer Booked Appointment",
+        "active": true,
+        "stage": null
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 0,
+        "stage": "Back to the Mats / APPOINTMENT TODAY"
+      }
+    ],
+    "totalWait": 0,
+    "stepCount": 14
+  },
+  {
+    "name": "BTM Re-Booking Campaign (no-show)",
+    "id": "ce716c73-1dff-4189-ac4c-ce665c92e33c",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Back to the Mats / NO-SHOW"
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 13,
+        "stage": "81d64f43-9ef5-4bd5-a9a2-912aefdf1d8b"
+      }
+    ],
+    "totalWait": 13,
+    "stepCount": 13
+  },
+  {
+    "name": "Credit-Pipeline No-Show Message",
+    "id": "8f3d0a04-f660-4e5a-a8fd-112db8385279",
+    "allowMultiple": false,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Trial Credit Monitoring / NO-SHOW"
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 0,
+        "stage": "Trial Credit Monitoring / CREDIT ACTIVE"
+      }
+    ],
+    "totalWait": 0,
+    "stepCount": 4
+  },
+  {
+    "name": "Credits Exhausted Notification",
+    "id": "1d70e676-4a31-4034-be52-01eb3824bfa1",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Trial Credit Monitoring / CREDITS EXHAUSTED"
+      }
+    ],
+    "writes": [],
+    "totalWait": 0,
+    "stepCount": 1
+  },
+  {
+    "name": "Intro Class Rebooking Campaign",
+    "id": "98a75935-2201-4068-838c-cc4c9478d453",
+    "allowMultiple": false,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Trial Conversion / NO-SHOW"
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 0,
+        "stage": "Trial Conversion / INTRO CLASS REBOOKING"
+      },
+      {
+        "atDay": 13,
+        "stage": "Trial Conversion / LOST / COLD"
+      }
+    ],
+    "totalWait": 13,
+    "stepCount": 13
+  },
+  {
+    "name": "Last Chance Nurture Campaign",
+    "id": "03885bd2-8793-404f-9c4c-fe2372eeb02c",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Lead Acquisition / NURTURE CAMPAIGN"
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 51,
+        "stage": "Lead Acquisition / LOST / COLD"
+      }
+    ],
+    "totalWait": 51,
+    "stepCount": 15
+  },
+  {
+    "name": "New Active Student review campaign",
+    "id": "cadf0074-fb22-4141-a057-1b1c7d05c719",
+    "allowMultiple": true,
+    "trigs": [],
+    "writes": [],
+    "totalWait": 55.08,
+    "stepCount": 46
+  },
+  {
+    "name": "Opt in Message",
+    "id": "e8c470bf-0751-4921-a887-773388ed2693",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Lead Acquisition / NEW LEAD"
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 1,
+        "stage": "Lead Acquisition / TRIAL NURTURE"
+      }
+    ],
+    "totalWait": 1,
+    "stepCount": 5
+  },
+  {
+    "name": "Pre-Trial Reminders",
+    "id": "de0f391f-1f36-4d84-b689-2e6d1fbb444a",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "customer_appointment",
+        "name": "Customer Booked Appointment",
+        "active": true,
+        "stage": null
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 0.01,
+        "stage": "Trial Conversion / TRIAL APPOINTMENT DONE"
+      }
+    ],
+    "totalWait": 0.01,
+    "stepCount": 38
+  },
+  {
+    "name": "Quarterly Reactivation Tag",
+    "id": "b143423e-5943-449b-91de-c8a8de8720fa",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Lead Acquisition / LOST / COLD"
+      }
+    ],
+    "writes": [],
+    "totalWait": 0,
+    "stepCount": 1
+  },
+  {
+    "name": "Recipe - Review Request",
+    "id": "79fb9704-3d7a-427a-bca9-0b3d37d407e3",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "opportunity_status_changed",
+        "name": "Opportunity marked as won",
+        "active": false,
+        "stage": "e4c884d6-8725-4cbe-8b6a-f9d4adc91920"
+      }
+    ],
+    "writes": [],
+    "totalWait": 0,
+    "stepCount": 3
+  },
+  {
+    "name": "Remove from email and SMS drip",
+    "id": "35280fa0-dd8f-457d-b657-abdc2cbc696f",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "reputation_review_received",
+        "name": "New Review Received",
+        "active": true,
+        "stage": null
+      },
+      {
+        "type": "reputation_review_received",
+        "name": "New Review Received",
+        "active": true,
+        "stage": null
+      }
+    ],
+    "writes": [],
+    "totalWait": 0,
+    "stepCount": 3
+  },
+  {
+    "name": "SMS/EMAIL DRIP",
+    "id": "456475e4-f4f4-4b83-b792-8047d83bcfcd",
+    "allowMultiple": false,
+    "trigs": [],
+    "writes": [],
+    "totalWait": 54.08,
+    "stepCount": 45
+  },
+  {
+    "name": "Student Enrolled",
+    "id": "0cae67f2-c4e7-4d2c-8290-f1b18216e7b3",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Trial Conversion / STUDENT ENROLLED (WON)"
+      },
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Copy of Pipeline Stage Changed",
+        "active": true,
+        "stage": "Back to the Mats / RE ENROLLED"
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 0
+      }
+    ],
+    "totalWait": 0,
+    "stepCount": 12
+  },
+  {
+    "name": "Trial Active Reactivation Campaign",
+    "id": "57953dea-4fad-4a92-93bd-fb16fe58996d",
+    "allowMultiple": false,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": "Trial Credit Monitoring / REACTIVATION"
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 14,
+        "stage": "Trial Credit Monitoring / LOST"
+      }
+    ],
+    "totalWait": 14,
+    "stepCount": 11
+  },
+  {
+    "name": "Trial Inactive Reactivation Campaign",
+    "id": "90d8bc59-ece0-4c86-8b4a-fa4d7fce2995",
+    "allowMultiple": false,
+    "trigs": [],
+    "writes": [
+      {
+        "atDay": 51,
+        "stage": "Trial Conversion / LOST / COLD"
+      }
+    ],
+    "totalWait": 51,
+    "stepCount": 13
+  },
+  {
+    "name": "Trial Nurture Campaign",
+    "id": "13a7c569-885f-4d50-a9ce-0a8583115197",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Lead Acq → Trial Nurture entered",
+        "active": true,
+        "stage": "Lead Acquisition / TRIAL NURTURE"
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 23,
+        "stage": "Lead Acquisition / NURTURE CAMPAIGN"
+      }
+    ],
+    "totalWait": 23,
+    "stepCount": 17
+  },
+  {
+    "name": "[Backflow] Appointment status changed → website webhook",
+    "id": "f15e9b72-baa3-40e3-b4f6-8cd5a963cafe",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "appointment",
+        "name": "Appointment Status",
+        "active": true,
+        "stage": null
+      }
+    ],
+    "writes": [],
+    "totalWait": 0,
+    "stepCount": 1
+  },
+  {
+    "name": "[Backflow] Bot Booking → Pipeline Orchestrator",
+    "id": "e63f4ca8-468c-44eb-abf5-8de61cfca078",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "customer_appointment",
+        "name": "Customer Booked Appointment",
+        "active": true,
+        "stage": null
+      }
+    ],
+    "writes": [],
+    "totalWait": 0,
+    "stepCount": 1
+  },
+  {
+    "name": "[Backflow] Trial Conversion stage changed → website webhook",
+    "id": "463ba741-426f-49a2-b72a-f7a1c4e0e1fb",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": null
+      }
+    ],
+    "writes": [],
+    "totalWait": 0,
+    "stepCount": 1
+  },
+  {
+    "name": "[Backflow] Trial Credit Monitoring stage changed → website webhook",
+    "id": "1c2d5739-cb0e-4e5a-94d2-20e23f469702",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "pipeline_stage_updated",
+        "name": "Pipeline Stage Changed",
+        "active": true,
+        "stage": null
+      }
+    ],
+    "writes": [],
+    "totalWait": 0,
+    "stepCount": 1
+  },
+  {
+    "name": "[Inbound] Chat Widget → Pipeline Orchestrator",
+    "id": "3ba5c152-7ecb-466f-82db-1dba8b94c843",
+    "allowMultiple": true,
+    "trigs": [
+      {
+        "type": "customer_reply",
+        "name": "Customer Replied",
+        "active": true,
+        "stage": null
+      }
+    ],
+    "writes": [
+      {
+        "atDay": 0,
+        "stage": "Lead Acquisition / TRIAL NURTURE"
+      }
+    ],
+    "totalWait": 0,
+    "stepCount": 7
+  },
+  {
+    "name": "[Revival] Mark Revived Lead",
+    "id": "7ff5132d-3eed-48dc-85df-2d43a12a6fe8",
+    "allowMultiple": false,
+    "trigs": [
+      {
+        "type": "customer_reply",
+        "name": "Customer Replied",
+        "active": true,
+        "stage": null
+      }
+    ],
+    "writes": [],
+    "totalWait": 3,
+    "stepCount": 4
+  }
+]
