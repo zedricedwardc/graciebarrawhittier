@@ -677,6 +677,86 @@ If you're stuck on what an endpoint expects: open Chrome DevTools → Network on
 
 ---
 
+## 12. Enrolment must have exactly one path
+
+**The rule:** a contact must be enrolled into a campaign workflow by exactly ONE mechanism — either a GHL trigger, or an explicit `addContactToWorkflow` call from the website — **never both**. A workflow that contains an `Update Opportunity Stage → X` action must not also carry a `Pipeline Stage Changed → X` trigger on that same workflow, because the action re-fires the trigger it lives inside.
+
+### The failure this caused (Jul 2026 booking collapse)
+
+`Trial Nurture Campaign` had:
+- a `pipeline_stage_updated` trigger firing on entry to Lead Acquisition / TRIAL NURTURE, **and**
+- `allowMultiple: true` ("Allow Re-entry") enabled.
+
+Separately, the website's `handleOptIn` called `addContactToWorkflow` on this same workflow at opt-in time (day 0). A different workflow, `Opt in Message`, waited 1 day and then moved the opp from NEW LEAD to TRIAL NURTURE — which fired the stage trigger above. Because re-entry was allowed, the trigger enrolled the contact a **second** time.
+
+Both runs then proceeded independently, 24 hours out of phase:
+
+| # | What happens | Result |
+|---|---|---|
+| 1 | Website `handleOptIn` creates the Lead Acq opp in NEW LEAD | fires `Opt in Message` |
+| 2 | Website *also* calls `addContactToWorkflow(WORKFLOW_ID_TRIAL_NURTURE)` | Trial Nurture run #1 starts, day 0 |
+| 3 | `Opt in Message` waits 1 day, then moves the opp to TRIAL NURTURE | fires the stage trigger |
+| 4 | Trigger enrols the contact again; `allowMultiple: true` permits it | Trial Nurture run #2 starts, day 1 |
+| 5 | Both runs proceed independently, 24h out of phase | every email + SMS sent twice, ~24h apart |
+
+Every nurture email and SMS went out twice, 24 hours out of phase, for every lead, for six weeks, before it was caught.
+
+### The check to run when building any campaign workflow
+
+Before publishing a campaign workflow, verify:
+
+1. **Pick one enrolment mechanism.** If the workflow has a stage-changed trigger, the website must **not** also call `addContactToWorkflow` for it. If enrolment is meant to be explicit (website-driven), the workflow must **not** carry a stage trigger that duplicates it.
+2. **`allowMultiple` ("Allow Re-entry") should be `false`** unless re-entry is a genuinely intended behaviour (e.g. a workflow meant to fire on every reply, or every appointment). Re-entry is what turns an enrolment race into a silent, sustained duplicate.
+3. Cross-check against `config/ghl-schema.ts`'s `WORKFLOWS` array — each entry's `trigger` field should describe the workflow's single enrolment path, and its description should state explicitly which mechanism is authoritative (see the `WORKFLOW_ID_TRIAL_NURTURE` entry for the corrected wording after this incident).
+
+---
+
+## 13. Stage auto-move tails: every timer must be verified
+
+`STAGE_TRANSITIONS` in `config/ghl-schema.ts` declares `auto_move_after` timers on many stage entries. **Nothing in code implements them** — there is no handler and no cron reading `STAGE_TRANSITIONS` at runtime. They exist only as hand-built `Wait` + `Update Opportunity Stage` steps inside the GHL campaign workflows themselves. A timer declared in the schema is therefore not an implemented timer — it is a spec that someone must have manually built correctly in the GHL UI, and that can silently drift out of sync with no error anywhere.
+
+### What was found live vs. what the schema declares (audited 2026-07-31)
+
+| Workflow | Terminal write | Configured | Spec (`CUSTOM_VALUES`) | Status |
+|---|---|---|---|---|
+| Trial Nurture Campaign | → Lead Acq / NURTURE CAMPAIGN | 23 d | 7 d (`trial_nurture_to_nurture_campaign_days`) | 3.3× too long |
+| Last Chance Nurture Campaign | → Lead Acq / LOST / COLD | 51 d | 14 d (`nurture_campaign_to_lost_days`) | 3.6× too long |
+| Another Trial Booking Campaign | → Credit Mon / REACTIVATION | 57 d | 14 d (`credit_active_to_reactivation_days`) | 4.1× too long |
+| Trial Active Reactivation Campaign | → Credit Mon / LOST | 14 d | 21 d (`credit_reactivation_to_lost_days`) | 7 d too short |
+
+**Consequence:** a lead took 1 + 23 + 51 = **75 days** to reach LOST/COLD instead of the specified 22 (1-day NEW LEAD → TRIAL NURTURE move + 7-day + 14-day spec), while being messaged in duplicate throughout that entire span (see §12).
+
+### The build rule
+
+Every `auto_move_after` entry in `STAGE_TRANSITIONS` must have a corresponding tail inside the named workflow, built as:
+
+1. **`Wait`** — duration set from the custom value's merge tag (`{{custom_values.<afterCustomValueKey>}}`), **not a literal number**. A literal silently diverges from the schema the moment someone tunes the custom value, with nothing flagging the mismatch.
+2. **A condition immediately before the stage-move step**, confirming the opportunity is still in the source stage. Without this, a lead who exits the stage early (e.g. books on day 3) still gets dragged into the terminal stage on day 14 or 21 by a timer that should have cancelled. (`config/ghl-schema.ts` documents this as the implicit semantics of every `auto_move_*` action — cancel automatically on stage exit — but that cancellation only happens if the workflow actually checks for it.)
+3. **`Update Opportunity Stage`** → the declared `targetStage`, on the correct pipeline.
+
+### Remaining declared timers not verified in this audit
+
+The audit above only measured the four timers already in the table. These four `CUSTOM_VALUES`-backed timers are also declared in `STAGE_TRANSITIONS` but were **not checked live** — verify each has a correctly-timed, merge-tag-driven, exit-guarded tail before trusting it on any new build:
+
+- `new_lead_to_trial_nurture_hours` (NEW LEAD → TRIAL NURTURE)
+- `rebooking_to_inactive_days` (INTRO CLASS REBOOKING → TRIAL INACTIVE REACTIVATION)
+- `inactive_reactivation_to_lost_days` (TRIAL INACTIVE REACTIVATION → LOST)
+- `no_show_to_rebooking_minutes` (NO-SHOW → INTRO CLASS REBOOKING)
+
+---
+
+## 14. Known structural defects to check for
+
+Five structural defects were found live in the audited account. None of them are hypothetical — verify a new build doesn't have them:
+
+- **A published workflow with no trigger.** It can never fire, silently. Three were found in this account, including one (`Trial Inactive Reactivation Campaign`) whose absent trigger made an entire declared pipeline stage (TRIAL INACTIVE REACTIVATION) unreachable.
+- **A campaign that skips a declared stage.** `Intro Class Rebooking Campaign` jumped NO-SHOW straight to LOST/COLD, bypassing TRIAL INACTIVE REACTIVATION entirely — compounding the missing-trigger defect above into a stage that could never hold an opportunity.
+- **An opportunity-update step writing an `undefined` or stale stage id.** One workflow's stage-write step referenced a stage id that no longer resolves to any stage in any current pipeline (a deleted stage); another wrote an unresolvable `undefined` stage id outright.
+- **An appointment-triggered workflow with `allowMultiple: true`.** An appointment trigger with re-entry allowed enrols once **per appointment booked**, not once per contact. Booking three sessions in one sitting (or two siblings booked together) produces three overlapping reminder/confirmation sequences for the same contact within minutes to hours of each other.
+- **A leftover snapshot workflow still published alongside its replacement.** Old workflows that duplicate a newer purpose-built one (same trigger, same audience) keep firing even after everyone assumes they've been retired — check the full published-workflow list against what `config/ghl-schema.ts`'s `WORKFLOWS` array actually declares, and flag anything published-but-undeclared for review before assuming it's dead.
+
+---
+
 ## Related docs
 
 - [`ghl-api-access-methods.md`](./ghl-api-access-methods.md) — public-API auth, PIT scopes, Conversation AI agent endpoints

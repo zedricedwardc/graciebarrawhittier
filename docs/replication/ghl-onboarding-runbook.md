@@ -220,6 +220,31 @@ If all 4 smoke tests pass, the integration is live for this client.
 
 ---
 
+## Phase H — Post-launch messaging-health verification *(ongoing)*
+
+Stage auto-move timers and workflow enrolment triggers live entirely inside GHL workflows built by hand in Phase C — `npm run onboard:ghl` does not and cannot provision them (see [`ghl-workflow-build-from-scratch.md` §13](./ghl-workflow-build-from-scratch.md#13-stage-auto-move-tails-every-timer-must-be-verified)). They can drift silently for weeks with no error surfaced anywhere, which is exactly what happened to GBW in Jul 2026 — a duplicate-enrolment bug plus three mistimed stage timers ran undetected for six weeks and collapsed open bookings from 37 to 4.
+
+Run the compensating control at **7 and 30 days** after every new client launch:
+
+```bash
+npm run audit:messaging
+```
+
+A non-zero exit means duplicate sends, unanswered replies, or a stalled stage timer. Investigate before the next scheduled run, not after — this detector exists because nothing else will tell you.
+
+### Known limitations of this detector — don't over-trust it
+
+- **FU-1 (incomplete on high-volume accounts):** the audit currently declares `INCOMPLETE` and exits non-zero on any account with more than 100 conversations, because conversation pagination isn't implemented yet. On a busy account this means every run is red for a reason unrelated to the funnel — don't let that desensitize you to ignoring the exit code.
+- **FU-2 (SMS-only in practice):** GHL omits the `direction` field on roughly 71% of email records, so the detector's duplicate/unanswered-reply detection is effectively SMS-only and under-reports email duplicates.
+
+Both limitations are recorded in [`docs/superpowers/plans/2026-07-31-appointment-collapse-remediation.md`](../superpowers/plans/2026-07-31-appointment-collapse-remediation.md). Neither invalidates the detector — a non-zero exit is still meaningful — but a clean/complete run cannot yet be taken as proof the funnel is healthy on a high-volume or email-heavy account.
+
+### Stage timers are not provisioned by the onboard script
+
+`npm run onboard:ghl` provisions custom values, tags, and discovers IDs — it does **not** build or verify the `Wait` + `Update Opportunity Stage` tails that implement `STAGE_TRANSITIONS`' `auto_move_after` timers. Those must be built by hand in the GHL UI for every new academy (Phase C.3) and verified against the checklist in `ghl-workflow-build-from-scratch.md` §13 before launch — the onboard script has no way to detect a missing or mistimed tail.
+
+---
+
 ## Common drift / failure modes
 
 | Symptom | Likely cause | Fix |
