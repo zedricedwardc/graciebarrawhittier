@@ -68,17 +68,24 @@ describe('selectOverdueLeadAcqOpps', () => {
 });
 
 describe('selectIdleCreditOpps', () => {
-  it('moves a CREDIT ACTIVE opp past its 14d timer to REACTIVATION and flags it as messaging', () => {
+  it('moves a CREDIT ACTIVE opp past its 21d timer to REACTIVATION and flags it as messaging', () => {
     const moves = selectIdleCreditOpps([opp({ stageName: 'CREDIT ACTIVE', updatedAt: daysAgo(45) })], NOW);
     expect(moves).toHaveLength(1);
     expect(moves[0]!).toMatchObject({
       toStage: 'REACTIVATION', pipelineKey: 'CREDIT_MON', sendsMessages: true, targetStatus: 'open',
     });
-    expect(moves[0]!.daysOverdue).toBe(31);
+    expect(moves[0]!.daysOverdue).toBe(24);
   });
 
   it('leaves a CREDIT ACTIVE opp within its timer alone', () => {
     expect(selectIdleCreditOpps([opp({ stageName: 'CREDIT ACTIVE', updatedAt: daysAgo(10) })], NOW)).toEqual([]);
+  });
+
+  // Regression guard for the 2026-07-31 drift: the live Another Trial Booking Campaign
+  // releases at 21 days, so a 15-day-idle opp has NOT been released yet. Selecting it
+  // would text a customer the workflow deliberately still holds.
+  it('does not select an opp idle 15 days, which the live 21d workflow has not released', () => {
+    expect(selectIdleCreditOpps([opp({ stageName: 'CREDIT ACTIVE', updatedAt: daysAgo(15) })], NOW)).toEqual([]);
   });
 
   it('ignores opps already past CREDIT ACTIVE', () => {
@@ -87,7 +94,7 @@ describe('selectIdleCreditOpps', () => {
 
   it('returns most-overdue first so batching rescues the coldest leads last', () => {
     const moves = selectIdleCreditOpps([
-      opp({ id: 'a', stageName: 'CREDIT ACTIVE', updatedAt: daysAgo(20) }),
+      opp({ id: 'a', stageName: 'CREDIT ACTIVE', updatedAt: daysAgo(25) }),
       opp({ id: 'b', stageName: 'CREDIT ACTIVE', updatedAt: daysAgo(50) }),
     ], NOW);
     expect(moves.map((m) => m.oppId)).toEqual(['b', 'a']);

@@ -11,7 +11,15 @@ const DAY_MS = 86_400_000;
 /** NEW LEAD (24h) + TRIAL NURTURE (7d) + NURTURE CAMPAIGN (14d) = 22d; use 21 as the practical deadline. */
 const LEAD_ACQ_TERMINAL_DAYS = 21;
 const NURTURE_CAMPAIGN_TO_LOST_DAYS = 14;
-const CREDIT_ACTIVE_TO_REACTIVATION_DAYS = 14;
+/**
+ * Raised 14 → 21 on 2026-07-31 to track `credit_active_to_reactivation_days`, which was
+ * itself raised to match the Another Trial Booking Campaign as actually built (retimed
+ * live 57d → 21d). Leaving this at 14 made the credits rescue report opps as overdue that
+ * the live workflow had not yet released, overstating how many customers were eligible for
+ * a drip that MESSAGES THEM. Keep this in lockstep with the custom value in
+ * config/ghl-schema.ts — the two drifting apart is exactly how the wrong people get texted.
+ */
+const CREDIT_ACTIVE_TO_REACTIVATION_DAYS = 21;
 
 export interface RescueOpp {
   id: string;
