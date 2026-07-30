@@ -419,8 +419,16 @@ export const CUSTOM_VALUES: readonly CustomValueDef[] = [
   {
     fieldKey: 'credit_active_to_reactivation_days',
     name: 'CREDIT ACTIVE → REACTIVATION timeout (days)',
-    defaultValue: '14',
-    description: 'How long the another-trial campaign runs before pushing to reactivation.',
+    defaultValue: '21',
+    description:
+      'How long the another-trial campaign runs before pushing to reactivation. ' +
+      'Raised 14 → 21 on 2026-07-31 to match the campaign as actually built: the Another ' +
+      'Trial Booking Campaign carries ~15 message beats, and forcing them into 14 days ' +
+      'would have meant roughly one message per day to credit holders — a 4x density ' +
+      'increase, immediately after over-messaging was identified as the cause of the ' +
+      'Jul 2026 booking collapse. The live workflow was retimed 57d → 21d with a ' +
+      'front-loaded taper (daily through day 6, then every 2 days). Shorten this only ' +
+      'by removing message beats from the workflow, not by compressing the waits again.',
   },
   {
     fieldKey: 'credit_reactivation_to_lost_days',
