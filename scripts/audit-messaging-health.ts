@@ -65,7 +65,7 @@ function locId(): string {
 /**
  * Pipeline IDs live in .env.local and were pasted from the GHL UI carrying a
  * UTF-8 BOM (﻿) *inside* the surrounding double quotes — e.g.
- * `PIPELINE_ID_LEAD_ACQ="﻿iCvmuak82CNxovJfbWs8"`. dotenv strips the quotes
+ * `PIPELINE_ID_LEAD_ACQ="﻿<pipeline-id>"`. dotenv strips the quotes
  * but not the BOM, so the raw env var is silently 1 char too long unless we
  * strip both here.
  */
@@ -190,14 +190,28 @@ async function main() {
 
   const allMessages: AuditMessage[] = [];
   for (const convo of conversations ?? []) {
-    // Response is double-wrapped in production: { messages: { lastMessageId,
-    // nextPage, messages: [...] }, traceId }. Confirmed by a live call — the
-    // published OpenAPI spec documents the inner shape as if it were the
-    // top-level response, which it is not.
-    const data = await ghl<{ messages?: { messages?: GhlMessage[] } }>(
+    // GHL's published OpenAPI spec documents this endpoint's response as
+    // `{ messages: [...] }` (a flat array). Production actually returns it
+    // double-wrapped: `{ messages: { lastMessageId, nextPage, messages: [...] },
+    // traceId }` — confirmed by a live call. Accept BOTH shapes and warn loudly
+    // (never silently count 0) if a future response matches neither, so this
+    // fallback is not "cleaned up" back down to a single assumed shape.
+    const raw = await ghl<{ messages?: GhlMessage[] | { messages?: GhlMessage[] } }>(
       `/conversations/${encodeURIComponent(convo.id)}/messages?limit=100`,
     );
-    for (const m of data.messages?.messages ?? []) {
+    const wrapper = raw.messages;
+    let msgs: GhlMessage[];
+    if (Array.isArray(wrapper)) {
+      msgs = wrapper; // shape per GHL's published spec
+    } else if (Array.isArray(wrapper?.messages)) {
+      msgs = wrapper.messages; // shape actually returned in production
+    } else {
+      console.warn(
+        `  WARN conversation ${convo.id}: unrecognised messages response shape — counted as 0. Investigate before trusting this run.`,
+      );
+      msgs = [];
+    }
+    for (const m of msgs) {
       if (m.messageType !== 'TYPE_SMS' && m.messageType !== 'TYPE_EMAIL') continue;
       const contactId = m.contactId ?? convo.contactId;
       if (!contactId || !m.direction) continue;

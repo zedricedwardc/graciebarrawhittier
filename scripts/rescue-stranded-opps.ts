@@ -108,7 +108,7 @@ function locId(): string {
 /**
  * Pipeline IDs live in .env.local and were pasted from the GHL UI carrying a
  * UTF-8 BOM (﻿) *inside* the surrounding double quotes — e.g.
- * `PIPELINE_ID_LEAD_ACQ="﻿iCvmuak82CNxovJfbWs8"`. dotenv strips the quotes
+ * `PIPELINE_ID_LEAD_ACQ="﻿<pipeline-id>"`. dotenv strips the quotes
  * but not the BOM, so the raw env var is silently 1 char too long unless we
  * strip both here.
  */
